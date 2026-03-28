@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!-- Content Header (Page header) START -->
+<!-- Define all the Page related headers from Controller -->
+<section class="app-content-header" th:fragment="maincontainheader">
+    <div class="app-content-header">
+        <!--begin::Container-->
+        <div class="container-fluid">
+            <!--begin::Row-->
+            <div class="row">
+                <div class="col-sm-8">
+                    <h3 class="mb-0"  th:text="${contentTitle}">Layout Custom Area</h3>
+                </div>
+                <div class="col-sm-4">
+                    <ol class="breadcrumb float-sm-end">
+                        <li class="breadcrumb-item"><a href="#" th:text="${contentPath}">Home</a></li>
+                        <li class="breadcrumb-item active" aria-current="page" th:text="${contentSubPath}">Fixed Layout</li>
+                    </ol>
+                </div>
+            </div>
+            <!--end::Row-->
+        </div>
+        <!--end::Container-->
+    </div>
+</section>
+<!-- Content Header (Page header) END -->
+<body>
+</body>
+</html>
+
+
+

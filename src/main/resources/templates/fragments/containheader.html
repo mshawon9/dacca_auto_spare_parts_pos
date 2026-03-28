@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!-- Content Header (Page header) START -->
+<!-- Define all the Page related headers from Controller -->
+<section class="content-header" th:fragment="containheader(buttonHref, buttonText, buttonPermission)">
+    <div class="container-fluid">
+        <div class="row">
+            <!--<div class="col-sm-6">
+                <h1 class="m-0" th:text="${contentTitle}"></h1>
+            </div>-->
+            <!-- /.col -->
+            <div class="col-sm-6">
+                <ol class="breadcrumb float-sm-left">
+                    <li class="breadcrumb-item"><a href="#" th:text="${contentPath}" >Home</a></li>
+                    <li class="breadcrumb-item active" th:text="${contentSubPath}">Dashboard v3</li>
+                </ol>
+            </div>
+
+            <div class="col-sm-6" th:if="${#authorization.expression('hasAnyAuthority('''+buttonPermission+''')')}">
+                <a th:href="${buttonHref}" class="btn orange-button float-right custom-button" th:text="${buttonText}">Dynamic Button</a>
+            </div>
+        </div><!-- /.row -->
+    </div><!-- /.container-fluid -->
+</section>
+<!-- Content Header (Page header) END -->
+<body>
+</body>
+</html>
+
+
+

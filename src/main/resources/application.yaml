@@ -1,3 +1,41 @@
 spring:
   application:
     name: pos
+
+  output:
+    ansi:
+      enabled: always
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: jdbc:postgresql://localhost:5432/dacca_pos?createDatabaseIfNotExist=true
+    username: postgres
+    password: admin
+
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+logging:
+  level:
+    root: INFO
+    org.springframework.web: DEBUG
+    org.hibernate: ERROR
+    org.springframework.boot.web.servlet.support.ErrorPageFilter: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: TRACE
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+#spring.datasource.hikari.maximum-pool-size: 20
+#spring.datasource.hikari.minimum-idle: 5
+#spring.datasource.hikari.idle-timeout: 30000
+#spring.datasource.hikari.max-lifetime: 1800000
+
+server:
+  port: 8081
