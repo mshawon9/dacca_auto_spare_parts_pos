@@ -2,6 +2,13 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <!-- Head (all meta link scripts go here ) START -->
 <div th:replace="fragments/head :: head"></div>
+<style>
+  .select2-container--bootstrap-5 .select2-search__field {
+    color: #212529;
+    caret-color: #212529;
+    background-color: #fff;
+  }
+</style>
 <head/>
   <!--end::Head-->
   <!--begin::Body-->
@@ -74,7 +81,30 @@
                       </button>
                     </div>
                   </div>
-                  <div class="card-body">Start creating your amazing application!</div>
+                  <div class="card-body" id="categoryModal">Start creating your amazing application!
+                    <select class="form-select" id="multiple-select-field" data-placeholder="Choose anything"  multiple="multiple">
+                      <option>Christmas Island</option>
+                      <option>South Sudan</option>
+                      <option>Jamaica</option>
+                      <option>Kenya</option>
+                      <option>French Guiana</option>
+                      <option>Mayotta</option>
+                      <option>Liechtenstein</option>
+                      <option>Denmark</option>
+                      <option>Eritrea</option>
+                      <option>Gibraltar</option>
+                      <option>Saint Helena, Ascension and Tristan da Cunha</option>
+                      <option>Haiti</option>
+                      <option>Namibia</option>
+                      <option>South Georgia and the South Sandwich Islands</option>
+                      <option>Vietnam</option>
+                      <option>Yemen</option>
+                      <option>Philippines</option>
+                      <option>Benin</option>
+                      <option>Czech Republic</option>
+                      <option>Russia</option>
+                    </select>
+                  </div>
                   <!-- /.card-body -->
                   <div class="card-footer">Footer</div>
                   <!-- /.card-footer-->
@@ -131,6 +161,31 @@
     <!-- common script START -->
     <div th:replace="fragments/commonscripts :: commonscripts"/>
     <!-- common script END -->
+
+    <!-- Scripts -->
+    <script src="/resources/js/select2.min.js"></script>
+    <script>
+
+      $(function () {
+        const $brandIds = $('#multiple-select-field');
+
+        $brandIds.select2({
+          theme: 'bootstrap-5',
+          width: '100%',
+          placeholder: 'Select brands',
+          dropdownParent: $('#categoryModal'),
+          closeOnSelect: false
+        });
+
+        // Fix focus/cursor issue, especially with jQuery 3.6
+        $brandIds.on('select2:open', function () {
+          setTimeout(function () {
+            const $searchField = $('.select2-container--open .select2-search__field');
+            $searchField.trigger('focus');
+          }, 0);
+        });
+      });
+    </script>
   </body>
   <!--end::Body-->
 </html>

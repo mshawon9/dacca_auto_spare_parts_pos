@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!-- Head (all meta link scripts go here ) START -->
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<!--end::Head-->
+<!--begin::Body-->
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<!--begin::App Wrapper-->
+<div class="app-wrapper">
+    <!-- TOP Menu (all meta link scripts go here ) START -->
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <!-- TOP Menu (all meta link scripts go here ) END -->
+
+    <!-- Left side column. contains the sidebar START -->
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+    <!-- Left side column. contains the sidebar END -->
+
+    <!--begin::App Main-->
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-sm-6">
+                        <h3 class="mb-0">Category Details</h3>
+                    </div>
+                    <div class="col-sm-6 text-end">
+                        <a th:href="@{/categories}" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Basic Information</h3>
+                            </div>
+                            <div class="card-body">
+                                <dl class="row mb-0">
+                                    <dt class="col-sm-4">ID</dt>
+                                    <dd class="col-sm-8" th:text="${category.id()}">1</dd>
+
+                                    <dt class="col-sm-4">Name</dt>
+                                    <dd class="col-sm-8 fw-semibold" th:text="${category.name()}">Brake Pad</dd>
+
+                                    <dt class="col-sm-4">Description</dt>
+                                    <dd class="col-sm-8" th:text="${category.description() != null ? category.description() : '-'}">Description</dd>
+
+                                    <dt class="col-sm-4">Status</dt>
+                                    <dd class="col-sm-8">
+                                        <span th:if="${category.active()}" class="badge text-bg-success">Active</span>
+                                        <span th:unless="${category.active()}" class="badge text-bg-secondary">Inactive</span>
+                                    </dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Mapped Brands</h3>
+                            </div>
+                            <div class="card-body">
+                                <div th:if="${#lists.isEmpty(mappedBrands)}" class="text-muted">
+                                    No brands mapped to this category.
+                                </div>
+
+                                <div th:if="${!#lists.isEmpty(mappedBrands)}" class="d-flex flex-wrap gap-2">
+                                    <span th:each="brand : ${mappedBrands}"
+                                          class="badge rounded-pill text-bg-primary px-3 py-2"
+                                          th:text="${brand.name()}">
+                                        KYB
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3 class="card-title">Brand Table</h3>
+                            </div>
+                            <div class="card-body p-0">
+                                <table class="table table-hover align-middle mb-0">
+                                    <thead class="table-light">
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Code</th>
+                                        <th>Status</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:if="${#lists.isEmpty(mappedBrands)}">
+                                        <td colspan="4" class="text-center text-muted py-4">
+                                            No mapped brands found.
+                                        </td>
+                                    </tr>
+                                    <tr th:each="brand : ${mappedBrands}">
+                                        <td th:text="${brand.id()}">1</td>
+                                        <td th:text="${brand.name()}">KYB</td>
+                                        <td th:text="${brand.code() != null ? brand.code() : '-'}">KYB</td>
+                                        <td>
+                                            <span th:if="${brand.active()}" class="badge text-bg-success">Active</span>
+                                            <span th:unless="${brand.active()}" class="badge text-bg-secondary">Inactive</span>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!--end::App Main-->
+    <!--begin::Footer-->
+    <footer class="app-footer">
+        <!--begin::To the end-->
+        <div class="float-end d-none d-sm-inline">Anything you want</div>
+        <!--end::To the end-->
+        <!--begin::Copyright-->
+        <strong>
+            Copyright &copy; 2014-2026&nbsp;
+            <a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.
+        </strong>
+        All rights reserved.
+        <!--end::Copyright-->
+    </footer>
+    <!--end::Footer-->
+</div>
+<!--end::App Wrapper-->
+<!--begin::Script-->
+<!--begin::Third Party Plugin(OverlayScrollbars)-->
+<!-- =============================================== -->
+<!-- common script START -->
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<!-- common script END -->
+</body>
+<!--end::Body-->
+</html>
