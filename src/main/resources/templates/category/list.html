@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!-- Head (all meta link scripts go here ) START -->
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<!--end::Head-->
+<!--begin::Body-->
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<!--begin::App Wrapper-->
+<div class="app-wrapper">
+    <!-- TOP Menu (all meta link scripts go here ) START -->
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <!-- TOP Menu (all meta link scripts go here ) END -->
+
+    <!-- Left side column. contains the sidebar START -->
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+    <!-- Left side column. contains the sidebar END -->
+
+    <!--begin::App Main-->
+    <main class="app-main">
+        <div class="app-content-top-area">
+            <div class="container-fluid">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="fw-semibold">Category Management</div>
+                    </div>
+                    <div class="col-md-6 text-end">
+                        <button type="button" class="btn btn-primary" id="btnCreateCategory" data-bs-toggle="modal"
+                                data-bs-target="#categoryModal"><i class="bi bi-plus-circle me-1"></i> Create Category
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-sm-8"><h3 class="mb-0">Category List</h3></div>
+                    <div class="col-sm-4">
+                        <ol class="breadcrumb float-sm-end">
+                            <li class="breadcrumb-item"><a th:href="@{/}">Home</a></li>
+                            <li class="breadcrumb-item active">Categories</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="app-content">
+            <div class="container-fluid">
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert"><span
+                        th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div> <!-- Search Card -->
+                <div class="card mb-3">
+                    <div class="card-header"><h3 class="card-title">Search</h3></div>
+                    <div class="card-body">
+                        <form th:action="@{/categories}" method="get" class="row g-3 align-items-end">
+                            <div class="col-md-4"><label for="brandId" class="form-label">Filter by Brand</label>
+                                <select id="brandId" name="brandId" class="form-select">
+                                    <option value="">All Brands</option>
+                                    <option th:each="brand : ${brands}" th:value="${brand.id()}"
+                                            th:text="${brand.name()}"
+                                            th:selected="${selectedBrandId != null and selectedBrandId == brand.id()}">
+                                        KYB
+                                    </option>
+                                </select></div>
+                            <div class="col-md-8">
+                                <button type="submit" class="btn btn-primary"><i class="bi bi-search me-1"></i> Search
+                                </button>
+                                <a th:href="@{/categories}" class="btn btn-outline-secondary ms-2"> Reset </a></div>
+                        </form>
+                    </div>
+                </div> <!-- List Card -->
+                <div class="card">
+                    <div class="card-header"><h3 class="card-title">Categories</h3></div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th style="width: 80px;">ID</th>
+                                    <th>Name</th>
+                                    <th>Description</th>
+                                    <th>Status</th>
+                                    <th class="text-end" style="width: 220px;">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(categories)}">
+                                    <td colspan="5" class="text-center text-muted py-4"> No categories found.</td>
+                                </tr>
+                                <tr th:each="item : ${categories}">
+                                    <td th:text="${item.id()}">1</td>
+                                    <td class="fw-semibold" th:text="${item.name()}">Brake Pad</td>
+                                    <td th:text="${item.description() != null ? item.description() : '-'}">Description
+                                    </td>
+                                    <td><span th:if="${item.active()}" class="badge text-bg-success">Active</span> <span
+                                            th:unless="${item.active()}" class="badge text-bg-secondary">Inactive</span>
+                                    </td>
+                                    <td class="text-end"><a th:href="@{/categories/{id}(id=${item.id()})}"
+                                                            class="btn btn-sm btn-info"> <i class="bi bi-eye"></i> </a>
+                                        <button type="button" class="btn btn-sm btn-warning btn-edit-category"
+                                                data-bs-toggle="modal" data-bs-target="#categoryModal"
+                                                th:attr="data-id=${item.id()}, data-name=${item.name()}, data-description=${item.description()}, data-active=${item.active()}">
+                                            <i class="bi bi-pencil-square"></i></button>
+                                        <form th:action="@{/categories/{id}/delete(id=${item.id()})}" method="post"
+                                              class="d-inline" onsubmit="return confirm('Delete this category?');">
+                                            <button type="submit" class="btn btn-sm btn-danger"><i
+                                                    class="bi bi-trash"></i></button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer"> Total: <span th:text="${#lists.size(categories)}">0</span> item(s)</div>
+                </div>
+            </div>
+        </div>
+        <div class="app-content-bottom-area">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div>Category listing with brand filter</div>
+                    </div>
+                    <div class="col-md-6 text-end"><a th:href="@{/categories}" class="btn btn-secondary">Refresh</a>
+                    </div>
+                </div>
+            </div>
+        </div> <!-- Modal -->
+        <div class="modal fade" id="categoryModal" tabindex="-1" aria-labelledby="categoryModalLabel"
+             aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form id="categoryForm" method="post" th:object="${form}" th:attr="action=${modalAction}">
+                        <div class="modal-header"><h5 class="modal-title" id="categoryModalLabel"
+                                                      th:text="${modalTitle}">Create Category</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3"><label for="name" class="form-label">Category Name <span
+                                    class="text-danger">*</span></label> <input type="text" id="name" th:field="*{name}"
+                                                                                class="form-control"
+                                                                                th:classappend="${#fields.hasErrors('name')} ? ' is-invalid' : ''"
+                                                                                placeholder="Enter category name">
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}">
+                                    Name error
+                                </div>
+                            </div>
+                            <div class="mb-3"><label for="description" class="form-label">Description</label> <textarea
+                                    id="description" th:field="*{description}" rows="3" class="form-control"
+                                    th:classappend="${#fields.hasErrors('description')} ? ' is-invalid' : ''"
+                                    placeholder="Enter description"></textarea>
+                                <div class="invalid-feedback" th:if="${#fields.hasErrors('description')}"
+                                     th:errors="*{description}"> Description error
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="brandIds" class="form-label">Brands</label>
+                                <select id="brandIds"
+                                        th:field="*{brandIds}"
+                                        class="form-select"
+                                        multiple="multiple">
+                                    <option th:each="brand : ${brands}"
+                                            th:value="${brand.id()}"
+                                            th:text="${brand.name()}">
+                                        KYB
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="form-check"><input class="form-check-input" type="checkbox" id="active"
+                                                           th:field="*{active}"> <label class="form-check-label"
+                                                                                        for="active"> Active </label>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel
+                            </button>
+                            <button type="submit" class="btn btn-primary"><span
+                                    th:text="${editMode} ? 'Update' : 'Create'">Create</span></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!--end::App Main-->
+    <!--begin::Footer-->
+    <footer class="app-footer">
+        <!--begin::To the end-->
+        <div class="float-end d-none d-sm-inline">Anything you want</div>
+        <!--end::To the end-->
+        <!--begin::Copyright-->
+        <strong>
+            Copyright &copy; 2014-2026&nbsp;
+            <a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.
+        </strong>
+        All rights reserved.
+        <!--end::Copyright-->
+    </footer>
+    <!--end::Footer-->
+</div>
+<!--end::App Wrapper-->
+<!--begin::Script-->
+<!--begin::Third Party Plugin(OverlayScrollbars)-->
+<!-- =============================================== -->
+<!-- common script START -->
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<!-- common script END -->
+<script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
+<script src="/resources/js/select2.min.js"></script>
+<script>
+    $(function () {
+        const $brandIds = $('#brandIds');
+
+        $brandIds.select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select brands',
+            dropdownParent: $('#categoryModal'),
+            closeOnSelect: false
+        });
+
+        // Fix focus/cursor issue, especially with jQuery 3.6
+        $brandIds.on('select2:open', function () {
+            setTimeout(function () {
+                const $searchField = $('.select2-container--open .select2-search__field');
+                $searchField.trigger('focus');
+            }, 0);
+        });
+    });
+</script>
+<script>
+    $(function () {
+        const categoryModal = new bootstrap.Modal(document.getElementById('categoryModal'));
+        const $form = $('#categoryForm');
+        const $modalTitle = $('#categoryModalLabel');
+
+        $('#btnCreateCategory').on('click', function () {
+            $form.attr('action', '/categories/create');
+            $modalTitle.text('Create Category');
+
+            $('#name').val('');
+            $('#description').val('');
+            $('#active').prop('checked', true);
+            $('#brandIds').val(null).trigger('change');
+        });
+
+        $('.btn-edit-category').on('click', function () {
+            const id = $(this).data('id');
+
+            $.get('/categories/' + id + '/edit-data', function (data) {
+                $form.attr('action', '/categories/' + id + '/edit');
+                $modalTitle.text('Edit Category');
+
+                $('#name').val(data.name || '');
+                $('#description').val(data.description || '');
+                $('#active').prop('checked', data.active === true);
+
+                $('#brandIds').val(data.brandIds || []).trigger('change');
+            });
+        });
+    });
+</script>
+</body>
+<!--end::Body-->
+</html>

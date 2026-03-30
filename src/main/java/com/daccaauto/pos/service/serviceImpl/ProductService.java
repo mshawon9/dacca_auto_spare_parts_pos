@@ -1,11 +1,8 @@
-package com.daccaauto.pos.serviceImpl;
+package com.daccaauto.pos.service.serviceImpl;
 
 import com.daccaauto.pos.dto.CreateProductRequest;
 import com.daccaauto.pos.entity.*;
-import com.daccaauto.pos.repository.BrandRepository;
-import com.daccaauto.pos.repository.ProductCategoryRepository;
-import com.daccaauto.pos.repository.ProductRepository;
-import com.daccaauto.pos.repository.VehicleApplicationRepository;
+import com.daccaauto.pos.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +18,7 @@ public class ProductService {
     private final BrandRepository brandRepository;
     private final ProductCategoryRepository categoryRepository;
     private final VehicleApplicationRepository vehicleApplicationRepository;
+    private final BrandCategoryRepository brandCategoryRepository;
 
     @Transactional
     public ProductEntity create(CreateProductRequest request) {
@@ -28,6 +26,11 @@ public class ProductService {
 
         if (productRepository.existsByBrandIdAndNormalizedPartNumber(request.getBrandId(), normalizedPartNumber)) {
             throw new IllegalArgumentException("Same brand cannot have duplicate part number");
+        }
+
+        if (!brandCategoryRepository.existsByBrandIdAndCategoryIdAndActiveTrue(
+                request.getBrandId(), request.getCategoryId())) {
+            throw new IllegalArgumentException("Selected brand is not allowed for the selected category");
         }
 
         BrandEntity brand = brandRepository.findById(request.getBrandId())
@@ -62,7 +65,7 @@ public class ProductService {
 
     private String normalizePartNumber(String input) {
         return input == null ? null
-                : input.replaceAll("[\\s\\-_/\\.]", "").toUpperCase(Locale.ROOT);
+                : input.replaceAll("[\\s\\-_/.]", "").toUpperCase(Locale.ROOT);
     }
 
     private String trimToNull(String input) {
