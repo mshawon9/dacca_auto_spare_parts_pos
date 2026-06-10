@@ -12,13 +12,13 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(
-        name = "product_application",
-        uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "uk_product_application_unique",
-                        columnNames = {"product_id", "vehicle_application_id"}
-                )
-        }
+    name = "product_applications",
+    uniqueConstraints = {
+        @UniqueConstraint(
+            name = "uk_product_application_unique",
+            columnNames = {"product_id", "vehicle_application_id"}
+        )
+    }
 )
 public class ProductApplicationEntity extends BaseEntity {
 

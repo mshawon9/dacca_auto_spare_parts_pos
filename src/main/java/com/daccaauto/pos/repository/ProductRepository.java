@@ -1,7 +1,6 @@
 package com.daccaauto.pos.repository;
 
 import com.daccaauto.pos.entity.ProductEntity;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -12,28 +11,30 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
 
     boolean existsByBrandIdAndNormalizedPartNumber(Long brandId, String normalizedPartNumber);
 
+    boolean existsByBrandIdAndNormalizedPartNumberAndIdNot(Long brandId, String normalizedPartNumber, Long id);
+
     @Query("""
-            select distinct p
-            from ProductEntity p
-            left join p.brand b
-            left join p.category c
-            left join p.applications pa
-            left join pa.vehicleApplication va
-            left join va.vehicleMake mk
-            left join va.vehicleModel vm
-            where p.active = true
-              and (
-                    lower(p.name) like lower(concat('%', :q, '%'))
-                 or lower(coalesce(p.specLabel, '')) like lower(concat('%', :q, '%'))
-                 or lower(p.partNumber) like lower(concat('%', :q, '%'))
-                 or lower(coalesce(p.barcode, '')) like lower(concat('%', :q, '%'))
-                 or lower(b.name) like lower(concat('%', :q, '%'))
-                 or lower(c.name) like lower(concat('%', :q, '%'))
-                 or lower(va.displayName) like lower(concat('%', :q, '%'))
-                 or lower(mk.name) like lower(concat('%', :q, '%'))
-                 or lower(vm.name) like lower(concat('%', :q, '%'))
-              )
-            order by b.name asc, p.partNumber asc
-            """)
-    List<ProductEntity> searchForDropdown(@Param("q") String q, Pageable pageable);
+        select distinct p
+        from ProductEntity p
+        left join ProductApplicationEntity pa on pa.product.id = p.id
+        left join pa.vehicleApplication va
+        where (:keywordPattern is null or
+               lower(p.name) like :keywordPattern or
+               lower(coalesce(p.specLabel, '')) like :keywordPattern or
+               lower(coalesce(p.dimension, '')) like :keywordPattern or
+               lower(coalesce(p.sku, '')) like :keywordPattern or
+               lower(p.partNumber) like :keywordPattern or
+               lower(coalesce(p.barcode, '')) like :keywordPattern or
+               lower(coalesce(va.displayName, '')) like :keywordPattern)
+          and (:categoryId is null or p.category.id = :categoryId)
+          and (:brandId is null or p.brand.id = :brandId)
+          and (:applicationId is null or va.id = :applicationId)
+          and (:active is null or p.active = :active)
+        order by p.name asc, p.partNumber asc
+        """)
+    List<ProductEntity> search(@Param("keywordPattern") String keywordPattern,
+                               @Param("categoryId") Long categoryId,
+                               @Param("brandId") Long brandId,
+                               @Param("applicationId") Long applicationId,
+                               @Param("active") Boolean active);
 }

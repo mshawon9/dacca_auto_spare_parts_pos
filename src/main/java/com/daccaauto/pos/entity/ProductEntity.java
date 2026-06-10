@@ -9,19 +9,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.LinkedHashSet;
 import java.util.Locale;
-import java.util.Set;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @Entity
 @Table(
-        name = "product",
+        name = "products",
         indexes = {
                 @Index(name = "idx_product_name", columnList = "name"),
                 @Index(name = "idx_product_spec_label", columnList = "spec_label"),
+                @Index(name = "idx_product_dimension", columnList = "dimension"),
+                @Index(name = "idx_product_sku", columnList = "sku"),
                 @Index(name = "idx_product_part_number", columnList = "part_number"),
                 @Index(name = "idx_product_normalized_part_number", columnList = "normalized_part_number"),
                 @Index(name = "idx_product_barcode", columnList = "barcode")
@@ -38,15 +38,19 @@ public class ProductEntity extends BaseEntity {
     @NotBlank
     @Size(max = 200)
     @Column(nullable = false, length = 200)
-    private String name; // Brake Pad, Bearing, Shock Absorber
+    private String name;
 
     @Size(max = 120)
     @Column(name = "spec_label", length = 120)
-    private String specLabel; // Front, Rear, LH, RH, 38 X 25 X 9
+    private String specLabel;
+
+    @Size(max = 120)
+    @Column(name = "dimension", length = 120)
+    private String dimension;
 
     @Size(max = 100)
     @Column(name = "sku", length = 100)
-    private String sku; // internal code, optional
+    private String sku;
 
     @NotBlank
     @Size(max = 100)
@@ -84,19 +88,8 @@ public class ProductEntity extends BaseEntity {
     @JoinColumn(name = "category_id", nullable = false)
     private ProductCategoryEntity category;
 
-    @Size(max = 120)
-    @Column(name = "dimension", length = 120)
-    private String dimension; // 38 X 25 X 9
-
     @Column(nullable = false)
     private boolean active = true;
-
-    @OneToMany(
-            mappedBy = "product",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
-    private Set<ProductApplicationEntity> applications = new LinkedHashSet<>();
 
     @PrePersist
     @PreUpdate
@@ -106,10 +99,5 @@ public class ProductEntity extends BaseEntity {
                     .replaceAll("[\\s\\-_/\\.]", "")
                     .toUpperCase(Locale.ROOT);
         }
-    }
-
-    public void addApplication(ProductApplicationEntity productApplicationEntity) {
-        productApplicationEntity.setProduct(this);
-        this.applications.add(productApplicationEntity);
     }
 }

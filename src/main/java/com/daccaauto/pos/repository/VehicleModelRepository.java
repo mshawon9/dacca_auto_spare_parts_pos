@@ -6,5 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface VehicleModelRepository extends JpaRepository<VehicleModelEntity, Long> {
-    List<VehicleModelEntity> findByMakeIdAndActiveTrueOrderByNameAsc(Long makeId);
+    boolean existsByMakeIdAndNameIgnoreCase(Long makeId, String name);
+    boolean existsByMakeIdAndNameIgnoreCaseAndIdNot(Long makeId, String name, Long id);
+    List<VehicleModelEntity> findAllByOrderByNameAsc();
+    List<VehicleModelEntity> findByMakeIdOrderByNameAsc(Long makeId);
 }

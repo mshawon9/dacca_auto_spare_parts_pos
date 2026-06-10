@@ -2,6 +2,7 @@ package com.daccaauto.pos.repository;
 
 import com.daccaauto.pos.entity.BrandCategoryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
 
@@ -17,5 +18,7 @@ public interface BrandCategoryRepository extends JpaRepository<BrandCategoryEnti
 
     List<BrandCategoryEntity> findByBrandIdAndActiveTrueOrderByCategoryNameAsc(Long brandId);
 
-    void deleteByCategoryId(Long categoryId);
+    long deleteByCategory_Id(Long categoryId);
+
+    List<BrandCategoryEntity> findByCategory_Id(Long categoryId);
 }

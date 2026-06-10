@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!-- Head (all meta link scripts go here ) START -->
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<!--end::Head-->
+<!--begin::Body-->
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<!--begin::App Wrapper-->
+<div class="app-wrapper">
+    <!-- TOP Menu (all meta link scripts go here ) START -->
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <!-- TOP Menu (all meta link scripts go here ) END -->
+
+    <!-- Left side column. contains the sidebar START -->
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+    <!-- Left side column. contains the sidebar END -->
+
+    <!--begin::App Main-->
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0" th:text="${pageTitle}">Create Vehicle Application</h3>
+                    <a th:href="@{/vehicle-applications}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <form th:action="@{${submitUrl}}" th:object="${form}" method="post" id="vehicleApplicationForm">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Basic Information</h3>
+                                </div>
+                                <div class="card-body">
+
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="vehicleMakeId" class="form-label">Make <span class="text-danger">*</span></label>
+                                            <select id="vehicleMakeId" th:field="*{vehicleMakeId}" class="form-select"
+                                                    th:classappend="${#fields.hasErrors('vehicleMakeId')} ? ' is-invalid' : ''">
+                                                <option value="">Select make</option>
+                                                <option th:each="make : ${vehicleMakes}"
+                                                        th:value="${make.id()}"
+                                                        th:text="${make.name()}"></option>
+                                            </select>
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('vehicleMakeId')}" th:errors="*{vehicleMakeId}"></div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="vehicleModelId" class="form-label">Model <span class="text-danger">*</span></label>
+                                            <select id="vehicleModelId" th:field="*{vehicleModelId}" class="form-select"
+                                                    th:classappend="${#fields.hasErrors('vehicleModelId')} ? ' is-invalid' : ''">
+                                                <option value="">Select model</option>
+                                                <option th:each="vm : ${vehicleModels}"
+                                                        th:value="${vm.id()}"
+                                                        th:text="${vm.name()}"></option>
+                                            </select>
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('vehicleModelId')}" th:errors="*{vehicleModelId}"></div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="variantLabel" class="form-label">Variant Label</label>
+                                            <input type="text" id="variantLabel" th:field="*{variantLabel}" class="form-control"
+                                                   placeholder="e.g. India, Japan"
+                                                   th:classappend="${#fields.hasErrors('variantLabel')} ? ' is-invalid' : ''">
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('variantLabel')}" th:errors="*{variantLabel}"></div>
+                                        </div>
+
+                                        <div class="col-md-3">
+                                            <label for="yearFrom" class="form-label">Year From</label>
+                                            <input type="number" id="yearFrom" th:field="*{yearFrom}" class="form-control"
+                                                   min="1950" max="2100" placeholder="2006"
+                                                   th:classappend="${#fields.hasErrors('yearFrom')} ? ' is-invalid' : ''">
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('yearFrom')}" th:errors="*{yearFrom}"></div>
+                                        </div>
+
+                                        <div class="col-md-3">
+                                            <label for="yearTo" class="form-label">Year To</label>
+                                            <input type="number" id="yearTo" th:field="*{yearTo}" class="form-control"
+                                                   min="1950" max="2100" placeholder="Leave empty for Up"
+                                                   th:classappend="${#fields.hasErrors('yearTo')} ? ' is-invalid' : ''">
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('yearTo')}" th:errors="*{yearTo}"></div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="form-check mt-2">
+                                                <input class="form-check-input" type="checkbox" id="active" th:field="*{active}">
+                                                <label class="form-check-label" for="active">Active</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Preview</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-light border mb-0">
+                                        <strong>Display Name:</strong><br>
+                                        <span id="displayPreview" class="text-primary fw-semibold">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <span th:text="${editMode ? 'Update Vehicle Application' : 'Create Vehicle Application'}"></span>
+                                </button>
+                                <a th:href="@{/vehicle-applications}" class="btn btn-outline-secondary">Cancel</a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </main>
+    <!--end::App Main-->
+    <!--begin::Footer-->
+    <footer class="app-footer">
+        <!--begin::To the end-->
+        <div class="float-end d-none d-sm-inline">Anything you want</div>
+        <!--end::To the end-->
+        <!--begin::Copyright-->
+        <strong>
+            Copyright &copy; 2014-2026&nbsp;
+            <a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.
+        </strong>
+        All rights reserved.
+        <!--end::Copyright-->
+    </footer>
+    <!--end::Footer-->
+</div>
+<!--end::App Wrapper-->
+<!--begin::Script-->
+<!--begin::Third Party Plugin(OverlayScrollbars)-->
+<!-- =============================================== -->
+<!-- common script START -->
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<!-- common script END -->
+<script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
+
+<script>
+    $(function () {
+        const $make = $('#vehicleMakeId');
+        const $model = $('#vehicleModelId');
+        const $variant = $('#variantLabel');
+        const $yearFrom = $('#yearFrom');
+        const $yearTo = $('#yearTo');
+        const $preview = $('#displayPreview');
+
+        function updatePreview() {
+            const modelText = $model.find('option:selected').text() || '';
+            const modelValue = $model.val();
+            const variant = ($variant.val() || '').trim();
+            const yearFrom = ($yearFrom.val() || '').trim();
+            const yearTo = ($yearTo.val() || '').trim();
+
+            if (!modelValue) {
+                $preview.text('-');
+                return;
+            }
+
+            let text = modelText;
+
+            if (variant) {
+                text += ' ' + variant;
+            }
+
+            if (yearFrom && !yearTo) {
+                text += ' ' + yearFrom + ' Up';
+            } else if (yearFrom && yearTo && yearFrom === yearTo) {
+                text += ' ' + yearFrom;
+            } else if (yearFrom && yearTo) {
+                text += ' ' + yearFrom + '-' + yearTo;
+            }
+
+            $preview.text(text);
+        }
+
+        function loadModels(makeId, selectedModelId) {
+            $model.empty().append('<option value="">Select model</option>');
+
+            if (!makeId) {
+                updatePreview();
+                return;
+            }
+
+            $.get('/api/v1/lookups/vehicle-models', { makeId: makeId }, function (data) {
+                $.each(data, function (_, item) {
+                    const option = $('<option>', {
+                        value: item.id,
+                        text: item.name
+                    });
+
+                    if (selectedModelId && String(selectedModelId) === String(item.id)) {
+                        option.prop('selected', true);
+                    }
+
+                    $model.append(option);
+                });
+
+                updatePreview();
+            });
+        }
+
+        $make.on('change', function () {
+            loadModels($(this).val(), null);
+        });
+
+        $model.on('change', updatePreview);
+        $variant.on('input', updatePreview);
+        $yearFrom.on('input', updatePreview);
+        $yearTo.on('input', updatePreview);
+
+        const selectedModelId = $model.val();
+        if ($make.val()) {
+            loadModels($make.val(), selectedModelId);
+        } else {
+            updatePreview();
+        }
+
+        $('#vehicleApplicationForm').validate({
+            errorElement: 'div',
+            errorClass: 'invalid-feedback',
+            rules: {
+                vehicleMakeId: { required: true },
+                vehicleModelId: { required: true },
+                variantLabel: { maxlength: 100 },
+                yearFrom: { min: 1950, max: 2100 },
+                yearTo: { min: 1950, max: 2100 }
+            },
+            messages: {
+                vehicleMakeId: { required: 'Make is required.' },
+                vehicleModelId: { required: 'Model is required.' },
+                variantLabel: { maxlength: 'Variant must not exceed 100 characters.' },
+                yearFrom: {
+                    min: 'Year From must be at least 1950.',
+                    max: 'Year From must not exceed 2100.'
+                },
+                yearTo: {
+                    min: 'Year To must be at least 1950.',
+                    max: 'Year To must not exceed 2100.'
+                }
+            },
+            errorPlacement: function (error, element) {
+                error.addClass('d-block');
+                const existing = element.siblings('.invalid-feedback');
+                if (existing.length) {
+                    existing.first().replaceWith(error);
+                } else {
+                    error.insertAfter(element);
+                }
+            },
+            highlight: function (element) {
+                $(element).addClass('is-invalid').removeClass('is-valid');
+            },
+            unhighlight: function (element) {
+                $(element).removeClass('is-invalid').addClass('is-valid');
+            }
+        });
+    });
+</script>
+</body>
+</html>

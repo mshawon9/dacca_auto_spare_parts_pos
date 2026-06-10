@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!-- Head (all meta link scripts go here ) START -->
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<!--end::Head-->
+<!--begin::Body-->
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<!--begin::App Wrapper-->
+<div class="app-wrapper">
+    <!-- TOP Menu (all meta link scripts go here ) START -->
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <!-- TOP Menu (all meta link scripts go here ) END -->
+
+    <!-- Left side column. contains the sidebar START -->
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+    <!-- Left side column. contains the sidebar END -->
+    <main class="app-main">
+        <div class="app-content-top-area">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="fw-semibold">Product Management</div>
+                    <a th:href="@{/products/create}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> Create Product
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <h3 class="mb-0">Products</h3>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3 class="card-title">Search</h3>
+                    </div>
+                    <div class="card-body">
+                        <form th:action="@{/products}" method="get" id="productSearchForm">
+                            <div class="row g-3">
+                                <div class="col-lg-3">
+                                    <label for="keyword" class="form-label">Keyword</label>
+                                    <input type="text" id="keyword" name="keyword" class="form-control"
+                                           th:value="${keyword}"
+                                           placeholder="Name, part no, barcode, dimension...">
+                                </div>
+
+                                <div class="col-lg-2">
+                                    <label for="categoryId" class="form-label">Category</label>
+                                    <select id="categoryId" name="categoryId" class="form-select">
+                                        <option value="">All Categories</option>
+                                        <option th:each="c : ${categories}"
+                                                th:value="${c.id()}"
+                                                th:text="${c.name()}"
+                                                th:selected="${selectedCategoryId != null and selectedCategoryId == c.id()}"></option>
+                                    </select>
+                                </div>
+
+                                <div class="col-lg-2">
+                                    <label for="brandId" class="form-label">Brand</label>
+                                    <select id="brandId" name="brandId" class="form-select">
+                                        <option value="">All Brands</option>
+                                        <option th:each="b : ${brands}"
+                                                th:value="${b.id()}"
+                                                th:text="${b.name()}"
+                                                th:selected="${selectedBrandId != null and selectedBrandId == b.id()}"></option>
+                                    </select>
+                                </div>
+
+                                <div class="col-lg-3">
+                                    <label for="applicationId" class="form-label">Application</label>
+                                    <select id="applicationId" name="applicationId" class="form-select">
+                                        <option value="">All Applications</option>
+                                        <option th:each="a : ${applications}"
+                                                th:value="${a.id()}"
+                                                th:text="${a.displayName()}"
+                                                th:selected="${selectedApplicationId != null and selectedApplicationId == a.id()}"></option>
+                                    </select>
+                                </div>
+
+                                <div class="col-lg-2">
+                                    <label for="active" class="form-label">Status</label>
+                                    <select id="active" name="active" class="form-select">
+                                        <option th:selected="${selectedActive == null}" value="">All</option>
+                                        <option th:selected="${selectedActive != null and selectedActive == true}"
+                                                value="true">Active
+                                        </option>
+                                        <option th:selected="${selectedActive != null and selectedActive == false}"
+                                                value="false">Inactive
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary">Search</button>
+                                    <a th:href="@{/products}" class="btn btn-outline-secondary ms-2">Reset</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">Product List</h3>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Part No</th>
+                                    <th>Category</th>
+                                    <th>Brand</th>
+                                    <th>Spec</th>
+                                    <th>Dimension</th>
+                                    <th>Applications</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(products)}">
+                                    <td colspan="10" class="text-center text-muted py-4">No products found.</td>
+                                </tr>
+                                <tr th:each="item : ${products}">
+                                    <td th:text="${item.id()}">1</td>
+                                    <td>
+                                        <div class="fw-semibold" th:text="${item.name()}">Brake Pad</div>
+                                        <small class="text-muted"
+                                               th:text="${item.sku() != null ? item.sku() : '-'}">SKU</small>
+                                    </td>
+                                    <td th:text="${item.partNumber()}">BP-1001</td>
+                                    <td th:text="${item.categoryName()}">Brake Pad</td>
+                                    <td th:text="${item.brandName()}">Brembo</td>
+                                    <td th:text="${item.specLabel() != null ? item.specLabel() : '-'}">Front</td>
+                                    <td th:text="${item.dimension() != null ? item.dimension() : '-'}">38 X 25 X 9</td>
+                                    <td th:text="${item.applicationSummary()}">Civic 2006 Up + 2 more</td>
+                                    <td>
+                                        <span th:if="${item.active()}" class="badge text-bg-success">Active</span>
+                                        <span th:unless="${item.active()}"
+                                              class="badge text-bg-secondary">Inactive</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <a th:href="@{/products/{id}/edit(id=${item.id()})}"
+                                           class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        <form th:action="@{/products/{id}/delete(id=${item.id()})}"
+                                              method="post"
+                                              class="d-inline"
+                                              onsubmit="return confirm('Delete this product?');">
+                                            <button type="submit" class="btn btn-sm btn-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        Total:
+                        <span th:text="${#lists.size(products)}">0</span>
+                        item(s)
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    <!--end::App Main-->
+    <!--begin::Footer-->
+    <footer class="app-footer">
+        <!--begin::To the end-->
+        <div class="float-end d-none d-sm-inline">Anything you want</div>
+        <!--end::To the end-->
+        <!--begin::Copyright-->
+        <strong>
+            Copyright &copy; 2014-2026&nbsp;
+            <a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.
+        </strong>
+        All rights reserved.
+        <!--end::Copyright-->
+    </footer>
+    <!--end::Footer-->
+</div>
+<!--end::App Wrapper-->
+<!--begin::Script-->
+<!--begin::Third Party Plugin(OverlayScrollbars)-->
+<!-- =============================================== -->
+<!-- common script START -->
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<!-- common script END -->
+<script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
+
+<script>
+    $(function () {
+        $('#applicationId').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'All Applications',
+            allowClear: true
+        });
+
+        $('#categoryId').on('change', function () {
+            const categoryId = $(this).val();
+            const $brand = $('#brandId');
+
+            $brand.empty().append('<option value="">All Brands</option>');
+
+            if (!categoryId) {
+                return;
+            }
+
+            $.get('/api/v1/lookups/brands', {categoryId: categoryId}, function (data) {
+                $.each(data, function (_, item) {
+                    $brand.append($('<option>', {
+                        value: item.id,
+                        text: item.name
+                    }));
+                });
+            });
+        });
+    });
+</script>
+</body>
+</html>

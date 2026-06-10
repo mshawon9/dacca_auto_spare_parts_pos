@@ -16,9 +16,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -110,30 +110,44 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         ProductCategoryEntity entity = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
 
-        brandCategoryRepository.deleteByCategoryId(id);
+        brandCategoryRepository.deleteByCategory_Id(id);
         categoryRepository.delete(entity);
     }
 
-    private void syncCategoryBrands(ProductCategoryEntity category, Set<Long> brandIds) {
-        brandCategoryRepository.deleteByCategoryId(category.getId());
+    @Transactional
+    public void syncCategoryBrands(ProductCategoryEntity category, Set<Long> brandIds) {
+        brandCategoryRepository.deleteByCategory_Id(category.getId());
+        brandCategoryRepository.flush();
 
         if (brandIds == null || brandIds.isEmpty()) {
             return;
         }
 
         Set<Long> uniqueBrandIds = new LinkedHashSet<>(brandIds);
+        List<BrandEntity> brands = brandRepository.findAllById(uniqueBrandIds);
+
+        Map<Long, BrandEntity> brandMap = brands.stream()
+                .collect(Collectors.toMap(BrandEntity::getId, Function.identity()));
+
+        List<BrandCategoryEntity> mappings = new ArrayList<>();
+        int order = 1;
 
         for (Long brandId : uniqueBrandIds) {
-            BrandEntity brand = brandRepository.findById(brandId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Brand not found: " + brandId));
+            BrandEntity brand = brandMap.get(brandId);
+            if (brand == null) {
+                throw new IllegalArgumentException("Brand not found: " + brandId);
+            }
 
             BrandCategoryEntity mapping = new BrandCategoryEntity();
             mapping.setBrand(brand);
             mapping.setCategory(category);
+            mapping.setDisplayOrder(order++);
             mapping.setActive(true);
 
-            brandCategoryRepository.save(mapping);
+            mappings.add(mapping);
         }
+
+        brandCategoryRepository.saveAll(mappings);
     }
 
     private ProductCategoryResponse map(ProductCategoryEntity entity) {

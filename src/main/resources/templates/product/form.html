@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<!-- Head (all meta link scripts go here ) START -->
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<!--end::Head-->
+<!--begin::Body-->
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<!--begin::App Wrapper-->
+<div class="app-wrapper">
+    <!-- TOP Menu (all meta link scripts go here ) START -->
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <!-- TOP Menu (all meta link scripts go here ) END -->
+
+    <!-- Left side column. contains the sidebar START -->
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+    <!-- Left side column. contains the sidebar END -->
+
+    <!--begin::App Main-->
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0" th:text="${pageTitle}">Create Product</h3>
+                    <a th:href="@{/products}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <form th:action="@{${submitUrl}}" th:object="${form}" method="post" id="productForm">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Basic Information</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row g-3">
+
+                                        <div class="col-12" th:if="${!editMode}">
+                                            <label for="similarProductSearch" class="form-label">Copy from Existing / Similar Product</label>
+                                            <div id="similarProductBox" class="position-relative">
+                                                <input type="text" id="similarProductSearch" class="form-control"
+                                                       autocomplete="off"
+                                                       placeholder="Search by product name, part number, spec, or dimension">
+                                                <div id="similarProductResults"
+                                                     class="list-group position-absolute w-100 shadow-sm d-none"
+                                                     style="z-index: 1050; max-height: 260px; overflow-y: auto;"></div>
+                                            </div>
+                                            <div class="form-text">
+                                                Select an existing product to auto-fill category, brand, name, spec, dimension, applications, and description.
+                                                Part number, SKU, and barcode will stay empty because they should usually be unique.
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="categoryId" class="form-label">Category <span class="text-danger">*</span></label>
+                                            <select id="categoryId" th:field="*{categoryId}" class="form-select"
+                                                    th:classappend="${#fields.hasErrors('categoryId')} ? ' is-invalid' : ''">
+                                                <option value="">Select category</option>
+                                                <option th:each="c : ${categories}"
+                                                        th:value="${c.id()}"
+                                                        th:text="${c.name()}"></option>
+                                            </select>
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('categoryId')}" th:errors="*{categoryId}"></div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="brandId" class="form-label">Brand <span class="text-danger">*</span></label>
+                                            <select id="brandId" th:field="*{brandId}" class="form-select"
+                                                    th:classappend="${#fields.hasErrors('brandId')} ? ' is-invalid' : ''">
+                                                <option value="">Select brand</option>
+                                                <option th:each="b : ${brands}"
+                                                        th:value="${b.id()}"
+                                                        th:text="${b.name()}"></option>
+                                            </select>
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('brandId')}" th:errors="*{brandId}"></div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="name" class="form-label">Product Name <span class="text-danger">*</span></label>
+                                            <input type="text" id="name" th:field="*{name}" class="form-control"
+                                                   th:classappend="${#fields.hasErrors('name')} ? ' is-invalid' : ''"
+                                                   placeholder="e.g. Brake Pad">
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="partNumber" class="form-label">Part Number <span class="text-danger">*</span></label>
+                                            <input type="text" id="partNumber" th:field="*{partNumber}" class="form-control"
+                                                   th:classappend="${#fields.hasErrors('partNumber')} ? ' is-invalid' : ''"
+                                                   placeholder="e.g. BP-1001">
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('partNumber')}" th:errors="*{partNumber}"></div>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="specLabel" class="form-label">Spec Label</label>
+                                            <input type="text" id="specLabel" th:field="*{specLabel}" class="form-control"
+                                                   placeholder="e.g. Front, Rear, LH">
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="dimension" class="form-label">Dimension</label>
+                                            <input type="text" id="dimension" th:field="*{dimension}" class="form-control"
+                                                   placeholder="e.g. 38 X 25 X 9">
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="sku" class="form-label">SKU</label>
+                                            <input type="text" id="sku" th:field="*{sku}" class="form-control"
+                                                   placeholder="Internal SKU">
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="barcode" class="form-label">Barcode</label>
+                                            <input type="text" id="barcode" th:field="*{barcode}" class="form-control"
+                                                   placeholder="Barcode">
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <label for="applicationIds" class="form-label">Applications</label>
+                                            <select id="applicationIds" th:field="*{applicationIds}" class="form-select" multiple="multiple">
+                                                <option th:each="a : ${applications}"
+                                                        th:value="${a.id()}"
+                                                        th:text="${a.displayName()}"></option>
+                                            </select>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <label for="description" class="form-label">Description</label>
+                                            <textarea id="description" th:field="*{description}" class="form-control" rows="3"
+                                                      placeholder="Product description"></textarea>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" id="active" th:field="*{active}">
+                                                <label class="form-check-label" for="active">Active</label>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Preview</h3>
+                                </div>
+                                <div class="card-body">
+                                    <div class="alert alert-light border mb-0">
+                                        <strong>Display:</strong><br>
+                                        <span id="productPreview" class="text-primary fw-semibold">-</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Notes</h3>
+                                </div>
+                                <div class="card-body small text-muted">
+                                    Brand is filtered by the selected category.<br>
+                                    Use Applications for fitment like Civic 2006 Up.<br>
+                                    Supplier prices should be managed separately.
+                                </div>
+                            </div>
+
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <span th:text="${editMode ? 'Update Product' : 'Create Product'}"></span>
+                                </button>
+                                <a th:href="@{/products}" class="btn btn-outline-secondary">Cancel</a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </main>
+    <!--end::App Main-->
+    <!--begin::Footer-->
+    <footer class="app-footer">
+        <!--begin::To the end-->
+        <div class="float-end d-none d-sm-inline">Anything you want</div>
+        <!--end::To the end-->
+        <!--begin::Copyright-->
+        <strong>
+            Copyright &copy; 2014-2026&nbsp;
+            <a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.
+        </strong>
+        All rights reserved.
+        <!--end::Copyright-->
+    </footer>
+    <!--end::Footer-->
+</div>
+<!--end::App Wrapper-->
+<!--begin::Script-->
+<!--begin::Third Party Plugin(OverlayScrollbars)-->
+<!-- =============================================== -->
+<!-- common script START -->
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<!-- common script END -->
+<script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
+
+<script>
+    $(function () {
+        const $category = $('#categoryId');
+        const $brand = $('#brandId');
+        const $applications = $('#applicationIds');
+        const $similarSearch = $('#similarProductSearch');
+        const $similarResults = $('#similarProductResults');
+        let similarSearchTimer = null;
+
+
+        function updatePreview() {
+            const name = ($('#name').val() || '').trim();
+            const partNumber = ($('#partNumber').val() || '').trim();
+            const specLabel = ($('#specLabel').val() || '').trim();
+            const dimension = ($('#dimension').val() || '').trim();
+
+            let parts = [];
+
+            if (name) parts.push(name);
+            if (partNumber) parts.push(partNumber);
+            if (specLabel) parts.push(specLabel);
+            if (dimension) parts.push(dimension);
+
+            $('#productPreview').text(parts.length ? parts.join(' | ') : '-');
+        }
+
+        function loadBrands(categoryId, selectedBrandId) {
+            $brand.empty().append('<option value="">Select brand</option>');
+
+            if (!categoryId) {
+                return $.Deferred().resolve().promise();
+            }
+
+            return $.get('/api/v1/lookups/brands', { categoryId: categoryId }, function (data) {
+                $.each(data, function (_, item) {
+                    const option = $('<option>', {
+                        value: item.id,
+                        text: item.name
+                    });
+
+                    if (selectedBrandId && String(selectedBrandId) === String(item.id)) {
+                        option.prop('selected', true);
+                    }
+
+                    $brand.append(option);
+                });
+            });
+        }
+
+
+        function renderSimilarProductResults(items) {
+            $similarResults.empty();
+
+            if (!items || !items.length) {
+                $similarResults
+                    .removeClass('d-none')
+                    .append('<div class="list-group-item text-muted small">No matching product found.</div>');
+                return;
+            }
+
+            $.each(items, function (_, item) {
+                $('<button>', {
+                    type: 'button',
+                    class: 'list-group-item list-group-item-action js-copy-product',
+                    text: item.text
+                })
+                    .attr('data-product-id', item.id)
+                    .appendTo($similarResults);
+            });
+
+            $similarResults.removeClass('d-none');
+        }
+
+        function searchSimilarProducts(term) {
+            $.get('/products/search-json', {
+                keyword: term,
+                categoryId: $category.val() || '',
+                brandId: $brand.val() || ''
+            }, renderSimilarProductResults).fail(function () {
+                $similarResults
+                    .empty()
+                    .removeClass('d-none')
+                    .append('<div class="list-group-item text-danger small">Could not load products.</div>');
+            });
+        }
+
+        function fillFormFromSimilarProduct(product) {
+            $category.val(product.categoryId || '');
+
+            loadBrands(product.categoryId, product.brandId).done(function () {
+                $brand.val(product.brandId || '');
+            });
+
+            $('#name').val(product.name || '');
+            $('#specLabel').val(product.specLabel || '');
+            $('#dimension').val(product.dimension || '');
+            $('#description').val(product.description || '');
+            $('#active').prop('checked', product.active !== false);
+
+            // These are intentionally cleared because they usually identify the new product uniquely.
+            $('#partNumber').val('').removeClass('is-valid is-invalid');
+            $('#sku').val('').removeClass('is-valid is-invalid');
+            $('#barcode').val('').removeClass('is-valid is-invalid');
+
+            const applicationIds = (product.applicationIds || []).map(String);
+            $applications.val(applicationIds).trigger('change');
+
+            updatePreview();
+        }
+
+        $similarSearch.on('input', function () {
+            const term = ($(this).val() || '').trim();
+            clearTimeout(similarSearchTimer);
+
+            if (term.length < 2) {
+                $similarResults.addClass('d-none').empty();
+                return;
+            }
+
+            similarSearchTimer = setTimeout(function () {
+                searchSimilarProducts(term);
+            }, 300);
+        });
+
+        $similarResults.on('click', '.js-copy-product', function () {
+            const productId = $(this).attr('data-product-id');
+
+            $.get('/products/' + productId + '/copy-source', function (product) {
+                fillFormFromSimilarProduct(product);
+                $similarSearch.val('');
+                $similarResults.addClass('d-none').empty();
+            });
+        });
+
+        $(document).on('click', function (event) {
+            if (!$(event.target).closest('#similarProductBox').length) {
+                $similarResults.addClass('d-none');
+            }
+        });
+
+        $category.on('change', function () {
+            loadBrands($(this).val(), null);
+        });
+
+        $('#name, #partNumber, #specLabel, #dimension').on('input', updatePreview);
+        updatePreview();
+
+        const initialCategoryId = $category.val();
+        const initialBrandId = $brand.val();
+        if (initialCategoryId) {
+            loadBrands(initialCategoryId, initialBrandId);
+        }
+
+        $('#productForm').validate({
+            errorElement: 'div',
+            errorClass: 'invalid-feedback',
+            rules: {
+                categoryId: { required: true },
+                brandId: { required: true },
+                name: { required: true, maxlength: 200 },
+                partNumber: { required: true, maxlength: 100 },
+                specLabel: { maxlength: 120 },
+                dimension: { maxlength: 120 },
+                sku: { maxlength: 100 },
+                barcode: { maxlength: 64 },
+                description: { maxlength: 2000 }
+            },
+            messages: {
+                categoryId: { required: 'Category is required.' },
+                brandId: { required: 'Brand is required.' },
+                name: {
+                    required: 'Product name is required.',
+                    maxlength: 'Product name must not exceed 200 characters.'
+                },
+                partNumber: {
+                    required: 'Part number is required.',
+                    maxlength: 'Part number must not exceed 100 characters.'
+                }
+            },
+            errorPlacement: function (error, element) {
+                error.addClass('d-block');
+                const existing = element.siblings('.invalid-feedback');
+                if (existing.length) {
+                    existing.first().replaceWith(error);
+                } else {
+                    error.insertAfter(element);
+                }
+            },
+            highlight: function (element) {
+                $(element).addClass('is-invalid').removeClass('is-valid');
+            },
+            unhighlight: function (element) {
+                $(element).removeClass('is-invalid').addClass('is-valid');
+            }
+        });
+    });
+</script>
+</body>
+</html>
