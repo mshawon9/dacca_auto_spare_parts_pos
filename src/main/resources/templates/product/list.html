@@ -2,6 +2,16 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <!-- Head (all meta link scripts go here ) START -->
 <div th:replace="fragments/head :: head"></div>
+<style>
+    .product-list-image {
+        background: var(--bs-tertiary-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: .5rem;
+        height: 54px;
+        object-fit: contain;
+        width: 54px;
+    }
+</style>
 <head/>
 <!--end::Head-->
 <!--begin::Body-->
@@ -125,6 +135,7 @@
                                 <thead class="table-light">
                                 <tr>
                                     <th>ID</th>
+                                    <th>Image</th>
                                     <th>Name</th>
                                     <th>Part No</th>
                                     <th>Category</th>
@@ -138,10 +149,16 @@
                                 </thead>
                                 <tbody>
                                 <tr th:if="${#lists.isEmpty(products)}">
-                                    <td colspan="10" class="text-center text-muted py-4">No products found.</td>
+                                    <td colspan="11" class="text-center text-muted py-4">No products found.</td>
                                 </tr>
                                 <tr th:each="item : ${products}">
                                     <td th:text="${item.id()}">1</td>
+                                    <td>
+                                        <img class="product-list-image"
+                                             th:src="${item.hasImage() ? '/products/' + item.id() + '/image' : '/img/placeholder-image.png'}"
+                                             src="/img/placeholder-image.png"
+                                             th:alt="${item.name()}">
+                                    </td>
                                     <td>
                                         <div class="fw-semibold" th:text="${item.name()}">Brake Pad</div>
                                         <small class="text-muted"
@@ -210,9 +227,13 @@
 <div th:replace="fragments/commonscripts :: commonscripts"/>
 <!-- common script END -->
 <script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
+<script src="/resources/js/select2.min.js"></script>
 
 <script>
     $(function () {
+        const $category = $('#categoryId');
+        const $brand = $('#brandId');
+
         $('#applicationId').select2({
             theme: 'bootstrap-5',
             width: '100%',
@@ -220,23 +241,34 @@
             allowClear: true
         });
 
-        $('#categoryId').on('change', function () {
+        $category.on('change', function () {
             const categoryId = $(this).val();
-            const $brand = $('#brandId');
 
-            $brand.empty().append('<option value="">All Brands</option>');
+            $brand
+                .prop('disabled', true)
+                .empty()
+                .append('<option value="">' + (categoryId ? 'Loading brands...' : 'All Brands') + '</option>');
 
             if (!categoryId) {
+                $brand.prop('disabled', false);
                 return;
             }
 
             $.get('/api/v1/lookups/brands', {categoryId: categoryId}, function (data) {
+                $brand.empty().append('<option value="">All Brands</option>');
+
                 $.each(data, function (_, item) {
                     $brand.append($('<option>', {
                         value: item.id,
                         text: item.name
                     }));
                 });
+            }).fail(function () {
+                $brand
+                    .empty()
+                    .append('<option value="">Could not load brands</option>');
+            }).always(function () {
+                $brand.prop('disabled', false);
             });
         });
     });

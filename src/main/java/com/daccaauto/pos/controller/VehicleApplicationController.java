@@ -83,6 +83,12 @@ public class VehicleApplicationController {
         }
     }
 
+    @PostMapping("/create-json")
+    @ResponseBody
+    public VehicleApplicationResponse createJson(@Valid @RequestBody VehicleApplicationCreateRequest request) {
+        return vehicleApplicationService.create(request);
+    }
+
     @GetMapping("/{id}/edit")
     public String showEditForm(@PathVariable Long id, Model model) {
         VehicleApplicationResponse response = vehicleApplicationService.getById(id);

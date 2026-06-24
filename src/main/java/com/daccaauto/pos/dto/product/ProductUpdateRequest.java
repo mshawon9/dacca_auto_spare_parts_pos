@@ -3,6 +3,7 @@ package com.daccaauto.pos.dto.product;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.LinkedHashSet;
 import java.util.Set;
@@ -43,6 +44,12 @@ public class ProductUpdateRequest {
     private Long brandId;
 
     private Set<Long> applicationIds = new LinkedHashSet<>();
+
+    private Long similarProductId;
+
+    private MultipartFile image;
+
+    private Boolean removeImage = false;
 
     private Boolean active = true;
 }

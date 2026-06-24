@@ -5,13 +5,18 @@ import com.daccaauto.pos.dto.product.ProductResponse;
 import com.daccaauto.pos.dto.product.ProductUpdateRequest;
 import com.daccaauto.pos.exception.DuplicateResourceException;
 import com.daccaauto.pos.exception.ResourceNotFoundException;
+import com.daccaauto.pos.exception.ProductImageException;
 import com.daccaauto.pos.service.BrandCategoryService;
 import com.daccaauto.pos.service.ProductCategoryService;
 import com.daccaauto.pos.service.ProductService;
 import com.daccaauto.pos.service.VehicleApplicationService;
+import com.daccaauto.pos.service.VehicleMakeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
+import org.springframework.http.CacheControl;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +34,7 @@ public class ProductController {
     private final ProductCategoryService productCategoryService;
     private final BrandCategoryService brandCategoryService;
     private final VehicleApplicationService vehicleApplicationService;
+    private final VehicleMakeService vehicleMakeService;
 
     @GetMapping
     public String list(@RequestParam(required = false) String keyword,
@@ -58,6 +64,7 @@ public class ProductController {
 
         model.addAttribute("form", form);
         loadReferences(model, null);
+        model.addAttribute("selectedSimilarProduct", null);
         model.addAttribute("pageTitle", "Create Product");
         model.addAttribute("submitUrl", "/products/create");
         model.addAttribute("editMode", false);
@@ -73,6 +80,7 @@ public class ProductController {
 
         if (bindingResult.hasErrors()) {
             loadReferences(model, request.getCategoryId());
+            loadSelectedSimilarProduct(model, request.getSimilarProductId());
             model.addAttribute("pageTitle", "Create Product");
             model.addAttribute("submitUrl", "/products/create");
             model.addAttribute("editMode", false);
@@ -83,9 +91,10 @@ public class ProductController {
             productService.create(request);
             redirectAttributes.addFlashAttribute("successMessage", "Product created successfully.");
             return "redirect:/products";
-        } catch (DuplicateResourceException | ResourceNotFoundException ex) {
+        } catch (DuplicateResourceException | ResourceNotFoundException | ProductImageException ex) {
             model.addAttribute("errorMessage", ex.getMessage());
             loadReferences(model, request.getCategoryId());
+            loadSelectedSimilarProduct(model, request.getSimilarProductId());
             model.addAttribute("pageTitle", "Create Product");
             model.addAttribute("submitUrl", "/products/create");
             model.addAttribute("editMode", false);
@@ -100,8 +109,10 @@ public class ProductController {
         ProductUpdateRequest form = getProductUpdateRequest(response);
 
         model.addAttribute("productId", id);
+        model.addAttribute("hasProductImage", response.hasImage());
         model.addAttribute("form", form);
         loadReferences(model, response.categoryId());
+        loadSelectedSimilarProduct(model, response.similarProductId());
         model.addAttribute("pageTitle", "Edit Product");
         model.addAttribute("submitUrl", "/products/" + id + "/edit");
         model.addAttribute("editMode", true);
@@ -121,6 +132,7 @@ public class ProductController {
         form.setCategoryId(response.categoryId());
         form.setBrandId(response.brandId());
         form.setApplicationIds(response.applicationIds());
+        form.setSimilarProductId(response.similarProductId());
         form.setActive(response.active());
         return form;
     }
@@ -134,7 +146,9 @@ public class ProductController {
 
         if (bindingResult.hasErrors()) {
             model.addAttribute("productId", id);
+            model.addAttribute("hasProductImage", productService.getById(id).hasImage());
             loadReferences(model, request.getCategoryId());
+            loadSelectedSimilarProduct(model, request.getSimilarProductId());
             model.addAttribute("pageTitle", "Edit Product");
             model.addAttribute("submitUrl", "/products/" + id + "/edit");
             model.addAttribute("editMode", true);
@@ -145,10 +159,12 @@ public class ProductController {
             productService.update(id, request);
             redirectAttributes.addFlashAttribute("successMessage", "Product updated successfully.");
             return "redirect:/products";
-        } catch (DuplicateResourceException | ResourceNotFoundException ex) {
+        } catch (DuplicateResourceException | ResourceNotFoundException | ProductImageException ex) {
             model.addAttribute("productId", id);
+            model.addAttribute("hasProductImage", productService.getById(id).hasImage());
             model.addAttribute("errorMessage", ex.getMessage());
             loadReferences(model, request.getCategoryId());
+            loadSelectedSimilarProduct(model, request.getSimilarProductId());
             model.addAttribute("pageTitle", "Edit Product");
             model.addAttribute("submitUrl", "/products/" + id + "/edit");
             model.addAttribute("editMode", true);
@@ -160,13 +176,14 @@ public class ProductController {
     @ResponseBody
     public List<ProductSearchItem> searchProductsForCopy(@RequestParam String keyword,
                                                          @RequestParam(required = false) Long categoryId,
-                                                         @RequestParam(required = false) Long brandId) {
+                                                         @RequestParam(required = false) Long excludeProductId) {
         if (keyword == null || keyword.trim().length() < 2) {
             return List.of();
         }
 
-        return productService.search(keyword.trim(), categoryId, brandId, null, true)
+        return productService.search(keyword.trim(), categoryId, null, null, true)
                 .stream()
+                .filter(product -> !product.id().equals(excludeProductId))
                 .limit(15)
                 .map(product -> new ProductSearchItem(
                         product.id(),
@@ -191,6 +208,21 @@ public class ProductController {
                 product.applicationIds(),
                 product.active()
         );
+    }
+
+    @GetMapping("/{id}/similar-products")
+    @ResponseBody
+    public List<ProductResponse.SimilarProductSummary> getSimilarityGroup(@PathVariable Long id) {
+        return productService.getSimilarityGroup(id);
+    }
+
+    @GetMapping("/{id}/image")
+    public ResponseEntity<byte[]> getProductImage(@PathVariable Long id) {
+        ProductService.ProductImage image = productService.getImage(id);
+        return ResponseEntity.ok()
+                .cacheControl(CacheControl.noCache())
+                .contentType(MediaType.parseMediaType(image.contentType()))
+                .body(image.content());
     }
 
     private String buildCopySearchLabel(ProductResponse product) {
@@ -235,6 +267,18 @@ public class ProductController {
         model.addAttribute("categories", productCategoryService.getAll());
         model.addAttribute("brands", categoryId == null ? java.util.List.of() : brandCategoryService.getBrandsByCategoryId(categoryId));
         model.addAttribute("applications", vehicleApplicationService.getAll(null, null, null));
+        model.addAttribute("vehicleMakes", vehicleMakeService.getAll());
         model.addAttribute("selectedCategoryId", categoryId);
+    }
+
+    private void loadSelectedSimilarProduct(Model model, Long similarProductId) {
+        if (similarProductId == null) {
+            model.addAttribute("selectedSimilarProduct", null);
+            return;
+        }
+
+        ProductResponse product = productService.getById(similarProductId);
+        model.addAttribute("selectedSimilarProduct",
+                new ProductResponse.SimilarProductSummary(product.id(), buildCopySearchLabel(product)));
     }
 }

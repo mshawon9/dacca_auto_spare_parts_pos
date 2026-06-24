@@ -14,6 +14,10 @@ public interface ProductService {
 
     ProductResponse getById(Long id);
 
+    List<ProductResponse.SimilarProductSummary> getSimilarityGroup(Long productId);
+
+    ProductImage getImage(Long productId);
+
     List<ProductResponse> search(String keyword,
                                  Long categoryId,
                                  Long brandId,
@@ -21,4 +25,7 @@ public interface ProductService {
                                  Boolean active);
 
     void delete(Long id);
+
+    record ProductImage(byte[] content, String contentType) {
+    }
 }

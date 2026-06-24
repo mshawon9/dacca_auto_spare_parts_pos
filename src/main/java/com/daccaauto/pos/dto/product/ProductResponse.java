@@ -12,6 +12,7 @@ public record ProductResponse(
     String partNumber,
     String barcode,
     String description,
+    boolean hasImage,
     Long categoryId,
     String categoryName,
     Long brandId,
@@ -19,6 +20,10 @@ public record ProductResponse(
     Set<Long> applicationIds,
     List<String> applicationDisplayNames,
     String applicationSummary,
+    Long similarProductId,
+    List<SimilarProductSummary> similarProducts,
     boolean active
 ) {
+    public record SimilarProductSummary(Long id, String displayName) {
+    }
 }

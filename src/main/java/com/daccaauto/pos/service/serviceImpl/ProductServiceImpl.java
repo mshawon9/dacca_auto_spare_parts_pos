@@ -8,6 +8,7 @@ import com.daccaauto.pos.exception.DuplicateResourceException;
 import com.daccaauto.pos.exception.ResourceNotFoundException;
 import com.daccaauto.pos.repository.*;
 import com.daccaauto.pos.service.ProductService;
+import com.daccaauto.pos.service.ProductImageStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,8 @@ public class ProductServiceImpl implements ProductService {
     private final BrandCategoryRepository brandCategoryRepository;
     private final VehicleApplicationRepository vehicleApplicationRepository;
     private final ProductRepository productRepository;
+    private final ProductSimilarityRepository productSimilarityRepository;
+    private final ProductImageStorageService productImageStorageService;
 
     @Override
     public ProductResponse create(ProductCreateRequest request) {
@@ -58,8 +61,10 @@ public class ProductServiceImpl implements ProductService {
         entity.setActive(request.getActive() == null || request.getActive());
 
         ProductEntity saved = productRepository.save(entity);
+        storeImage(saved, request.getImage());
 
         syncApplications(saved, request.getApplicationIds());
+        syncSimilarProduct(saved, request.getSimilarProductId());
 
         return map(saved);
     }
@@ -96,8 +101,10 @@ public class ProductServiceImpl implements ProductService {
         entity.setActive(request.getActive() == null || request.getActive());
 
         ProductEntity saved = productRepository.save(entity);
+        updateImage(saved, request);
 
         syncApplications(saved, request.getApplicationIds());
+        syncSimilarProduct(saved, request.getSimilarProductId());
 
         return map(saved);
     }
@@ -109,6 +116,32 @@ public class ProductServiceImpl implements ProductService {
             .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
 
         return map(entity);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProductResponse.SimilarProductSummary> getSimilarityGroup(Long productId) {
+        if (!productRepository.existsById(productId)) {
+            throw new ResourceNotFoundException("Product not found: " + productId);
+        }
+
+        return mapSimilarityGroup(productId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProductImage getImage(Long productId) {
+        ProductEntity product = productRepository.findById(productId)
+            .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
+
+        if (product.getImageFileName() == null) {
+            throw new ResourceNotFoundException("Product image not found: " + productId);
+        }
+
+        return new ProductImage(
+            productImageStorageService.load(product.getImageFileName()),
+            product.getImageContentType()
+        );
     }
 
     @Override
@@ -158,7 +191,9 @@ public class ProductServiceImpl implements ProductService {
             .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
 
         productApplicationRepository.deleteByProductId(id);
+        productSimilarityRepository.deleteAllForProduct(id);
         productRepository.delete(entity);
+        productImageStorageService.delete(entity.getImageFileName());
     }
 
     private void validateBrandAllowedForCategory(Long brandId, Long categoryId) {
@@ -188,6 +223,26 @@ public class ProductServiceImpl implements ProductService {
         }
     }
 
+    private void syncSimilarProduct(ProductEntity product, Long similarProductId) {
+        productSimilarityRepository.deleteByProductOneId(product.getId());
+
+        if (similarProductId == null) {
+            return;
+        }
+
+        if (product.getId().equals(similarProductId)) {
+            throw new DuplicateResourceException("A product cannot be similar to itself");
+        }
+
+        ProductEntity similarProduct = productRepository.findById(similarProductId)
+            .orElseThrow(() -> new ResourceNotFoundException("Similar product not found: " + similarProductId));
+
+        ProductSimilarityEntity similarity = new ProductSimilarityEntity();
+        similarity.setProductOne(product);
+        similarity.setProductTwo(similarProduct);
+        productSimilarityRepository.save(similarity);
+    }
+
     private ProductResponse map(ProductEntity entity) {
         List<ProductApplicationEntity> applications = productApplicationRepository.findByProductIdWithApplication(entity.getId());
 
@@ -199,6 +254,12 @@ public class ProductServiceImpl implements ProductService {
             .map(pa -> pa.getVehicleApplication().getDisplayName())
             .toList();
 
+        Long selectedSimilarProductId = productSimilarityRepository.findSelectedSimilarity(entity.getId())
+            .map(similarity -> similarity.getProductTwo().getId())
+            .orElse(null);
+
+        List<ProductResponse.SimilarProductSummary> similarProducts = mapSimilarityGroup(entity.getId());
+
         return new ProductResponse(
             entity.getId(),
             entity.getName(),
@@ -208,6 +269,7 @@ public class ProductServiceImpl implements ProductService {
             entity.getPartNumber(),
             entity.getBarcode(),
             entity.getDescription(),
+            entity.getImageFileName() != null,
             entity.getCategory().getId(),
             entity.getCategory().getName(),
             entity.getBrand().getId(),
@@ -215,8 +277,64 @@ public class ProductServiceImpl implements ProductService {
             applicationIds,
             applicationNames,
             buildApplicationSummary(applicationNames),
+            selectedSimilarProductId,
+            similarProducts,
             entity.isActive()
         );
+    }
+
+    private List<ProductResponse.SimilarProductSummary> mapSimilarityGroup(Long productId) {
+        return productRepository
+            .findAllById(productSimilarityRepository.findSimilarityGroupProductIds(productId))
+            .stream()
+            .sorted(java.util.Comparator.comparing(ProductEntity::getName, String.CASE_INSENSITIVE_ORDER))
+            .map(product -> new ProductResponse.SimilarProductSummary(
+                product.getId(),
+                buildProductDisplayName(product)
+            ))
+            .toList();
+    }
+
+    private String buildProductDisplayName(ProductEntity product) {
+        return java.util.stream.Stream.of(
+                product.getName(),
+                product.getPartNumber(),
+                product.getSpecLabel(),
+                product.getDimension()
+            )
+            .filter(value -> value != null && !value.isBlank())
+            .collect(java.util.stream.Collectors.joining(" | "));
+    }
+
+    private void storeImage(ProductEntity product, org.springframework.web.multipart.MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            return;
+        }
+
+        ProductImageStorageService.StoredImage storedImage = productImageStorageService.store(image);
+        product.setImageFileName(storedImage.fileName());
+        product.setImageContentType(storedImage.contentType());
+        productRepository.save(product);
+    }
+
+    private void updateImage(ProductEntity product, ProductUpdateRequest request) {
+        String oldFileName = product.getImageFileName();
+
+        if (Boolean.TRUE.equals(request.getRemoveImage())) {
+            product.setImageFileName(null);
+            product.setImageContentType(null);
+            productRepository.save(product);
+            productImageStorageService.delete(oldFileName);
+            oldFileName = null;
+        }
+
+        if (request.getImage() != null && !request.getImage().isEmpty()) {
+            ProductImageStorageService.StoredImage storedImage = productImageStorageService.store(request.getImage());
+            product.setImageFileName(storedImage.fileName());
+            product.setImageContentType(storedImage.contentType());
+            productRepository.save(product);
+            productImageStorageService.delete(oldFileName);
+        }
     }
 
     private String buildApplicationSummary(List<String> applications) {

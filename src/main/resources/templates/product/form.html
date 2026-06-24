@@ -2,6 +2,69 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <!-- Head (all meta link scripts go here ) START -->
 <div th:replace="fragments/head :: head"></div>
+<style>
+    .application-picker {
+        background: var(--bs-tertiary-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: .75rem;
+        padding: 1rem;
+    }
+    .application-picker .bootstrap-duallistbox-container .box1,
+    .application-picker .bootstrap-duallistbox-container .box2 {
+        background: var(--bs-body-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: .65rem;
+        padding: .75rem;
+    }
+    .application-picker .bootstrap-duallistbox-container label {
+        color: var(--bs-heading-color);
+        font-weight: 600;
+        margin-bottom: .5rem;
+    }
+    .application-picker .bootstrap-duallistbox-container select {
+        border-radius: .5rem;
+        min-height: 260px;
+        padding: .35rem;
+    }
+    .application-picker .bootstrap-duallistbox-container select option {
+        border-radius: .35rem;
+        margin-bottom: .15rem;
+        padding: .55rem .65rem;
+    }
+    .application-picker .bootstrap-duallistbox-container .btn-group {
+        display: flex;
+        gap: .35rem;
+        margin-bottom: .5rem;
+    }
+    .application-picker .bootstrap-duallistbox-container .btn-group .btn {
+        border-radius: .4rem !important;
+    }
+    .application-picker .bootstrap-duallistbox-container .glyphicon-arrow-right::before { content: "Add selected \2192"; }
+    .application-picker .bootstrap-duallistbox-container .glyphicon-arrow-left::before { content: "\2190 Remove selected"; }
+    .application-picker .bootstrap-duallistbox-container .glyphicon-forward::before { content: "Add all \21D2"; }
+    .application-picker .bootstrap-duallistbox-container .glyphicon-backward::before { content: "\21D0 Remove all"; }
+    @media (max-width: 767.98px) {
+        .application-picker .bootstrap-duallistbox-container select { min-height: 190px; }
+    }
+    .product-image-picker {
+        border: 2px dashed var(--bs-border-color);
+        border-radius: .75rem;
+        cursor: pointer;
+        padding: 1rem;
+        text-align: center;
+        transition: border-color .2s, background-color .2s;
+    }
+    .product-image-picker:hover {
+        background: var(--bs-tertiary-bg);
+        border-color: var(--bs-primary);
+    }
+    .product-image-preview {
+        border-radius: .65rem;
+        height: 180px;
+        object-fit: contain;
+        width: 100%;
+    }
+</style>
 <head/>
 <!--end::Head-->
 <!--begin::Body-->
@@ -37,7 +100,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
-                <form th:action="@{${submitUrl}}" th:object="${form}" method="post" id="productForm">
+                <form th:action="@{${submitUrl}}" th:object="${form}" method="post" enctype="multipart/form-data" id="productForm">
                     <div class="row">
                         <div class="col-lg-8">
                             <div class="card">
@@ -47,8 +110,8 @@
                                 <div class="card-body">
                                     <div class="row g-3">
 
-                                        <div class="col-12" th:if="${!editMode}">
-                                            <label for="similarProductSearch" class="form-label">Copy from Existing / Similar Product</label>
+                                        <div class="col-12">
+                                            <label for="similarProductSearch" class="form-label">Similar Product</label>
                                             <div id="similarProductBox" class="position-relative">
                                                 <input type="text" id="similarProductSearch" class="form-control"
                                                        autocomplete="off"
@@ -58,8 +121,21 @@
                                                      style="z-index: 1050; max-height: 260px; overflow-y: auto;"></div>
                                             </div>
                                             <div class="form-text">
-                                                Select an existing product to auto-fill category, brand, name, spec, dimension, applications, and description.
-                                                Part number, SKU, and barcode will stay empty because they should usually be unique.
+                                                <span th:if="${!editMode}">Choose one similar product. It will connect this product to that product's full similarity group and copy reusable details.</span>
+                                                <span th:if="${editMode}">Choose one similar product to connect this product to its full similarity group.</span>
+                                            </div>
+                                            <div id="selectedSimilarProduct" class="mt-2">
+                                                <div class="badge text-bg-light border text-dark d-flex align-items-center gap-2 py-2 px-3 js-similar-chip"
+                                                     th:if="${selectedSimilarProduct != null}"
+                                                     th:attr="data-product-id=${selectedSimilarProduct.id()}">
+                                                    <input type="hidden" name="similarProductId" th:value="${selectedSimilarProduct.id()}">
+                                                    <span th:text="${selectedSimilarProduct.displayName()}"></span>
+                                                    <button type="button" class="btn-close js-remove-similar" aria-label="Remove"></button>
+                                                </div>
+                                            </div>
+                                            <div id="noSimilarProduct" class="form-text fst-italic"
+                                                 th:classappend="${selectedSimilarProduct != null} ? ' d-none' : ''">
+                                                No similar product selected.
                                             </div>
                                         </div>
 
@@ -127,13 +203,38 @@
                                                    placeholder="Barcode">
                                         </div>
 
-                                        <div class="col-md-6">
-                                            <label for="applicationIds" class="form-label">Applications</label>
-                                            <select id="applicationIds" th:field="*{applicationIds}" class="form-select" multiple="multiple">
-                                                <option th:each="a : ${applications}"
-                                                        th:value="${a.id()}"
-                                                        th:text="${a.displayName()}"></option>
-                                            </select>
+                                        <div class="col-12">
+                                            <div class="application-picker">
+                                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                                    <div>
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <span class="rounded-circle bg-primary-subtle text-primary p-2 lh-1">
+                                                                <i class="bi bi-car-front-fill"></i>
+                                                            </span>
+                                                            <div>
+                                                                <h5 class="mb-0">Vehicle Applications</h5>
+                                                                <div class="small text-muted">Choose every vehicle this product fits.</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-2">
+                                                        <span id="selectedApplicationCount" class="badge text-bg-primary rounded-pill">0 selected</span>
+                                                        <button type="button" class="btn btn-sm btn-primary"
+                                                                data-bs-toggle="modal" data-bs-target="#applicationModal">
+                                                            <i class="bi bi-plus-circle me-1"></i> Create Application
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <div class="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3 small">
+                                                    <i class="bi bi-search text-primary"></i>
+                                                    Search the available list, select one or more applications, then use <strong>Add selected</strong>.
+                                                </div>
+                                                <select id="applicationIds" th:field="*{applicationIds}" class="form-select" multiple="multiple">
+                                                    <option th:each="a : ${applications}"
+                                                            th:value="${a.id()}"
+                                                            th:text="${a.displayName()}"></option>
+                                                </select>
+                                            </div>
                                         </div>
 
                                         <div class="col-12">
@@ -155,6 +256,31 @@
                         </div>
 
                         <div class="col-lg-4">
+                            <div class="card">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h3 class="card-title mb-0">Product Image</h3>
+                                    <span class="badge text-bg-light border">Optional</span>
+                                </div>
+                                <div class="card-body">
+                                    <label for="image" class="product-image-picker d-block">
+                                        <img id="productImagePreview"
+                                             class="product-image-preview"
+                                             th:src="${editMode && form != null && productId != null && hasProductImage == true
+                                                ? '/products/' + productId + '/image' : '/img/placeholder-image.png'}"
+                                             src="/img/placeholder-image.png"
+                                             alt="Product image preview">
+                                        <div class="mt-2 fw-semibold">Click to select or replace image</div>
+                                        <div class="small text-muted">JPEG or PNG, maximum 2 MB</div>
+                                    </label>
+                                    <input type="file" id="image" th:field="*{image}" class="d-none" accept="image/jpeg,image/png">
+                                    <div id="imageClientError" class="text-danger small mt-2 d-none"></div>
+                                    <div class="form-check mt-3" th:if="${editMode && hasProductImage == true}">
+                                        <input class="form-check-input" type="checkbox" id="removeImage" th:field="*{removeImage}">
+                                        <label class="form-check-label text-danger" for="removeImage">Remove current image</label>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="card">
                                 <div class="card-header">
                                     <h3 class="card-title">Preview</h3>
@@ -188,6 +314,58 @@
                     </div>
                 </form>
 
+                <div class="modal fade" id="applicationModal" tabindex="-1" aria-labelledby="applicationModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="applicationModalLabel">Add Vehicle Application</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <form id="applicationModalForm">
+                                <div class="modal-body">
+                                    <div id="applicationModalError" class="alert alert-danger d-none"></div>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="modalVehicleMakeId" class="form-label">Make <span class="text-danger">*</span></label>
+                                            <select id="modalVehicleMakeId" class="form-select" required>
+                                                <option value="">Select make</option>
+                                                <option th:each="make : ${vehicleMakes}"
+                                                        th:value="${make.id()}"
+                                                        th:text="${make.name()}"></option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="modalVehicleModelId" class="form-label">Model <span class="text-danger">*</span></label>
+                                            <select id="modalVehicleModelId" class="form-select" required disabled>
+                                                <option value="">Select model</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="modalVariantLabel" class="form-label">Variant Label</label>
+                                            <input type="text" id="modalVariantLabel" class="form-control" maxlength="100"
+                                                   placeholder="e.g. India, Japan">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="modalYearFrom" class="form-label">Year From</label>
+                                            <input type="number" id="modalYearFrom" class="form-control"
+                                                   min="1950" max="2100" placeholder="2006">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="modalYearTo" class="form-label">Year To</label>
+                                            <input type="number" id="modalYearTo" class="form-control"
+                                                   min="1950" max="2100" placeholder="Up">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                    <button type="submit" id="saveApplicationButton" class="btn btn-primary">Add Application</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </main>
@@ -215,15 +393,47 @@
 <div th:replace="fragments/commonscripts :: commonscripts"/>
 <!-- common script END -->
 <script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
+<script src="/resources/js/jquery.bootstrap-duallistbox.min.js"></script>
 
-<script>
+<script th:inline="javascript">
     $(function () {
         const $category = $('#categoryId');
         const $brand = $('#brandId');
         const $applications = $('#applicationIds');
+        const $modalMake = $('#modalVehicleMakeId');
+        const $modalModel = $('#modalVehicleModelId');
+        const $applicationModalForm = $('#applicationModalForm');
+        const $applicationModalError = $('#applicationModalError');
+        const $saveApplicationButton = $('#saveApplicationButton');
+        const $selectedApplicationCount = $('#selectedApplicationCount');
         const $similarSearch = $('#similarProductSearch');
         const $similarResults = $('#similarProductResults');
+        const $selectedSimilarProduct = $('#selectedSimilarProduct');
+        const $noSimilarProduct = $('#noSimilarProduct');
+        const editMode = /*[[${editMode}]]*/ false;
+        const currentProductId = /*[[${productId}]]*/ null;
         let similarSearchTimer = null;
+        const placeholderImageUrl = '/img/placeholder-image.png';
+        const applicationDualList = $applications.bootstrapDualListbox({
+            nonSelectedListLabel: 'Available fitments',
+            selectedListLabel: 'Fits this product',
+            preserveSelectionOnMove: 'moved',
+            moveOnSelect: false,
+            filterPlaceHolder: 'Search applications',
+            infoText: 'Showing all {0}',
+            infoTextFiltered: '<span class="badge text-bg-warning">Filtered</span> {0} from {1}',
+            infoTextEmpty: 'No applications'
+        });
+
+        function updateSelectedApplicationCount() {
+            const count = ($applications.val() || []).length;
+            $selectedApplicationCount.text(count + (count === 1 ? ' selected' : ' selected'));
+            $selectedApplicationCount.toggleClass('text-bg-primary', count > 0);
+            $selectedApplicationCount.toggleClass('text-bg-secondary', count === 0);
+        }
+
+        $applications.on('change', updateSelectedApplicationCount);
+        updateSelectedApplicationCount();
 
 
         function updatePreview() {
@@ -268,6 +478,10 @@
 
         function renderSimilarProductResults(items) {
             $similarResults.empty();
+            const selectedId = String($selectedSimilarProduct.find('.js-similar-chip').attr('data-product-id') || '');
+            items = (items || []).filter(function (item) {
+                return String(item.id) !== selectedId;
+            });
 
             if (!items || !items.length) {
                 $similarResults
@@ -293,7 +507,8 @@
             $.get('/products/search-json', {
                 keyword: term,
                 categoryId: $category.val() || '',
-                brandId: $brand.val() || ''
+
+                excludeProductId: currentProductId || ''
             }, renderSimilarProductResults).fail(function () {
                 $similarResults
                     .empty()
@@ -304,12 +519,9 @@
 
         function fillFormFromSimilarProduct(product) {
             $category.val(product.categoryId || '');
+            loadBrands(product.categoryId, null);
 
-            loadBrands(product.categoryId, product.brandId).done(function () {
-                $brand.val(product.brandId || '');
-            });
-
-            $('#name').val(product.name || '');
+            //$('#name').val(product.name || '');
             $('#specLabel').val(product.specLabel || '');
             $('#dimension').val(product.dimension || '');
             $('#description').val(product.description || '');
@@ -321,9 +533,38 @@
             $('#barcode').val('').removeClass('is-valid is-invalid');
 
             const applicationIds = (product.applicationIds || []).map(String);
-            $applications.val(applicationIds).trigger('change');
+            $applications.val(applicationIds);
+            applicationDualList.bootstrapDualListbox('refresh', true);
+            updateSelectedApplicationCount();
 
             updatePreview();
+        }
+
+        function addSimilarProduct(product) {
+            const productId = String(product.id);
+            if ($selectedSimilarProduct.find('.js-similar-chip[data-product-id="' + productId + '"]').length) {
+                return;
+            }
+
+            $selectedSimilarProduct.empty();
+            const $chip = $('<div>', {
+                class: 'badge text-bg-light border text-dark d-flex align-items-center gap-2 py-2 px-3 js-similar-chip'
+            }).attr('data-product-id', productId);
+
+            $('<input>', {
+                type: 'hidden',
+                name: 'similarProductId',
+                value: productId
+            }).appendTo($chip);
+            $('<span>').text(product.displayName).appendTo($chip);
+            $('<button>', {
+                type: 'button',
+                class: 'btn-close js-remove-similar',
+                'aria-label': 'Remove'
+            }).appendTo($chip);
+
+            $selectedSimilarProduct.append($chip);
+            $noSimilarProduct.addClass('d-none');
         }
 
         $similarSearch.on('input', function () {
@@ -342,12 +583,21 @@
 
         $similarResults.on('click', '.js-copy-product', function () {
             const productId = $(this).attr('data-product-id');
+            const displayName = $(this).text();
 
             $.get('/products/' + productId + '/copy-source', function (product) {
-                fillFormFromSimilarProduct(product);
+                addSimilarProduct({ id: product.id, displayName: displayName });
+                if (!editMode) {
+                    fillFormFromSimilarProduct(product);
+                }
                 $similarSearch.val('');
                 $similarResults.addClass('d-none').empty();
             });
+        });
+
+        $selectedSimilarProduct.on('click', '.js-remove-similar', function () {
+            $(this).closest('.js-similar-chip').remove();
+            $noSimilarProduct.removeClass('d-none');
         });
 
         $(document).on('click', function (event) {
@@ -358,6 +608,102 @@
 
         $category.on('change', function () {
             loadBrands($(this).val(), null);
+        });
+
+        $('#image').on('change', function () {
+            const file = this.files && this.files[0];
+            const $error = $('#imageClientError');
+            $error.addClass('d-none').empty();
+
+            if (!file) {
+                return;
+            }
+            if (!['image/jpeg', 'image/png'].includes(file.type)) {
+                this.value = '';
+                $error.text('Only JPEG and PNG images are allowed.').removeClass('d-none');
+                return;
+            }
+            if (file.size > 2 * 1024 * 1024) {
+                this.value = '';
+                $error.text('Product image must not exceed 2 MB.').removeClass('d-none');
+                return;
+            }
+
+            $('#removeImage').prop('checked', false);
+            $('#productImagePreview').attr('src', URL.createObjectURL(file));
+        });
+
+        $('#removeImage').on('change', function () {
+            if (this.checked) {
+                $('#image').val('');
+                $('#productImagePreview').attr('src', placeholderImageUrl);
+            }
+        });
+
+        $modalMake.on('change', function () {
+            const makeId = $(this).val();
+            $modalModel.empty().append('<option value="">Select model</option>').prop('disabled', !makeId);
+
+            if (!makeId) {
+                return;
+            }
+
+            $.get('/api/v1/lookups/vehicle-models', { makeId: makeId }, function (data) {
+                $.each(data, function (_, item) {
+                    $modalModel.append($('<option>', { value: item.id, text: item.name }));
+                });
+            }).fail(function () {
+                showApplicationModalError('Could not load vehicle models.');
+            });
+        });
+
+        function showApplicationModalError(message) {
+            $applicationModalError.text(message).removeClass('d-none');
+        }
+
+        $applicationModalForm.on('submit', function (event) {
+            event.preventDefault();
+            $applicationModalError.addClass('d-none').empty();
+
+            const yearFrom = $('#modalYearFrom').val();
+            const yearTo = $('#modalYearTo').val();
+            const payload = {
+                vehicleMakeId: Number($modalMake.val()),
+                vehicleModelId: Number($modalModel.val()),
+                variantLabel: ($('#modalVariantLabel').val() || '').trim() || null,
+                yearFrom: yearFrom ? Number(yearFrom) : null,
+                yearTo: yearTo ? Number(yearTo) : null,
+                active: true
+            };
+
+            $saveApplicationButton.prop('disabled', true).text('Adding...');
+
+            $.ajax({
+                url: '/vehicle-applications/create-json',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(payload)
+            }).done(function (application) {
+                $applications.append($('<option>', {
+                    value: application.id,
+                    text: application.displayName,
+                    selected: true
+                }));
+                applicationDualList.bootstrapDualListbox('refresh', true);
+                updateSelectedApplicationCount();
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('applicationModal')).hide();
+                $applicationModalForm[0].reset();
+                $modalModel.empty().append('<option value="">Select model</option>').prop('disabled', true);
+            }).fail(function (xhr) {
+                const response = xhr.responseJSON || {};
+                const fieldErrors = response.fieldErrors || {};
+                const message = response.error === 'Validation failed'
+                    ? Object.values(fieldErrors).join(' ')
+                    : response.error || 'Could not create vehicle application.';
+                showApplicationModalError(message);
+            }).always(function () {
+                $saveApplicationButton.prop('disabled', false).text('Add Application');
+            });
         });
 
         $('#name, #partNumber, #specLabel, #dimension').on('input', updatePreview);

@@ -78,6 +78,14 @@ public class ProductEntity extends BaseEntity {
     @Column(length = 2000)
     private String description;
 
+    @Size(max = 100)
+    @Column(name = "image_file_name", length = 100)
+    private String imageFileName;
+
+    @Size(max = 50)
+    @Column(name = "image_content_type", length = 50)
+    private String imageContentType;
+
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "brand_id", nullable = false)

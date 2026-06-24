@@ -18,6 +18,14 @@ spring:
       ddl-auto: update
     show-sql: true
 
+  servlet:
+    multipart:
+      max-file-size: 3MB
+      max-request-size: 4MB
+
+app:
+  product-image-directory: uploads/product-images
+
 logging:
   level:
     root: INFO
