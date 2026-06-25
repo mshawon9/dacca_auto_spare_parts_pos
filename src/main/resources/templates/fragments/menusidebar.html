@@ -1,107 +1,89 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
-
-<!--begin::Sidebar-->
 <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark" th:fragment="menusidebar">
-    <!--begin::Sidebar Brand-->
     <div class="sidebar-brand">
-        <!--begin::Brand Link-->
-        <a href="./index.html" class="brand-link">
-            <!--begin::Brand Image-->
-            <img
-                    src="/img/AdminLTELogo.png"
-                    alt="AdminLTE Logo"
-                    class="brand-image opacity-75 shadow"
-            />
-            <!--end::Brand Image-->
-            <!--begin::Brand Text-->
-            <span class="brand-text fw-light">AdminLTE 4</span>
-            <!--end::Brand Text-->
+        <a th:href="@{/}" class="brand-link">
+            <img src="/img/AdminLTELogo.png"
+                 alt="Dacca POS"
+                 class="brand-image opacity-75 shadow">
+            <span class="brand-text fw-light">Dacca POS</span>
         </a>
-        <!--end::Brand Link-->
     </div>
-    <!--end::Sidebar Brand-->
-    <!--begin::Sidebar Wrapper-->
+
     <div class="sidebar-wrapper">
         <nav class="mt-2">
-            <!--begin::Sidebar Menu-->
-            <ul
-                    class="nav sidebar-menu flex-column"
-                    data-lte-toggle="treeview"
-                    role="menu"
-                    data-accordion="false"
-            >
+            <ul class="nav sidebar-menu flex-column"
+                data-lte-toggle="treeview"
+                role="menu"
+                data-accordion="false">
+
+                <li class="nav-header">MAIN</li>
                 <li class="nav-item">
-                    <a href="./index.html" class="nav-link">
-                        <i class="nav-icon bi bi-circle-fill"></i>
-                        <p>Level 1</p>
+                    <a th:href="@{/}" class="nav-link">
+                        <i class="nav-icon bi bi-speedometer2"></i>
+                        <p>Dashboard</p>
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a href="#" class="nav-link">
-                        <i class="nav-icon bi bi-circle-fill"></i>
-                        <p>
-                            Treeview
-                            <i class="nav-arrow bi bi-chevron-right"></i>
-                        </p>
-                    </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="./index.html" class="nav-link">
-                                <i class="nav-icon bi bi-circle"></i>
-                                <p>
-                                    Level 2 (Badge)
-                                    <span
-                                            class="nav-badge badge text-bg-secondary me-3"
-                                    >
-                    6
-                  </span>
-                                </p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="./index.html" class="nav-link">
-                                <i class="nav-icon bi bi-circle"></i>
-                                <p>Level 2</p>
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="nav-item">
-                    <a href="./index.html" class="nav-link active">
-                        <i class="nav-icon bi bi-circle-fill"></i>
-                        <p>Level 1 Active</p>
+                    <a th:href="@{/inventory}" class="nav-link">
+                        <i class="nav-icon bi bi-box-seam"></i>
+                        <p>Inventory</p>
                     </a>
                 </li>
 
-                <li class="nav-item menu-open">
-                    <a href="#" class="nav-link active">
-                        <i class="nav-icon bi bi-circle-fill"></i>
-                        <p>
-                            Treeview Menu Open
-                            <i class="nav-arrow bi bi-chevron-right"></i>
-                        </p>
+                <li class="nav-header">PRODUCTS</li>
+                <li class="nav-item">
+                    <a th:href="@{/products}" class="nav-link">
+                        <i class="nav-icon bi bi-boxes"></i>
+                        <p>Products</p>
                     </a>
-                    <ul class="nav nav-treeview">
-                        <li class="nav-item">
-                            <a href="./index.html" class="nav-link active">
-                                <i class="nav-icon bi bi-circle"></i>
-                                <p>Level 2 Active</p>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="./index.html" class="nav-link">
-                                <i class="nav-icon bi bi-circle"></i>
-                                <p>Level 2</p>
-                            </a>
-                        </li>
-                    </ul>
+                </li>
+                <li class="nav-item">
+                    <a th:href="@{/products/create}" class="nav-link">
+                        <i class="nav-icon bi bi-plus-square"></i>
+                        <p>Add Product</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a th:href="@{/categories}" class="nav-link">
+                        <i class="nav-icon bi bi-tags"></i>
+                        <p>Categories</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a th:href="@{/brands}" class="nav-link">
+                        <i class="nav-icon bi bi-award"></i>
+                        <p>Brands</p>
+                    </a>
+                </li>
+
+                <li class="nav-header">VEHICLES</li>
+                <li class="nav-item">
+                    <a th:href="@{/vehicle-makes}" class="nav-link">
+                        <i class="nav-icon bi bi-building"></i>
+                        <p>Vehicle Makes</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a th:href="@{/vehicle-models}" class="nav-link">
+                        <i class="nav-icon bi bi-car-front"></i>
+                        <p>Vehicle Models</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a th:href="@{/vehicle-applications}" class="nav-link">
+                        <i class="nav-icon bi bi-wrench-adjustable-circle"></i>
+                        <p>Applications</p>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a th:href="@{/vehicle-applications/create}" class="nav-link">
+                        <i class="nav-icon bi bi-plus-circle"></i>
+                        <p>Add Application</p>
+                    </a>
                 </li>
             </ul>
-            <!--end::Sidebar Menu-->
         </nav>
     </div>
-    <!--end::Sidebar Wrapper-->
 </aside>
-<!--end::Sidebar-->
 </html>

@@ -257,7 +257,7 @@ public class ProductController {
         try {
             productService.delete(id);
             redirectAttributes.addFlashAttribute("successMessage", "Product deleted successfully.");
-        } catch (ResourceNotFoundException ex) {
+        } catch (ResourceNotFoundException | DuplicateResourceException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
         return "redirect:/products";

@@ -31,6 +31,9 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductSimilarityRepository productSimilarityRepository;
     private final ProductImageStorageService productImageStorageService;
+    private final ProductStockRepository productStockRepository;
+    private final StockAdjustmentRepository stockAdjustmentRepository;
+    private final ProductPriceHistoryRepository productPriceHistoryRepository;
 
     @Override
     public ProductResponse create(ProductCreateRequest request) {
@@ -189,6 +192,14 @@ public class ProductServiceImpl implements ProductService {
     public void delete(Long id) {
         ProductEntity entity = productRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + id));
+
+        if (productStockRepository.existsByProductId(id)
+            || stockAdjustmentRepository.existsByProductId(id)
+            || productPriceHistoryRepository.existsByProductId(id)) {
+            throw new DuplicateResourceException(
+                "Product has inventory history and cannot be deleted. Mark it inactive instead."
+            );
+        }
 
         productApplicationRepository.deleteByProductId(id);
         productSimilarityRepository.deleteAllForProduct(id);

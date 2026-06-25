@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<div th:replace="fragments/head :: head"></div>
+<style>
+    .inventory-summary-card {
+        border: 0;
+        border-radius: .85rem;
+        box-shadow: 0 .125rem .5rem rgba(0, 0, 0, .06);
+    }
+    .inventory-product-image {
+        background: var(--bs-tertiary-bg);
+        border: 1px solid var(--bs-border-color);
+        border-radius: .6rem;
+        height: 58px;
+        object-fit: contain;
+        width: 58px;
+    }
+    .stock-quantity {
+        font-size: 1.15rem;
+        min-width: 82px;
+    }
+    .inventory-table th {
+        white-space: nowrap;
+    }
+    .inventory-action-group .btn {
+        min-width: 42px;
+    }
+    .store-required-panel {
+        border: 2px dashed var(--bs-border-color);
+        border-radius: 1rem;
+        padding: 3rem 1rem;
+    }
+</style>
+<head/>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<div class="app-wrapper">
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h3 class="mb-1">Inventory</h3>
+                        <div class="text-muted">Update product stock separately for each store.</div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary"
+                            data-bs-toggle="modal" data-bs-target="#storeModal">
+                        <i class="bi bi-shop me-1"></i> Add Store
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+                <div id="inventoryAlert" class="alert d-none" role="alert"></div>
+                <form id="changeStoreForm" th:action="@{/inventory/change-store}" method="post"></form>
+
+                <div class="card inventory-summary-card mb-3">
+                    <div class="card-body">
+                        <form th:action="@{/inventory}" method="get" id="inventoryFilterForm">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-lg-3" th:if="${selectedStoreId == null}">
+                                    <label for="storeId" class="form-label fw-semibold">
+                                        Warehouse <span class="text-danger">*</span>
+                                    </label>
+                                    <select id="storeId" name="storeId" class="form-select" required>
+                                        <option value="">Select warehouse</option>
+                                        <option th:each="store : ${stores}"
+                                                th:value="${store.id()}"
+                                                th:text="${store.code() != null ? store.name() + ' (' + store.code() + ')' : store.name()}"
+                                                th:selected="${selectedStoreId != null && selectedStoreId == store.id()}"></option>
+                                    </select>
+                                    <div class="form-text">The warehouse will be locked after selection.</div>
+                                </div>
+                                <div class="col-lg-3" th:if="${selectedStoreId != null}">
+                                    <label class="form-label fw-semibold">Locked Warehouse</label>
+                                    <input type="hidden" name="storeId" th:value="${selectedStoreId}">
+                                    <div class="border border-success rounded p-2 bg-success-subtle">
+                                        <div class="d-flex justify-content-between align-items-center gap-2">
+                                            <div>
+                                                <div class="fw-semibold text-success-emphasis">
+                                                    <i class="bi bi-lock-fill me-1"></i>
+                                                    <span th:text="${selectedStore.name()}">Warehouse</span>
+                                                </div>
+                                                <small class="text-muted"
+                                                       th:text="${selectedStore.code() != null ? selectedStore.code() : 'Warehouse fixed for updates'}">
+                                                    Fixed
+                                                </small>
+                                            </div>
+                                            <button type="submit" form="changeStoreForm"
+                                                    class="btn btn-sm btn-outline-danger">
+                                                Change
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="categoryId" class="form-label">Category</label>
+                                    <select id="categoryId" name="categoryId" class="form-select">
+                                        <option value="">All Categories</option>
+                                        <option th:each="category : ${categories}"
+                                                th:value="${category.id()}"
+                                                th:text="${category.name()}"
+                                                th:selected="${selectedCategoryId != null && selectedCategoryId == category.id()}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-4">
+                                    <label for="keyword" class="form-label">Search Product</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                        <input type="text" id="keyword" name="keyword" class="form-control"
+                                               th:value="${keyword}"
+                                               placeholder="Name, part number, SKU, barcode...">
+                                    </div>
+                                </div>
+                                <div class="col-lg-2 d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-funnel me-1"></i> Load Products
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div th:if="${selectedStoreId == null}" class="card inventory-summary-card">
+                    <div class="card-body">
+                        <div class="store-required-panel text-center">
+                            <div class="display-6 text-primary mb-3"><i class="bi bi-shop-window"></i></div>
+                            <h4>Select a Store</h4>
+                            <p class="text-muted mb-3">Choose a store above to view and update its product quantities.</p>
+                            <button th:if="${#lists.isEmpty(stores)}" type="button" class="btn btn-primary"
+                                    data-bs-toggle="modal" data-bs-target="#storeModal">
+                                <i class="bi bi-plus-circle me-1"></i> Create First Store
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div th:if="${selectedStoreId != null}">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="card inventory-summary-card h-100">
+                                <div class="card-body d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-primary-subtle text-primary p-3">
+                                        <i class="bi bi-box-seam fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Products Loaded</div>
+                                        <div class="fs-4 fw-bold" id="loadedProductCount"
+                                             th:text="${inventoryPage.totalElements()}">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card inventory-summary-card h-100">
+                                <div class="card-body d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-danger-subtle text-danger p-3">
+                                        <i class="bi bi-exclamation-triangle fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">Out of Stock on Page</div>
+                                        <div class="fs-4 fw-bold" id="outOfStockCount">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card inventory-summary-card h-100">
+                                <div class="card-body d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-success-subtle text-success p-3">
+                                        <i class="bi bi-check-circle fs-4"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">In Stock on Page</div>
+                                        <div class="fs-4 fw-bold" id="inStockCount">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card inventory-summary-card">
+                        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <h3 class="card-title mb-0">Stock Update</h3>
+                                <div class="small text-muted">Use the action buttons to make a validated manual adjustment.</div>
+                            </div>
+                            <span class="badge text-bg-light border">
+                                <i class="bi bi-clock-history me-1"></i> Every change is recorded
+                            </span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0 inventory-table">
+                                    <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Product</th>
+                                        <th>Category / Brand</th>
+                                        <th>Current Stock</th>
+                                        <th>Selling Price</th>
+                                        <th class="text-end pe-3">Actions</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr th:if="${#lists.isEmpty(inventoryRows)}">
+                                        <td colspan="5" class="text-center text-muted py-5">
+                                            <i class="bi bi-search fs-2 d-block mb-2"></i>
+                                            No matching active products found.
+                                        </td>
+                                    </tr>
+                                    <tr th:each="row : ${inventoryRows}" class="inventory-row"
+                                        th:attr="data-product-id=${row.productId()},
+                                                 data-product-name=${row.productName()},
+                                                 data-quantity=${row.quantity()},
+                                                 data-price=${row.sellingPrice()}">
+                                        <td class="ps-3">
+                                            <div class="d-flex align-items-center gap-3">
+                                                <img class="inventory-product-image"
+                                                     th:src="${row.hasImage() ? '/products/' + row.productId() + '/image' : '/img/placeholder-image.png'}"
+                                                     th:alt="${row.productName()}">
+                                                <div>
+                                                    <div class="fw-semibold" th:text="${row.productName()}">Product</div>
+                                                    <div class="small text-muted">
+                                                        Part: <span th:text="${row.partNumber()}">PN</span>
+                                                        <span th:if="${row.sku() != null}">
+                                                            · SKU: <span th:text="${row.sku()}">SKU</span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div th:text="${row.categoryName()}">Category</div>
+                                            <small class="text-muted" th:text="${row.brandName()}">Brand</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge rounded-pill stock-quantity"
+                                                  th:classappend="${row.quantity().signum() > 0 ? ' text-bg-success' : ' text-bg-danger'}"
+                                                  th:text="${row.quantity().stripTrailingZeros().toPlainString()}">0</span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold current-price"
+                                                 th:text="${row.sellingPrice() != null ? #numbers.formatDecimal(row.sellingPrice(), 1, 2) : 'Not set'}">
+                                                Not set
+                                            </div>
+                                            <small class="text-muted previous-price"
+                                                   th:text="${row.previousPrice() != null ? 'Previous: ' + #numbers.formatDecimal(row.previousPrice(), 1, 2) : 'No previous price'}">
+                                                No previous price
+                                            </small>
+                                        </td>
+                                        <td class="text-end pe-3">
+                                            <div class="btn-group inventory-action-group me-1" role="group">
+                                                <button type="button" class="btn btn-sm btn-success js-adjust-stock"
+                                                        data-action="INCREASE" title="Increase stock">
+                                                    <i class="bi bi-plus-lg"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger js-adjust-stock"
+                                                        data-action="DECREASE" title="Decrease stock">
+                                                    <i class="bi bi-dash-lg"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-primary js-adjust-stock"
+                                                        data-action="SET" title="Set exact quantity">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger js-clear-stock"
+                                                        title="Remove all stock">
+                                                    <i class="bi bi-x-circle"></i>
+                                                </button>
+                                            </div>
+                                            <div class="btn-group inventory-action-group" role="group">
+                                                <button type="button" class="btn btn-sm btn-warning js-edit-price"
+                                                        title="Update selling price">
+                                                    <i class="bi bi-cash-coin"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary js-price-history"
+                                                        title="View old prices">
+                                                    <i class="bi bi-clock-history"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2"
+                             th:if="${inventoryPage.totalElements() > 0}">
+                            <div class="small text-muted">
+                                Showing
+                                <strong th:text="${inventoryPage.pageNumber() * inventoryPage.pageSize() + 1}">1</strong>
+                                -
+                                <strong th:text="${(inventoryPage.pageNumber() + 1) * inventoryPage.pageSize() < inventoryPage.totalElements()
+                                    ? (inventoryPage.pageNumber() + 1) * inventoryPage.pageSize()
+                                    : inventoryPage.totalElements()}">15</strong>
+                                of <strong th:text="${inventoryPage.totalElements()}">0</strong> products
+                            </div>
+                            <div class="d-flex align-items-center gap-2" th:if="${inventoryPage.totalPages() > 1}">
+                                <a class="btn btn-outline-primary"
+                                   th:classappend="${inventoryPage.first()} ? ' disabled'"
+                                   th:href="@{/inventory(categoryId=${selectedCategoryId},keyword=${keyword},page=${inventoryPage.pageNumber() - 1})}">
+                                    <i class="bi bi-arrow-left me-1"></i> Previous
+                                </a>
+                                <span class="badge text-bg-light border px-3 py-2"
+                                      th:text="${'Page ' + (inventoryPage.pageNumber() + 1) + ' of ' + inventoryPage.totalPages()}">
+                                    Page 1 of 1
+                                </span>
+                                <a class="btn btn-primary"
+                                   th:classappend="${inventoryPage.last()} ? ' disabled'"
+                                   th:href="@{/inventory(categoryId=${selectedCategoryId},keyword=${keyword},page=${inventoryPage.pageNumber() + 1})}">
+                                    Next <i class="bi bi-arrow-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <strong>Dacca POS</strong>
+    </footer>
+</div>
+
+<div class="modal fade" id="adjustmentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="adjustmentForm">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="adjustmentModalTitle">Update Stock</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="adjustmentError" class="alert alert-danger d-none"></div>
+                    <div class="p-3 bg-body-tertiary rounded mb-3">
+                        <div class="small text-muted">Product</div>
+                        <div class="fw-semibold" id="adjustmentProductName">-</div>
+                        <div class="small mt-2">Current stock: <strong id="adjustmentCurrentStock">0</strong></div>
+                    </div>
+                    <input type="hidden" id="adjustmentProductId">
+                    <input type="hidden" id="adjustmentType">
+                    <div class="mb-3" id="adjustmentQuantityGroup">
+                        <label for="adjustmentQuantity" class="form-label" id="adjustmentQuantityLabel">Quantity</label>
+                        <input type="number" id="adjustmentQuantity" class="form-control form-control-lg"
+                               min="0" step="0.001" max="9999999999999999.999" required>
+                        <div class="form-text">Up to 3 decimal places are allowed.</div>
+                    </div>
+                    <div>
+                        <label for="adjustmentNote" class="form-label">Note <span class="text-muted">(optional)</span></label>
+                        <textarea id="adjustmentNote" class="form-control" maxlength="250" rows="2"
+                                  placeholder="Reason, reference, or stock count note"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="saveAdjustmentButton" class="btn btn-primary">Update Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="priceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="priceForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Update Selling Price</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="priceError" class="alert alert-danger d-none"></div>
+                    <div class="p-3 bg-body-tertiary rounded mb-3">
+                        <div class="small text-muted">Product</div>
+                        <div class="fw-semibold" id="priceProductName">-</div>
+                        <div class="small mt-2">
+                            Current price: <strong id="currentPriceText">Not set</strong>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPrice" class="form-label">New Selling Price <span class="text-danger">*</span></label>
+                        <input type="number" id="newPrice" class="form-control form-control-lg"
+                               min="0.01" step="0.01" max="99999999999999999.99" required>
+                        <div class="form-text">Price must be greater than zero, with up to 2 decimal places.</div>
+                    </div>
+                    <div>
+                        <label for="priceNote" class="form-label">Note <span class="text-muted">(optional)</span></label>
+                        <textarea id="priceNote" class="form-control" maxlength="250" rows="2"
+                                  placeholder="Reason for price change"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="savePriceButton" class="btn btn-warning">Update Price</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="priceHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Price History</h5>
+                    <div class="small text-muted" id="priceHistoryProductName"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="priceHistoryError" class="alert alert-danger m-3 d-none"></div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                        <tr>
+                            <th class="ps-3">Changed At</th>
+                            <th>Old Price</th>
+                            <th>New Price</th>
+                            <th>Note</th>
+                        </tr>
+                        </thead>
+                        <tbody id="priceHistoryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="storeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="storeForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Store</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="storeError" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label for="storeName" class="form-label">Store Name <span class="text-danger">*</span></label>
+                        <input type="text" id="storeName" class="form-control" maxlength="120" required
+                               placeholder="e.g. Main Store">
+                    </div>
+                    <div class="mb-3">
+                        <label for="storeCode" class="form-label">Code</label>
+                        <input type="text" id="storeCode" class="form-control" maxlength="50"
+                               placeholder="e.g. MAIN">
+                    </div>
+                    <div>
+                        <label for="storeAddress" class="form-label">Address</label>
+                        <textarea id="storeAddress" class="form-control" maxlength="250" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" id="saveStoreButton" class="btn btn-primary">Create Store</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<script th:inline="javascript">
+    $(function () {
+        const selectedStoreId = /*[[${selectedStoreId}]]*/ null;
+        const adjustmentModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('adjustmentModal'));
+        const priceModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('priceModal'));
+        const priceHistoryModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('priceHistoryModal'));
+        let activeRow = null;
+        let priceRow = null;
+
+        function showAlert(message, type) {
+            $('#inventoryAlert')
+                .removeClass('d-none alert-success alert-danger')
+                .addClass(type === 'success' ? 'alert-success' : 'alert-danger')
+                .text(message);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function errorMessage(xhr, fallback) {
+            const response = xhr.responseJSON || {};
+            if (response.fieldErrors) {
+                return Object.values(response.fieldErrors).join(' ');
+            }
+            return response.error || fallback;
+        }
+
+        function formatQuantity(value) {
+            const number = Number(value);
+            return Number.isInteger(number)
+                ? String(number)
+                : number.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+        }
+
+        function formatPrice(value) {
+            if (value === null || value === undefined || value === '' || !Number.isFinite(Number(value))) {
+                return 'Not set';
+            }
+            return Number(value).toFixed(2);
+        }
+
+        function updateSummary() {
+            let inStock = 0;
+            let outOfStock = 0;
+            $('.inventory-row').each(function () {
+                Number($(this).attr('data-quantity')) > 0 ? inStock++ : outOfStock++;
+            });
+            $('#inStockCount').text(inStock);
+            $('#outOfStockCount').text(outOfStock);
+        }
+
+        function updateRowQuantity($row, quantity) {
+            const normalized = Number(quantity);
+            $row.attr('data-quantity', normalized);
+            $row.find('.stock-quantity')
+                .text(formatQuantity(normalized))
+                .toggleClass('text-bg-success', normalized > 0)
+                .toggleClass('text-bg-danger', normalized <= 0);
+            updateSummary();
+        }
+
+        function openAdjustment($row, action) {
+            activeRow = $row;
+            const currentQuantity = Number($row.attr('data-quantity'));
+            const productName = $row.attr('data-product-name');
+            const labels = {
+                INCREASE: { title: 'Increase Stock', quantity: 'Quantity to add', button: 'Increase Stock', className: 'btn-success' },
+                DECREASE: { title: 'Decrease Stock', quantity: 'Quantity to remove', button: 'Decrease Stock', className: 'btn-danger' },
+                SET: { title: 'Set Stock Quantity', quantity: 'New exact quantity', button: 'Set Quantity', className: 'btn-primary' }
+            };
+            const config = labels[action];
+
+            $('#adjustmentError').addClass('d-none').empty();
+            $('#adjustmentModalTitle').text(config.title);
+            $('#adjustmentProductName').text(productName);
+            $('#adjustmentCurrentStock').text(formatQuantity(currentQuantity));
+            $('#adjustmentProductId').val($row.attr('data-product-id'));
+            $('#adjustmentType').val(action);
+            $('#adjustmentQuantityLabel').text(config.quantity);
+            $('#adjustmentQuantity').val(action === 'SET' ? formatQuantity(currentQuantity) : '1').attr('min', action === 'SET' ? '0' : '0.001');
+            $('#adjustmentNote').val('');
+            $('#adjustmentQuantityGroup').removeClass('d-none');
+            $('#saveAdjustmentButton')
+                .removeClass('btn-primary btn-success btn-danger')
+                .addClass(config.className)
+                .text(config.button);
+            adjustmentModal.show();
+        }
+
+        $('.js-adjust-stock').on('click', function () {
+            openAdjustment($(this).closest('.inventory-row'), $(this).attr('data-action'));
+        });
+
+        $('.js-clear-stock').on('click', function () {
+            const $row = $(this).closest('.inventory-row');
+            if (Number($row.attr('data-quantity')) === 0) {
+                showAlert('This product already has zero stock.', 'error');
+                return;
+            }
+            if (!confirm('Set stock to zero for ' + $row.attr('data-product-name') + '?')) {
+                return;
+            }
+            submitAdjustment($row, 'SET', 0, 'Stock removed manually');
+        });
+
+        function submitAdjustment($row, type, quantity, note) {
+            const $buttons = $row.find('button');
+            $buttons.prop('disabled', true);
+
+            $.ajax({
+                url: '/inventory/adjust',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    storeId: Number(selectedStoreId),
+                    productId: Number($row.attr('data-product-id')),
+                    adjustmentType: type,
+                    quantity: Number(quantity),
+                    note: note || null
+                })
+            }).done(function (response) {
+                updateRowQuantity($row, response.newQuantity);
+                adjustmentModal.hide();
+                showAlert('Stock updated successfully. New quantity: ' + formatQuantity(response.newQuantity), 'success');
+            }).fail(function (xhr) {
+                $('#adjustmentError').text(errorMessage(xhr, 'Could not update stock.')).removeClass('d-none');
+                adjustmentModal.show();
+            }).always(function () {
+                $buttons.prop('disabled', false);
+                $('#saveAdjustmentButton').prop('disabled', false);
+            });
+        }
+
+        $('#adjustmentForm').on('submit', function (event) {
+            event.preventDefault();
+            const type = $('#adjustmentType').val();
+            const quantity = Number($('#adjustmentQuantity').val());
+
+            if (!Number.isFinite(quantity) || quantity < 0 || (type !== 'SET' && quantity <= 0)) {
+                $('#adjustmentError').text(type === 'SET'
+                    ? 'Quantity must be zero or greater.'
+                    : 'Quantity must be greater than zero.').removeClass('d-none');
+                return;
+            }
+
+            $('#saveAdjustmentButton').prop('disabled', true);
+            submitAdjustment(activeRow, type, quantity, ($('#adjustmentNote').val() || '').trim());
+        });
+
+        $('.js-edit-price').on('click', function () {
+            priceRow = $(this).closest('.inventory-row');
+            const currentPrice = priceRow.attr('data-price');
+            $('#priceError').addClass('d-none').empty();
+            $('#priceProductName').text(priceRow.attr('data-product-name'));
+            $('#currentPriceText').text(formatPrice(currentPrice));
+            $('#newPrice').val(currentPrice || '');
+            $('#priceNote').val('');
+            priceModal.show();
+        });
+
+        $('#priceForm').on('submit', function (event) {
+            event.preventDefault();
+            const newPrice = Number($('#newPrice').val());
+            if (!Number.isFinite(newPrice) || newPrice <= 0) {
+                $('#priceError').text('Price must be greater than zero.').removeClass('d-none');
+                return;
+            }
+
+            $('#savePriceButton').prop('disabled', true).text('Updating...');
+            $.ajax({
+                url: '/inventory/price',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    storeId: Number(selectedStoreId),
+                    productId: Number(priceRow.attr('data-product-id')),
+                    price: newPrice,
+                    note: ($('#priceNote').val() || '').trim() || null
+                })
+            }).done(function (response) {
+                priceRow.attr('data-price', response.newPrice);
+                priceRow.find('.current-price').text(formatPrice(response.newPrice));
+                priceRow.find('.previous-price').text(
+                    response.oldPrice === null ? 'No previous price' : 'Previous: ' + formatPrice(response.oldPrice)
+                );
+                priceModal.hide();
+                showAlert('Price updated successfully to ' + formatPrice(response.newPrice), 'success');
+            }).fail(function (xhr) {
+                $('#priceError').text(errorMessage(xhr, 'Could not update price.')).removeClass('d-none');
+            }).always(function () {
+                $('#savePriceButton').prop('disabled', false).text('Update Price');
+            });
+        });
+
+        $('.js-price-history').on('click', function () {
+            const $row = $(this).closest('.inventory-row');
+            $('#priceHistoryProductName').text($row.attr('data-product-name'));
+            $('#priceHistoryError').addClass('d-none').empty();
+            $('#priceHistoryBody').html(
+                '<tr><td colspan="4" class="text-center text-muted py-4">Loading price history...</td></tr>'
+            );
+            priceHistoryModal.show();
+
+            $.get('/inventory/price-history', {
+                storeId: selectedStoreId,
+                productId: $row.attr('data-product-id')
+            }).done(function (items) {
+                const $body = $('#priceHistoryBody').empty();
+                if (!items.length) {
+                    $body.append('<tr><td colspan="4" class="text-center text-muted py-4">No price changes recorded.</td></tr>');
+                    return;
+                }
+
+                $.each(items, function (_, item) {
+                    const $tr = $('<tr>');
+                    $('<td>', { class: 'ps-3' }).text(new Date(item.changedAt).toLocaleString()).appendTo($tr);
+                    $('<td>').text(formatPrice(item.oldPrice)).appendTo($tr);
+                    $('<td>', { class: 'fw-semibold' }).text(formatPrice(item.newPrice)).appendTo($tr);
+                    $('<td>').text(item.note || '-').appendTo($tr);
+                    $body.append($tr);
+                });
+            }).fail(function (xhr) {
+                $('#priceHistoryBody').empty();
+                $('#priceHistoryError').text(errorMessage(xhr, 'Could not load price history.')).removeClass('d-none');
+            });
+        });
+
+        $('#storeId').on('change', function () {
+            if ($(this).val()) {
+                $('#inventoryFilterForm').trigger('submit');
+            }
+        });
+
+        $('#storeForm').on('submit', function (event) {
+            event.preventDefault();
+            $('#storeError').addClass('d-none').empty();
+            $('#saveStoreButton').prop('disabled', true).text('Creating...');
+
+            $.ajax({
+                url: '/inventory/stores',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    name: ($('#storeName').val() || '').trim(),
+                    code: ($('#storeCode').val() || '').trim() || null,
+                    address: ($('#storeAddress').val() || '').trim() || null
+                })
+            }).done(function (store) {
+                window.location.href = '/inventory?storeId=' + store.id;
+            }).fail(function (xhr) {
+                $('#storeError').text(errorMessage(xhr, 'Could not create store.')).removeClass('d-none');
+            }).always(function () {
+                $('#saveStoreButton').prop('disabled', false).text('Create Store');
+            });
+        });
+
+        updateSummary();
+    });
+</script>
+</body>
+</html>
