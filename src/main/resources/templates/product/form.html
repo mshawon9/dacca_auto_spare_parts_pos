@@ -325,25 +325,35 @@
                                 <div class="modal-body">
                                     <div id="applicationModalError" class="alert alert-danger d-none"></div>
                                     <div class="row g-3">
+                                        <div class="col-12">
+                                            <div class="alert alert-light border small mb-0">
+                                                Type make and model directly. New names are saved automatically.
+                                            </div>
+                                        </div>
                                         <div class="col-md-6">
-                                            <label for="modalVehicleMakeId" class="form-label">Make <span class="text-danger">*</span></label>
-                                            <select id="modalVehicleMakeId" class="form-select" required>
-                                                <option value="">Select make</option>
+                                            <label for="modalVehicleMakeName" class="form-label">Make <span class="text-danger">*</span></label>
+                                            <input type="hidden" id="modalVehicleMakeId">
+                                            <select id="modalVehicleMakeName" class="form-select" required>
+                                                <option value="">Search or add make</option>
                                                 <option th:each="make : ${vehicleMakes}"
-                                                        th:value="${make.id()}"
-                                                        th:text="${make.name()}"></option>
+                                                        th:value="${make.name()}"
+                                                        th:text="${make.name()}"
+                                                        th:attr="data-id=${make.id()}"></option>
                                             </select>
+                                            <div id="modalVehicleMakeHelp" class="form-text">Search an old make or type a new one, then press Enter.</div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="modalVehicleModelId" class="form-label">Model <span class="text-danger">*</span></label>
-                                            <select id="modalVehicleModelId" class="form-select" required disabled>
-                                                <option value="">Select model</option>
+                                            <label for="modalVehicleModelName" class="form-label">Model <span class="text-danger">*</span></label>
+                                            <input type="hidden" id="modalVehicleModelId">
+                                            <select id="modalVehicleModelName" class="form-select" required>
+                                                <option value="">Search or add model</option>
                                             </select>
+                                            <div id="modalVehicleModelHelp" class="form-text">Select a make first to search old models, or type a new model.</div>
                                         </div>
                                         <div class="col-md-6">
-                                            <label for="modalVariantLabel" class="form-label">Variant Label</label>
+                                            <label for="modalVariantLabel" class="form-label">Engine / Variant</label>
                                             <input type="text" id="modalVariantLabel" class="form-control" maxlength="100"
-                                                   placeholder="e.g. India, Japan">
+                                                   placeholder="Optional, e.g. 1.8, Diesel">
                                         </div>
                                         <div class="col-md-3">
                                             <label for="modalYearFrom" class="form-label">Year From</label>
@@ -394,14 +404,19 @@
 <!-- common script END -->
 <script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
 <script src="/resources/js/jquery.bootstrap-duallistbox.min.js"></script>
+<script src="/resources/js/select2.min.js"></script>
 
 <script th:inline="javascript">
     $(function () {
         const $category = $('#categoryId');
         const $brand = $('#brandId');
         const $applications = $('#applicationIds');
-        const $modalMake = $('#modalVehicleMakeId');
-        const $modalModel = $('#modalVehicleModelId');
+        const $modalMake = $('#modalVehicleMakeName');
+        const $modalMakeId = $('#modalVehicleMakeId');
+        const $modalMakeHelp = $('#modalVehicleMakeHelp');
+        const $modalModel = $('#modalVehicleModelName');
+        const $modalModelId = $('#modalVehicleModelId');
+        const $modalModelHelp = $('#modalVehicleModelHelp');
         const $applicationModalForm = $('#applicationModalForm');
         const $applicationModalError = $('#applicationModalError');
         const $saveApplicationButton = $('#saveApplicationButton');
@@ -640,41 +655,140 @@
             }
         });
 
-        $modalMake.on('change', function () {
-            const makeId = $(this).val();
-            $modalModel.empty().append('<option value="">Select model</option>').prop('disabled', !makeId);
-
-            if (!makeId) {
-                return;
-            }
-
-            $.get('/api/v1/lookups/vehicle-models', { makeId: makeId }, function (data) {
-                $.each(data, function (_, item) {
-                    $modalModel.append($('<option>', { value: item.id, text: item.name }));
-                });
-            }).fail(function () {
-                showApplicationModalError('Could not load vehicle models.');
-            });
-        });
-
         function showApplicationModalError(message) {
             $applicationModalError.text(message).removeClass('d-none');
         }
 
+        function updateModalMakeState() {
+            const value = ($modalMake.val() || '').trim();
+            const selectedId = $modalMake.find('option:selected').data('id');
+
+            if (selectedId) {
+                $modalMakeId.val(selectedId);
+                $modalMakeHelp.text('Existing make selected.');
+            } else {
+                $modalMakeId.val('');
+                $modalMakeHelp.text(value ? 'New make will be created when you save.' : 'Search an old make or type a new one, then press Enter.');
+            }
+        }
+
+        function updateModalModelState() {
+            const value = ($modalModel.val() || '').trim();
+            const selectedId = $modalModel.find('option:selected').data('id');
+
+            if (selectedId) {
+                $modalModelId.val(selectedId);
+                $modalModelHelp.text('Existing model selected.');
+            } else {
+                $modalModelId.val('');
+                $modalModelHelp.text(value ? 'New model will be created when you save.' : 'Select a make first to search old models, or type a new model.');
+            }
+        }
+
+        function createSelect2Tag(params) {
+            const term = $.trim(params.term);
+            if (!term) {
+                return null;
+            }
+            return {
+                id: term,
+                text: term,
+                newTag: true
+            };
+        }
+
+        function renderSelect2Tag(data, label) {
+            if (data.newTag) {
+                return $('<span></span>').append(document.createTextNode(label + ': ')).append($('<strong></strong>').text(data.text));
+            }
+            return data.text;
+        }
+
+        $modalMake.select2({
+            theme: 'bootstrap-5',
+            tags: true,
+            width: '100%',
+            placeholder: 'Search or add make',
+            allowClear: true,
+            dropdownParent: $('#applicationModal'),
+            createTag: createSelect2Tag,
+            templateResult: function (data) {
+                return renderSelect2Tag(data, 'Add new make');
+            }
+        });
+
+        $modalModel.select2({
+            theme: 'bootstrap-5',
+            tags: true,
+            width: '100%',
+            placeholder: 'Search or add model',
+            allowClear: true,
+            dropdownParent: $('#applicationModal'),
+            createTag: createSelect2Tag,
+            templateResult: function (data) {
+                return renderSelect2Tag(data, 'Add new model');
+            }
+        });
+
+        function replaceModalModelOptions(models, selectedName) {
+            $modalModel.empty().append(new Option('', '', false, false));
+            $.each(models || [], function (_, item) {
+                const option = new Option(item.name, item.name, false, selectedName && item.name === selectedName);
+                $(option).attr('data-id', item.id);
+                $modalModel.append(option);
+            });
+
+            if (selectedName && !$modalModel.find('option').filter(function () { return $(this).val() === selectedName; }).length) {
+                $modalModel.append(new Option(selectedName, selectedName, true, true));
+            }
+
+            $modalModel.val(selectedName || null).trigger('change.select2');
+            updateModalModelState();
+        }
+
+        function loadModalModelsForMake(selectedName) {
+            const makeId = $modalMakeId.val();
+            if (!makeId) {
+                replaceModalModelOptions([], selectedName || $modalModel.val());
+                return;
+            }
+
+            $.get('/api/v1/lookups/vehicle-models', { makeId: makeId }, function (data) {
+                replaceModalModelOptions(data, selectedName || $modalModel.val());
+            }).fail(function () {
+                $modalModelHelp.text('Could not load old models. You can still type a new model.');
+            });
+        }
+
+        $modalMake.on('change select2:select select2:clear', function () {
+            updateModalMakeState();
+            loadModalModelsForMake(null);
+        });
+
+        $modalModel.on('change select2:select select2:clear', updateModalModelState);
+
         $applicationModalForm.on('submit', function (event) {
             event.preventDefault();
             $applicationModalError.addClass('d-none').empty();
+            updateModalMakeState();
 
             const yearFrom = $('#modalYearFrom').val();
             const yearTo = $('#modalYearTo').val();
             const payload = {
-                vehicleMakeId: Number($modalMake.val()),
-                vehicleModelId: Number($modalModel.val()),
+                vehicleMakeId: $modalMakeId.val() ? Number($modalMakeId.val()) : null,
+                vehicleModelId: $modalModelId.val() ? Number($modalModelId.val()) : null,
+                vehicleMakeName: ($modalMake.val() || '').trim(),
+                vehicleModelName: ($modalModel.val() || '').trim(),
                 variantLabel: ($('#modalVariantLabel').val() || '').trim() || null,
                 yearFrom: yearFrom ? Number(yearFrom) : null,
                 yearTo: yearTo ? Number(yearTo) : null,
                 active: true
             };
+
+            if (!payload.vehicleMakeName || !payload.vehicleModelName) {
+                showApplicationModalError('Make and model are required.');
+                return;
+            }
 
             $saveApplicationButton.prop('disabled', true).text('Adding...');
 
@@ -693,7 +807,12 @@
                 updateSelectedApplicationCount();
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('applicationModal')).hide();
                 $applicationModalForm[0].reset();
-                $modalModel.empty().append('<option value="">Select model</option>').prop('disabled', true);
+                $modalMake.val(null).trigger('change');
+                $modalMakeId.val('');
+                $modalModel.val(null).trigger('change');
+                $modalModelId.val('');
+                $modalMakeHelp.text('Search an old make or type a new one, then press Enter.');
+                $modalModelHelp.text('Select a make first to search old models, or type a new model.');
             }).fail(function (xhr) {
                 const response = xhr.responseJSON || {};
                 const fieldErrors = response.fieldErrors || {};

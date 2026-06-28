@@ -8,11 +8,15 @@ import lombok.Setter;
 @Setter
 public class VehicleApplicationCreateRequest {
 
-    @NotNull
     private Long vehicleMakeId;
 
-    @NotNull
     private Long vehicleModelId;
+
+    @Size(max = 100)
+    private String vehicleMakeName;
+
+    @Size(max = 100)
+    private String vehicleModelName;
 
     @Size(max = 100)
     private String variantLabel;
@@ -30,5 +34,15 @@ public class VehicleApplicationCreateRequest {
     @AssertTrue(message = "yearFrom must be <= yearTo")
     public boolean isYearRangeValid() {
         return yearFrom == null || yearTo == null || yearFrom <= yearTo;
+    }
+
+    @AssertTrue(message = "Vehicle make is required")
+    public boolean isVehicleMakeProvided() {
+        return vehicleMakeId != null || (vehicleMakeName != null && !vehicleMakeName.isBlank());
+    }
+
+    @AssertTrue(message = "Vehicle model is required")
+    public boolean isVehicleModelProvided() {
+        return vehicleModelId != null || (vehicleModelName != null && !vehicleModelName.isBlank());
     }
 }

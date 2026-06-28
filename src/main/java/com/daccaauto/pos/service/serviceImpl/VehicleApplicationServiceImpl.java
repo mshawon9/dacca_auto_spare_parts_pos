@@ -30,19 +30,14 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
 
     @Override
     public VehicleApplicationResponse create(VehicleApplicationCreateRequest request) {
-        VehicleMakeEntity make = vehicleMakeRepository.findById(request.getVehicleMakeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle make not found: " + request.getVehicleMakeId()));
-
-        VehicleModelEntity model = vehicleModelRepository.findById(request.getVehicleModelId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle model not found: " + request.getVehicleModelId()));
-
-        validateMakeModel(make, model);
+        VehicleMakeEntity make = resolveMake(request.getVehicleMakeId(), request.getVehicleMakeName());
+        VehicleModelEntity model = resolveModel(make, request.getVehicleModelId(), request.getVehicleModelName());
 
         String variantLabel = trimToNull(request.getVariantLabel());
 
         if (vehicleApplicationRepository.existsDuplicate(
-                request.getVehicleMakeId(),
-                request.getVehicleModelId(),
+                make.getId(),
+                model.getId(),
                 variantLabel,
                 request.getYearFrom(),
                 request.getYearTo()
@@ -66,19 +61,14 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
         VehicleApplicationEntity entity = vehicleApplicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle application not found: " + id));
 
-        VehicleMakeEntity make = vehicleMakeRepository.findById(request.getVehicleMakeId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle make not found: " + request.getVehicleMakeId()));
-
-        VehicleModelEntity model = vehicleModelRepository.findById(request.getVehicleModelId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle model not found: " + request.getVehicleModelId()));
-
-        validateMakeModel(make, model);
+        VehicleMakeEntity make = resolveMake(request.getVehicleMakeId(), request.getVehicleMakeName());
+        VehicleModelEntity model = resolveModel(make, request.getVehicleModelId(), request.getVehicleModelName());
 
         String variantLabel = trimToNull(request.getVariantLabel());
 
         if (vehicleApplicationRepository.existsDuplicateExcludingId(
-                request.getVehicleMakeId(),
-                request.getVehicleModelId(),
+                make.getId(),
+                model.getId(),
                 variantLabel,
                 request.getYearFrom(),
                 request.getYearTo(),
@@ -139,6 +129,49 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
         vehicleApplicationRepository.delete(entity);
     }
 
+    private VehicleMakeEntity resolveMake(Long makeId, String makeName) {
+        if (makeId != null) {
+            return vehicleMakeRepository.findById(makeId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Vehicle make not found: " + makeId));
+        }
+
+        String name = trimToNull(makeName);
+        if (name == null) {
+            throw new ResourceNotFoundException("Vehicle make is required");
+        }
+
+        return vehicleMakeRepository.findByNameIgnoreCase(name)
+                .orElseGet(() -> {
+                    VehicleMakeEntity make = new VehicleMakeEntity();
+                    make.setName(name);
+                    make.setActive(true);
+                    return vehicleMakeRepository.save(make);
+                });
+    }
+
+    private VehicleModelEntity resolveModel(VehicleMakeEntity make, Long modelId, String modelName) {
+        if (modelId != null) {
+            VehicleModelEntity model = vehicleModelRepository.findById(modelId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Vehicle model not found: " + modelId));
+            validateMakeModel(make, model);
+            return model;
+        }
+
+        String name = trimToNull(modelName);
+        if (name == null) {
+            throw new ResourceNotFoundException("Vehicle model is required");
+        }
+
+        return vehicleModelRepository.findByMakeIdAndNameIgnoreCase(make.getId(), name)
+                .orElseGet(() -> {
+                    VehicleModelEntity model = new VehicleModelEntity();
+                    model.setMake(make);
+                    model.setName(name);
+                    model.setActive(true);
+                    return vehicleModelRepository.save(model);
+                });
+    }
+
     private void validateMakeModel(VehicleMakeEntity make, VehicleModelEntity model) {
         if (!model.getMake().getId().equals(make.getId())) {
             throw new DuplicateResourceException("Selected model does not belong to selected make");
@@ -155,7 +188,7 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
                 entity.getVariantLabel(),
                 entity.getYearFrom(),
                 entity.getYearTo(),
-                entity.getDisplayName(),
+                entity.getVehicleMake().getName() + " " + entity.getDisplayName(),
                 entity.isActive()
         );
     }

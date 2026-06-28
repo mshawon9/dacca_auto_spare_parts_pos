@@ -1,27 +1,17 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
-<!-- Head (all meta link scripts go here ) START -->
 <div th:replace="fragments/head :: head"></div>
 <head/>
-<!--end::Head-->
-<!--begin::Body-->
 <body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
-<!--begin::App Wrapper-->
 <div class="app-wrapper">
-    <!-- TOP Menu (all meta link scripts go here ) START -->
     <div th:replace="fragments/topmenu :: topmenu"></div>
-    <!-- TOP Menu (all meta link scripts go here ) END -->
-
-    <!-- Left side column. contains the sidebar START -->
     <div th:replace="fragments/menusidebar :: menusidebar"></div>
-    <!-- Left side column. contains the sidebar END -->
 
-    <!--begin::App Main-->
     <main class="app-main">
         <div class="app-content-header">
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="mb-0" th:text="${pageTitle}">Create Vehicle Application</h3>
+                    <h3 class="mb-0" th:text="${pageTitle}">Application</h3>
                     <a th:href="@{/vehicle-applications}" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left me-1"></i> Back
                     </a>
@@ -31,50 +21,58 @@
 
         <div class="app-content">
             <div class="container-fluid">
-
                 <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
                     <span th:text="${errorMessage}"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
                 <form th:action="@{${submitUrl}}" th:object="${form}" method="post" id="vehicleApplicationForm">
-                    <div class="row">
+                    <div class="row g-3">
                         <div class="col-lg-8">
                             <div class="card">
                                 <div class="card-header">
-                                    <h3 class="card-title">Basic Information</h3>
+                                    <h3 class="card-title">Application Details</h3>
                                 </div>
                                 <div class="card-body">
+                                    <div class="alert alert-light border small mb-3">
+                                        Type the make and model directly. New names are saved automatically.
+                                    </div>
 
                                     <div class="row g-3">
                                         <div class="col-md-6">
-                                            <label for="vehicleMakeId" class="form-label">Make <span class="text-danger">*</span></label>
-                                            <select id="vehicleMakeId" th:field="*{vehicleMakeId}" class="form-select"
-                                                    th:classappend="${#fields.hasErrors('vehicleMakeId')} ? ' is-invalid' : ''">
-                                                <option value="">Select make</option>
+                                            <label for="vehicleMakeName" class="form-label">Make <span class="text-danger">*</span></label>
+                                            <input type="hidden" id="vehicleMakeId" th:field="*{vehicleMakeId}">
+                                            <select id="vehicleMakeName" th:field="*{vehicleMakeName}" class="form-select"
+                                                    th:classappend="${#fields.hasErrors('vehicleMakeName')} ? ' is-invalid' : ''">
+                                                <option value="">Search or add make</option>
                                                 <option th:each="make : ${vehicleMakes}"
-                                                        th:value="${make.id()}"
-                                                        th:text="${make.name()}"></option>
+                                                        th:value="${make.name()}"
+                                                        th:text="${make.name()}"
+                                                        th:attr="data-id=${make.id()}"></option>
                                             </select>
-                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('vehicleMakeId')}" th:errors="*{vehicleMakeId}"></div>
+                                            <div id="vehicleMakeHelp" class="form-text">Search an old make or type a new one, then press Enter.</div>
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('vehicleMakeName')}" th:errors="*{vehicleMakeName}"></div>
                                         </div>
 
                                         <div class="col-md-6">
-                                            <label for="vehicleModelId" class="form-label">Model <span class="text-danger">*</span></label>
-                                            <select id="vehicleModelId" th:field="*{vehicleModelId}" class="form-select"
-                                                    th:classappend="${#fields.hasErrors('vehicleModelId')} ? ' is-invalid' : ''">
-                                                <option value="">Select model</option>
+                                            <label for="vehicleModelName" class="form-label">Model <span class="text-danger">*</span></label>
+                                            <input type="hidden" id="vehicleModelId" th:field="*{vehicleModelId}">
+                                            <select id="vehicleModelName" th:field="*{vehicleModelName}" class="form-select"
+                                                    th:classappend="${#fields.hasErrors('vehicleModelName')} ? ' is-invalid' : ''">
+                                                <option value="">Search or add model</option>
                                                 <option th:each="vm : ${vehicleModels}"
-                                                        th:value="${vm.id()}"
-                                                        th:text="${vm.name()}"></option>
+                                                        th:value="${vm.name()}"
+                                                        th:text="${vm.name()}"
+                                                        th:attr="data-id=${vm.id()}"></option>
                                             </select>
-                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('vehicleModelId')}" th:errors="*{vehicleModelId}"></div>
+                                            <div id="vehicleModelHelp" class="form-text">Select a make first to search old models, or type a new model.</div>
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('vehicleModelName')}" th:errors="*{vehicleModelName}"></div>
                                         </div>
 
                                         <div class="col-md-6">
-                                            <label for="variantLabel" class="form-label">Variant Label</label>
+                                            <label for="variantLabel" class="form-label">Engine / Variant</label>
                                             <input type="text" id="variantLabel" th:field="*{variantLabel}" class="form-control"
-                                                   placeholder="e.g. India, Japan"
+                                                   placeholder="Optional, e.g. 1.8, Diesel"
                                                    th:classappend="${#fields.hasErrors('variantLabel')} ? ' is-invalid' : ''">
                                             <div class="invalid-feedback" th:if="${#fields.hasErrors('variantLabel')}" th:errors="*{variantLabel}"></div>
                                         </div>
@@ -90,7 +88,7 @@
                                         <div class="col-md-3">
                                             <label for="yearTo" class="form-label">Year To</label>
                                             <input type="number" id="yearTo" th:field="*{yearTo}" class="form-control"
-                                                   min="1950" max="2100" placeholder="Leave empty for Up"
+                                                   min="1950" max="2100" placeholder="Up"
                                                    th:classappend="${#fields.hasErrors('yearTo')} ? ' is-invalid' : ''">
                                             <div class="invalid-feedback" th:if="${#fields.hasErrors('yearTo')}" th:errors="*{yearTo}"></div>
                                         </div>
@@ -98,11 +96,10 @@
                                         <div class="col-12">
                                             <div class="form-check mt-2">
                                                 <input class="form-check-input" type="checkbox" id="active" th:field="*{active}">
-                                                <label class="form-check-label" for="active">Active</label>
+                                                <label class="form-check-label" for="active">Use this application in product forms</label>
                                             </div>
                                         </div>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
@@ -114,7 +111,7 @@
                                 </div>
                                 <div class="card-body">
                                     <div class="alert alert-light border mb-0">
-                                        <strong>Display Name:</strong><br>
+                                        <strong>Product form will show:</strong><br>
                                         <span id="displayPreview" class="text-primary fw-semibold">-</span>
                                     </div>
                                 </div>
@@ -122,68 +119,48 @@
 
                             <div class="d-grid gap-2">
                                 <button type="submit" class="btn btn-primary">
-                                    <span th:text="${editMode ? 'Update Vehicle Application' : 'Create Vehicle Application'}"></span>
+                                    <span th:text="${editMode ? 'Update Application' : 'Create Application'}"></span>
                                 </button>
                                 <a th:href="@{/vehicle-applications}" class="btn btn-outline-secondary">Cancel</a>
                             </div>
                         </div>
                     </div>
                 </form>
-
             </div>
         </div>
     </main>
-    <!--end::App Main-->
-    <!--begin::Footer-->
-    <footer class="app-footer">
-        <!--begin::To the end-->
-        <div class="float-end d-none d-sm-inline">Anything you want</div>
-        <!--end::To the end-->
-        <!--begin::Copyright-->
-        <strong>
-            Copyright &copy; 2014-2026&nbsp;
-            <a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.
-        </strong>
-        All rights reserved.
-        <!--end::Copyright-->
-    </footer>
-    <!--end::Footer-->
-</div>
-<!--end::App Wrapper-->
-<!--begin::Script-->
-<!--begin::Third Party Plugin(OverlayScrollbars)-->
-<!-- =============================================== -->
-<!-- common script START -->
-<div th:replace="fragments/commonscripts :: commonscripts"/>
-<!-- common script END -->
-<script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
 
-<script>
+    <footer class="app-footer">
+        <div class="float-end d-none d-sm-inline">Dacca POS</div>
+        <strong>Copyright &copy; 2014-2026&nbsp;<a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.</strong>
+        All rights reserved.
+    </footer>
+</div>
+
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
+<script src="/resources/js/select2.min.js"></script>
+
+<script th:inline="javascript">
     $(function () {
-        const $make = $('#vehicleMakeId');
-        const $model = $('#vehicleModelId');
+        const $make = $('#vehicleMakeName');
+        const $makeId = $('#vehicleMakeId');
+        const $makeHelp = $('#vehicleMakeHelp');
+        const $model = $('#vehicleModelName');
+        const $modelId = $('#vehicleModelId');
+        const $modelHelp = $('#vehicleModelHelp');
         const $variant = $('#variantLabel');
         const $yearFrom = $('#yearFrom');
         const $yearTo = $('#yearTo');
         const $preview = $('#displayPreview');
 
         function updatePreview() {
-            const modelText = $model.find('option:selected').text() || '';
-            const modelValue = $model.val();
+            const make = ($make.val() || '').trim();
+            const model = ($model.val() || '').trim();
             const variant = ($variant.val() || '').trim();
             const yearFrom = ($yearFrom.val() || '').trim();
             const yearTo = ($yearTo.val() || '').trim();
-
-            if (!modelValue) {
-                $preview.text('-');
-                return;
-            }
-
-            let text = modelText;
-
-            if (variant) {
-                text += ' ' + variant;
-            }
+            let text = [make, model, variant].filter(Boolean).join(' ');
 
             if (yearFrom && !yearTo) {
                 text += ' ' + yearFrom + ' Up';
@@ -193,73 +170,140 @@
                 text += ' ' + yearFrom + '-' + yearTo;
             }
 
-            $preview.text(text);
+            $preview.text(text.trim() || '-');
         }
 
-        function loadModels(makeId, selectedModelId) {
-            $model.empty().append('<option value="">Select model</option>');
+        function updateMakeState() {
+            const value = ($make.val() || '').trim();
+            const selectedId = $make.find('option:selected').data('id');
 
+            if (selectedId) {
+                $makeId.val(selectedId);
+                $makeHelp.text('Existing make selected.');
+            } else {
+                $makeId.val('');
+                $makeHelp.text(value ? 'New make will be created when you save.' : 'Search an old make or type a new one, then press Enter.');
+            }
+        }
+
+        function updateModelState() {
+            const value = ($model.val() || '').trim();
+            const selectedId = $model.find('option:selected').data('id');
+
+            if (selectedId) {
+                $modelId.val(selectedId);
+                $modelHelp.text('Existing model selected.');
+            } else {
+                $modelId.val('');
+                $modelHelp.text(value ? 'New model will be created when you save.' : 'Select a make first to search old models, or type a new model.');
+            }
+        }
+
+        function createTag(params) {
+            const term = $.trim(params.term);
+            if (!term) {
+                return null;
+            }
+            return {
+                id: term,
+                text: term,
+                newTag: true
+            };
+        }
+
+        function renderNewTag(data, label) {
+            if (data.newTag) {
+                return $('<span></span>').append(document.createTextNode(label + ': ')).append($('<strong></strong>').text(data.text));
+            }
+            return data.text;
+        }
+
+        $make.select2({
+            theme: 'bootstrap-5',
+            tags: true,
+            width: '100%',
+            placeholder: 'Search or add make',
+            allowClear: true,
+            createTag: createTag,
+            templateResult: function (data) {
+                return renderNewTag(data, 'Add new make');
+            }
+        });
+
+        $model.select2({
+            theme: 'bootstrap-5',
+            tags: true,
+            width: '100%',
+            placeholder: 'Search or add model',
+            allowClear: true,
+            createTag: createTag,
+            templateResult: function (data) {
+                return renderNewTag(data, 'Add new model');
+            }
+        });
+
+        function replaceModelOptions(models, selectedName) {
+            $model.empty().append(new Option('', '', false, false));
+            $.each(models || [], function (_, item) {
+                const option = new Option(item.name, item.name, false, selectedName && item.name === selectedName);
+                $(option).attr('data-id', item.id);
+                $model.append(option);
+            });
+
+            if (selectedName && !$model.find('option').filter(function () { return $(this).val() === selectedName; }).length) {
+                $model.append(new Option(selectedName, selectedName, true, true));
+            }
+
+            $model.val(selectedName || null).trigger('change.select2');
+            updateModelState();
+        }
+
+        function loadModelsForMake(selectedName) {
+            const makeId = $makeId.val();
             if (!makeId) {
-                updatePreview();
+                replaceModelOptions([], selectedName || $model.val());
                 return;
             }
 
             $.get('/api/v1/lookups/vehicle-models', { makeId: makeId }, function (data) {
-                $.each(data, function (_, item) {
-                    const option = $('<option>', {
-                        value: item.id,
-                        text: item.name
-                    });
-
-                    if (selectedModelId && String(selectedModelId) === String(item.id)) {
-                        option.prop('selected', true);
-                    }
-
-                    $model.append(option);
-                });
-
-                updatePreview();
+                replaceModelOptions(data, selectedName || $model.val());
+            }).fail(function () {
+                $modelHelp.text('Could not load old models. You can still type a new model.');
             });
         }
 
-        $make.on('change', function () {
-            loadModels($(this).val(), null);
+        $make.on('change select2:select select2:clear', function () {
+            updateMakeState();
+            loadModelsForMake(null);
+            updatePreview();
         });
 
-        $model.on('change', updatePreview);
+        $model.on('change select2:select select2:clear', function () {
+            updateModelState();
+            updatePreview();
+        });
+
         $variant.on('input', updatePreview);
         $yearFrom.on('input', updatePreview);
         $yearTo.on('input', updatePreview);
-
-        const selectedModelId = $model.val();
-        if ($make.val()) {
-            loadModels($make.val(), selectedModelId);
-        } else {
-            updatePreview();
-        }
+        updateMakeState();
+        updateModelState();
+        updatePreview();
 
         $('#vehicleApplicationForm').validate({
             errorElement: 'div',
             errorClass: 'invalid-feedback',
             rules: {
-                vehicleMakeId: { required: true },
-                vehicleModelId: { required: true },
+                vehicleMakeName: { required: true, maxlength: 100 },
+                vehicleModelName: { required: true, maxlength: 100 },
                 variantLabel: { maxlength: 100 },
                 yearFrom: { min: 1950, max: 2100 },
                 yearTo: { min: 1950, max: 2100 }
             },
             messages: {
-                vehicleMakeId: { required: 'Make is required.' },
-                vehicleModelId: { required: 'Model is required.' },
-                variantLabel: { maxlength: 'Variant must not exceed 100 characters.' },
-                yearFrom: {
-                    min: 'Year From must be at least 1950.',
-                    max: 'Year From must not exceed 2100.'
-                },
-                yearTo: {
-                    min: 'Year To must be at least 1950.',
-                    max: 'Year To must not exceed 2100.'
-                }
+                vehicleMakeName: { required: 'Make is required.' },
+                vehicleModelName: { required: 'Model is required.' },
+                variantLabel: { maxlength: 'Variant must not exceed 100 characters.' }
             },
             errorPlacement: function (error, element) {
                 error.addClass('d-block');

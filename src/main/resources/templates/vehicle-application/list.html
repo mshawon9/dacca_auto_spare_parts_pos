@@ -1,27 +1,19 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
-<!-- Head (all meta link scripts go here ) START -->
 <div th:replace="fragments/head :: head"></div>
 <head/>
-<!--end::Head-->
-<!--begin::Body-->
 <body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
-<!--begin::App Wrapper-->
 <div class="app-wrapper">
-    <!-- TOP Menu (all meta link scripts go here ) START -->
     <div th:replace="fragments/topmenu :: topmenu"></div>
-    <!-- TOP Menu (all meta link scripts go here ) END -->
-
-    <!-- Left side column. contains the sidebar START -->
     <div th:replace="fragments/menusidebar :: menusidebar"></div>
-    <!-- Left side column. contains the sidebar END -->
+
     <main class="app-main">
         <div class="app-content-top-area">
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center">
-                    <div class="fw-semibold">Vehicle Application Management</div>
+                    <div class="fw-semibold">Applications</div>
                     <a th:href="@{/vehicle-applications/create}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle me-1"></i> Create Vehicle Application
+                        <i class="bi bi-plus-circle me-1"></i> Add Application
                     </a>
                 </div>
             </div>
@@ -35,7 +27,6 @@
 
         <div class="app-content">
             <div class="container-fluid">
-
                 <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
                     <span th:text="${successMessage}"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -47,41 +38,16 @@
                 </div>
 
                 <div class="card mb-3">
-                    <div class="card-header">
-                        <h3 class="card-title">Search</h3>
-                    </div>
                     <div class="card-body">
-                        <form th:action="@{/vehicle-applications}" method="get" class="row g-3 align-items-end">
-                            <div class="col-md-3">
-                                <label for="makeId" class="form-label">Make</label>
-                                <select id="makeId" name="makeId" class="form-select">
-                                    <option value="">All Makes</option>
-                                    <option th:each="make : ${vehicleMakes}"
-                                            th:value="${make.id()}"
-                                            th:text="${make.name()}"
-                                            th:selected="${selectedMakeId != null and selectedMakeId == make.id()}"></option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-3">
-                                <label for="modelId" class="form-label">Model</label>
-                                <select id="modelId" name="modelId" class="form-select">
-                                    <option value="">All Models</option>
-                                    <option th:each="vm : ${vehicleModels}"
-                                            th:value="${vm.id()}"
-                                            th:text="${vm.name()}"
-                                            th:selected="${selectedModelId != null and selectedModelId == vm.id()}"></option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label for="keyword" class="form-label">Keyword</label>
+                        <form th:action="@{/vehicle-applications}" method="get" class="row g-2 align-items-end">
+                            <div class="col-md-9">
+                                <label for="keyword" class="form-label">Search Application</label>
                                 <input type="text" id="keyword" name="keyword" class="form-control"
-                                       th:value="${keyword}" placeholder="Search display name, make, model, variant">
+                                       th:value="${keyword}" placeholder="Search make, model, year, engine">
                             </div>
-
-                            <div class="col-md-2">
-                                <button type="submit" class="btn btn-primary w-100">Search</button>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-fill">Search</button>
+                                <a th:href="@{/vehicle-applications}" class="btn btn-outline-secondary">Reset</a>
                             </div>
                         </form>
                     </div>
@@ -95,25 +61,27 @@
                         <table class="table table-hover align-middle mb-0">
                             <thead class="table-light">
                             <tr>
-                                <th>ID</th>
-                                <th>Display Name</th>
-                                <th>Make</th>
-                                <th>Model</th>
-                                <th>Variant</th>
+                                <th>Application</th>
+                                <th>Years</th>
                                 <th>Status</th>
                                 <th class="text-end">Actions</th>
                             </tr>
                             </thead>
                             <tbody>
                             <tr th:if="${#lists.isEmpty(vehicleApplications)}">
-                                <td colspan="7" class="text-center text-muted py-4">No vehicle applications found.</td>
+                                <td colspan="4" class="text-center text-muted py-4">No applications found.</td>
                             </tr>
                             <tr th:each="item : ${vehicleApplications}">
-                                <td th:text="${item.id()}">1</td>
-                                <td class="fw-semibold" th:text="${item.displayName()}">Civic 2006 Up</td>
-                                <td th:text="${item.vehicleMakeName()}">Honda</td>
-                                <td th:text="${item.vehicleModelName()}">Civic</td>
-                                <td th:text="${item.variantLabel() != null ? item.variantLabel() : '-'}">India</td>
+                                <td>
+                                    <div class="fw-semibold" th:text="${item.displayName()}">Toyota Corolla 2006 Up</div>
+                                    <div class="small text-muted" th:text="${item.vehicleMakeName() + ' / ' + item.vehicleModelName()}">Toyota / Corolla</div>
+                                </td>
+                                <td>
+                                    <span th:if="${item.yearFrom() == null and item.yearTo() == null}">All years</span>
+                                    <span th:if="${item.yearFrom() != null and item.yearTo() == null}" th:text="${item.yearFrom() + ' Up'}">2006 Up</span>
+                                    <span th:if="${item.yearFrom() != null and item.yearTo() != null and item.yearFrom().equals(item.yearTo())}" th:text="${item.yearFrom()}">2006</span>
+                                    <span th:if="${item.yearFrom() != null and item.yearTo() != null and !item.yearFrom().equals(item.yearTo())}" th:text="${item.yearFrom() + '-' + item.yearTo()}">2006-2012</span>
+                                </td>
                                 <td>
                                     <span th:if="${item.active()}" class="badge text-bg-success">Active</span>
                                     <span th:unless="${item.active()}" class="badge text-bg-secondary">Inactive</span>
@@ -125,7 +93,7 @@
                                     <form th:action="@{/vehicle-applications/{id}/delete(id=${item.id()})}"
                                           method="post"
                                           class="d-inline"
-                                          onsubmit="return confirm('Delete this vehicle application?');">
+                                          onsubmit="return confirm('Delete this application?');">
                                         <button type="submit" class="btn btn-sm btn-danger">
                                             <i class="bi bi-trash"></i>
                                         </button>
@@ -136,57 +104,17 @@
                         </table>
                     </div>
                 </div>
-
             </div>
         </div>
     </main>
-    <!--end::App Main-->
-    <!--begin::Footer-->
+
     <footer class="app-footer">
-        <!--begin::To the end-->
-        <div class="float-end d-none d-sm-inline">Anything you want</div>
-        <!--end::To the end-->
-        <!--begin::Copyright-->
-        <strong>
-            Copyright &copy; 2014-2026&nbsp;
-            <a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.
-        </strong>
+        <div class="float-end d-none d-sm-inline">Dacca POS</div>
+        <strong>Copyright &copy; 2014-2026&nbsp;<a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.</strong>
         All rights reserved.
-        <!--end::Copyright-->
     </footer>
-    <!--end::Footer-->
 </div>
-<!--end::App Wrapper-->
-<!--begin::Script-->
-<!--begin::Third Party Plugin(OverlayScrollbars)-->
-<!-- =============================================== -->
-<!-- common script START -->
+
 <div th:replace="fragments/commonscripts :: commonscripts"/>
-<!-- common script END -->
-<script src="/resources/lib/jquery-validation/jquery.validate.min.js"></script>
-
-<script>
-    $(function () {
-        $('#makeId').on('change', function () {
-            const makeId = $(this).val();
-            const $model = $('#modelId');
-
-            $model.empty().append('<option value="">All Models</option>');
-
-            if (!makeId) {
-                return;
-            }
-
-            $.get('/api/v1/lookups/vehicle-models', { makeId: makeId }, function (data) {
-                $.each(data, function (_, item) {
-                    $model.append($('<option>', {
-                        value: item.id,
-                        text: item.name
-                    }));
-                });
-            });
-        });
-    });
-</script>
 </body>
 </html>

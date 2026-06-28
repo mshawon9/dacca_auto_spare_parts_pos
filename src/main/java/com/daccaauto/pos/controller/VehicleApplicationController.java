@@ -96,6 +96,8 @@ public class VehicleApplicationController {
         VehicleApplicationUpdateRequest form = new VehicleApplicationUpdateRequest();
         form.setVehicleMakeId(response.vehicleMakeId());
         form.setVehicleModelId(response.vehicleModelId());
+        form.setVehicleMakeName(response.vehicleMakeName());
+        form.setVehicleModelName(response.vehicleModelName());
         form.setVariantLabel(response.variantLabel());
         form.setYearFrom(response.yearFrom());
         form.setYearTo(response.yearTo());
