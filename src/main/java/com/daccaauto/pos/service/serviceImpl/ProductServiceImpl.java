@@ -10,6 +10,8 @@ import com.daccaauto.pos.repository.*;
 import com.daccaauto.pos.service.ProductService;
 import com.daccaauto.pos.service.ProductImageStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +36,7 @@ public class ProductServiceImpl implements ProductService {
     private final ProductStockRepository productStockRepository;
     private final StockAdjustmentRepository stockAdjustmentRepository;
     private final ProductPriceHistoryRepository productPriceHistoryRepository;
+    private final ProductAlternativePartNumberRepository productAlternativePartNumberRepository;
 
     @Override
     public ProductResponse create(ProductCreateRequest request) {
@@ -52,12 +55,14 @@ public class ProductServiceImpl implements ProductService {
         }
 
         ProductEntity entity = new ProductEntity();
-        entity.setName(request.getName().trim());
+        entity.setName(buildCategoryProductName(category, request.getName()));
         entity.setSpecLabel(trimToNull(request.getSpecLabel()));
+        entity.setPosition(trimToNull(request.getPosition()));
         entity.setDimension(trimToNull(request.getDimension()));
         entity.setSku(trimToNull(request.getSku()));
         entity.setPartNumber(request.getPartNumber().trim());
-        entity.setBarcode(trimToNull(request.getBarcode()));
+        entity.setAlternativePartNumber(trimToNull(request.getAlternativePartNumber()));
+        entity.setBarcode(resolveBarcode(category, request.getBarcode(), null));
         entity.setDescription(trimToNull(request.getDescription()));
         entity.setCategory(category);
         entity.setBrand(brand);
@@ -67,6 +72,7 @@ public class ProductServiceImpl implements ProductService {
         storeImage(saved, request.getImage());
 
         syncApplications(saved, request.getApplicationIds());
+        syncAlternativePartNumbers(saved, request.getAlternativePartNumber());
         syncSimilarProduct(saved, request.getSimilarProductId());
 
         return map(saved);
@@ -92,12 +98,14 @@ public class ProductServiceImpl implements ProductService {
             throw new DuplicateResourceException("Same brand cannot have duplicate part number");
         }
 
-        entity.setName(request.getName().trim());
+        entity.setName(buildCategoryProductName(category, request.getName()));
         entity.setSpecLabel(trimToNull(request.getSpecLabel()));
+        entity.setPosition(trimToNull(request.getPosition()));
         entity.setDimension(trimToNull(request.getDimension()));
         entity.setSku(trimToNull(request.getSku()));
         entity.setPartNumber(request.getPartNumber().trim());
-        entity.setBarcode(trimToNull(request.getBarcode()));
+        entity.setAlternativePartNumber(trimToNull(request.getAlternativePartNumber()));
+        entity.setBarcode(resolveBarcode(category, request.getBarcode(), id));
         entity.setDescription(trimToNull(request.getDescription()));
         entity.setCategory(category);
         entity.setBrand(brand);
@@ -107,6 +115,7 @@ public class ProductServiceImpl implements ProductService {
         updateImage(saved, request);
 
         syncApplications(saved, request.getApplicationIds());
+        syncAlternativePartNumbers(saved, request.getAlternativePartNumber());
         syncSimilarProduct(saved, request.getSimilarProductId());
 
         return map(saved);
@@ -149,6 +158,14 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public String suggestBarcode(Long categoryId) {
+        ProductCategoryEntity category = categoryRepository.findById(categoryId)
+            .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + categoryId));
+        return generateBarcode(category);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ProductResponse> search(String keyword,
                                         Long categoryId,
                                         Long brandId,
@@ -172,6 +189,25 @@ public class ProductServiceImpl implements ProductService {
         return products.stream()
                 .map(this::map)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> searchPage(String keyword,
+                                            Long categoryId,
+                                            Long brandId,
+                                            Long applicationId,
+                                            Boolean active,
+                                            Pageable pageable) {
+
+        return productRepository.searchPage(
+                normalizeKeywordPattern(keyword),
+                categoryId,
+                brandId,
+                applicationId,
+                active,
+                pageable
+        ).map(this::map);
     }
 
     private String normalizeKeywordPattern(String keyword) {
@@ -202,6 +238,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
         productApplicationRepository.deleteByProductId(id);
+        productAlternativePartNumberRepository.deleteByProductId(id);
         productSimilarityRepository.deleteAllForProduct(id);
         productRepository.delete(entity);
         productImageStorageService.delete(entity.getImageFileName());
@@ -215,6 +252,7 @@ public class ProductServiceImpl implements ProductService {
 
     private void syncApplications(ProductEntity product, Set<Long> applicationIds) {
         productApplicationRepository.deleteByProductId(product.getId());
+        productApplicationRepository.flush();
 
         if (applicationIds == null || applicationIds.isEmpty()) {
             return;
@@ -231,6 +269,18 @@ public class ProductServiceImpl implements ProductService {
             join.setVehicleApplication(vehicleApplication);
 
             productApplicationRepository.save(join);
+        }
+    }
+
+    private void syncAlternativePartNumbers(ProductEntity product, String alternativePartNumbers) {
+        productAlternativePartNumberRepository.deleteByProductId(product.getId());
+        productAlternativePartNumberRepository.flush();
+
+        for (String partNumber : parseAlternativePartNumbers(alternativePartNumbers)) {
+            ProductAlternativePartNumberEntity alternative = new ProductAlternativePartNumberEntity();
+            alternative.setProduct(product);
+            alternative.setPartNumber(partNumber);
+            productAlternativePartNumberRepository.save(alternative);
         }
     }
 
@@ -270,14 +320,18 @@ public class ProductServiceImpl implements ProductService {
             .orElse(null);
 
         List<ProductResponse.SimilarProductSummary> similarProducts = mapSimilarityGroup(entity.getId());
+        List<String> alternativePartNumbers = getAlternativePartNumbers(entity);
 
         return new ProductResponse(
             entity.getId(),
             entity.getName(),
             entity.getSpecLabel(),
+            entity.getPosition(),
             entity.getDimension(),
             entity.getSku(),
             entity.getPartNumber(),
+            buildAlternativePartNumberSummary(alternativePartNumbers),
+            alternativePartNumbers,
             entity.getBarcode(),
             entity.getDescription(),
             entity.getImageFileName() != null,
@@ -308,9 +362,10 @@ public class ProductServiceImpl implements ProductService {
 
     private String buildProductDisplayName(ProductEntity product) {
         return java.util.stream.Stream.of(
+                product.getCategory().getName(),
                 product.getName(),
                 product.getPartNumber(),
-                product.getSpecLabel(),
+                product.getPosition(),
                 product.getDimension()
             )
             .filter(value -> value != null && !value.isBlank())
@@ -360,6 +415,89 @@ public class ProductServiceImpl implements ProductService {
 
     private String normalizePartNumber(String input) {
         return input.replaceAll("[\\s\\-_/\\.]", "").toUpperCase(Locale.ROOT);
+    }
+
+    private List<String> getAlternativePartNumbers(ProductEntity product) {
+        List<String> values = productAlternativePartNumberRepository.findByProductIdOrderByPartNumberAsc(product.getId())
+            .stream()
+            .map(ProductAlternativePartNumberEntity::getPartNumber)
+            .toList();
+
+        if (!values.isEmpty()) {
+            return values;
+        }
+
+        return parseAlternativePartNumbers(product.getAlternativePartNumber()).stream().toList();
+    }
+
+    private Set<String> parseAlternativePartNumbers(String input) {
+        if (input == null || input.isBlank()) {
+            return java.util.Set.of();
+        }
+
+        return java.util.Arrays.stream(input.split(","))
+            .map(String::trim)
+            .filter(value -> !value.isBlank())
+            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    private String buildAlternativePartNumberSummary(List<String> alternativePartNumbers) {
+        if (alternativePartNumbers == null || alternativePartNumbers.isEmpty()) {
+            return null;
+        }
+        return String.join(", ", alternativePartNumbers);
+    }
+
+    private String buildCategoryProductName(ProductCategoryEntity category, String productName) {
+        String name = productName == null ? "" : productName.trim();
+        String categoryName = category.getName().trim();
+
+        if (name.toLowerCase(Locale.ROOT).startsWith(categoryName.toLowerCase(Locale.ROOT) + " ")) {
+            return name;
+        }
+
+        return (categoryName + " " + name).trim();
+    }
+
+    private String resolveBarcode(ProductCategoryEntity category, String requestedBarcode, Long productId) {
+        String barcode = trimToNull(requestedBarcode);
+        if (barcode == null) {
+            return generateBarcode(category);
+        }
+
+        boolean duplicate = productId == null
+            ? productRepository.existsByBarcode(barcode)
+            : productRepository.existsByBarcodeAndIdNot(barcode, productId);
+
+        if (duplicate) {
+            throw new DuplicateResourceException("Barcode already exists: " + barcode);
+        }
+
+        return barcode;
+    }
+
+    private String generateBarcode(ProductCategoryEntity category) {
+        String prefix = buildCategoryBarcodePrefix(category);
+        long next = productRepository.countByCategoryId(category.getId()) + 1;
+        String barcode;
+
+        do {
+            barcode = prefix + "-" + String.format("%06d", next++);
+        } while (productRepository.existsByBarcode(barcode));
+
+        return barcode;
+    }
+
+    private String buildCategoryBarcodePrefix(ProductCategoryEntity category) {
+        String code = category.getName() == null ? "" : category.getName()
+            .replaceAll("[^A-Za-z0-9]", "")
+            .toUpperCase(Locale.ROOT);
+
+        if (code.length() >= 3) {
+            return code.substring(0, 3);
+        }
+
+        return ("CAT" + category.getId()).substring(0, Math.min(6, ("CAT" + category.getId()).length()));
     }
 
     private String trimToNull(String value) {

@@ -67,7 +67,7 @@
                                     <label for="keyword" class="form-label">Keyword</label>
                                     <input type="text" id="keyword" name="keyword" class="form-control"
                                            th:value="${keyword}"
-                                           placeholder="Name, part no, barcode, dimension...">
+                                           placeholder="Name, part no, alt part no, barcode, position...">
                                 </div>
 
                                 <div class="col-lg-2">
@@ -126,8 +126,16 @@
                 </div>
 
                 <div class="card">
-                    <div class="card-header">
-                        <h3 class="card-title">Product List</h3>
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h3 class="card-title mb-0">Product List</h3>
+                        <div class="text-muted small">
+                            <span th:if="${totalItems > 0}">
+                                Showing <strong th:text="${startItem}">1</strong>-<strong th:text="${endItem}">15</strong>
+                                of <strong th:text="${totalItems}">0</strong> products
+                            </span>
+                            <span th:if="${totalItems == 0}">No products to show</span>
+                            <span class="ms-2 badge text-bg-light border" th:text="${pageSize + ' per page'}">15 per page</span>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div class="table-responsive">
@@ -136,11 +144,12 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Image</th>
+                                    <th>Category</th>
                                     <th>Name</th>
                                     <th>Part No</th>
-                                    <th>Category</th>
+                                    <th>Barcode</th>
                                     <th>Brand</th>
-                                    <th>Spec</th>
+                                    <th>Position</th>
                                     <th>Dimension</th>
                                     <th>Applications</th>
                                     <th>Status</th>
@@ -149,7 +158,7 @@
                                 </thead>
                                 <tbody>
                                 <tr th:if="${#lists.isEmpty(products)}">
-                                    <td colspan="11" class="text-center text-muted py-4">No products found.</td>
+                                    <td colspan="12" class="text-center text-muted py-4">No products found.</td>
                                 </tr>
                                 <tr th:each="item : ${products}">
                                     <td th:text="${item.id()}">1</td>
@@ -159,15 +168,20 @@
                                              src="/img/placeholder-image.png"
                                              th:alt="${item.name()}">
                                     </td>
+                                    <td th:text="${item.categoryName()}">Brake Pad</td>
                                     <td>
-                                        <div class="fw-semibold" th:text="${item.name()}">Brake Pad</div>
-                                        <small class="text-muted"
-                                               th:text="${item.sku() != null ? item.sku() : '-'}">SKU</small>
+                                        <div class="fw-semibold d-flex flex-wrap align-items-center gap-2">
+                                            <span th:text="${item.name()}">Brake Pad</span>
+                                            <span th:if="${item.position() != null}"
+                                                  class="badge text-bg-light border"
+                                                  th:text="${item.position()}">Front</span>
+                                        </div>
+                                        <small class="text-muted" th:if="${item.sku() != null}" th:text="${item.sku()}">SKU</small>
                                     </td>
                                     <td th:text="${item.partNumber()}">BP-1001</td>
-                                    <td th:text="${item.categoryName()}">Brake Pad</td>
+                                    <td th:text="${item.barcode() != null ? item.barcode() : '-'}">BRA-000001</td>
                                     <td th:text="${item.brandName()}">Brembo</td>
-                                    <td th:text="${item.specLabel() != null ? item.specLabel() : '-'}">Front</td>
+                                    <td th:text="${item.position() != null ? item.position() : '-'}">Front</td>
                                     <td th:text="${item.dimension() != null ? item.dimension() : '-'}">38 X 25 X 9</td>
                                     <td th:text="${item.applicationSummary()}">Civic 2006 Up + 2 more</td>
                                     <td>
@@ -195,9 +209,24 @@
                         </div>
                     </div>
                     <div class="card-footer">
-                        Total:
-                        <span th:text="${#lists.size(products)}">0</span>
-                        item(s)
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="small text-muted">
+                                Page <span th:text="${totalPages == 0 ? 0 : currentPage + 1}">1</span>
+                                of <span th:text="${totalPages}">1</span>
+                            </div>
+                            <div class="btn-group">
+                                <a class="btn btn-outline-secondary"
+                                   th:classappend="${!productPage.hasPrevious()} ? ' disabled' : ''"
+                                   th:href="${productPage.hasPrevious()} ? @{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, page=${currentPage - 1})} : '#'">
+                                    <i class="bi bi-chevron-left me-1"></i> Previous
+                                </a>
+                                <a class="btn btn-outline-primary"
+                                   th:classappend="${!productPage.hasNext()} ? ' disabled' : ''"
+                                   th:href="${productPage.hasNext()} ? @{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, page=${currentPage + 1})} : '#'">
+                                    Next <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

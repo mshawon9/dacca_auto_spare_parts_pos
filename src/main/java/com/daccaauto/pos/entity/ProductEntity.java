@@ -20,9 +20,11 @@ import java.util.Locale;
         indexes = {
                 @Index(name = "idx_product_name", columnList = "name"),
                 @Index(name = "idx_product_spec_label", columnList = "spec_label"),
+                @Index(name = "idx_product_position", columnList = "position"),
                 @Index(name = "idx_product_dimension", columnList = "dimension"),
                 @Index(name = "idx_product_sku", columnList = "sku"),
                 @Index(name = "idx_product_part_number", columnList = "part_number"),
+                @Index(name = "idx_product_alternative_part_number", columnList = "alternative_part_number"),
                 @Index(name = "idx_product_normalized_part_number", columnList = "normalized_part_number"),
                 @Index(name = "idx_product_barcode", columnList = "barcode")
         },
@@ -44,6 +46,10 @@ public class ProductEntity extends BaseEntity {
     @Column(name = "spec_label", length = 120)
     private String specLabel;
 
+    @Size(max = 80)
+    @Column(name = "position", length = 80)
+    private String position;
+
     @Size(max = 120)
     @Column(name = "dimension", length = 120)
     private String dimension;
@@ -60,6 +66,14 @@ public class ProductEntity extends BaseEntity {
     )
     @Column(name = "part_number", nullable = false, length = 100)
     private String partNumber;
+
+    @Size(max = 255)
+    @Pattern(
+            regexp = "^[A-Za-z0-9._/\\- ,]*$",
+            message = "alternativePartNumber contains unsupported characters"
+    )
+    @Column(name = "alternative_part_number", length = 255)
+    private String alternativePartNumber;
 
     @NotBlank
     @Size(max = 100)

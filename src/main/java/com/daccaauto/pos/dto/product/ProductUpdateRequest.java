@@ -19,6 +19,9 @@ public class ProductUpdateRequest {
     @Size(max = 120)
     private String specLabel;
 
+    @Size(max = 80)
+    private String position;
+
     @Size(max = 120)
     private String dimension;
 
@@ -29,6 +32,10 @@ public class ProductUpdateRequest {
     @Size(max = 100)
     @Pattern(regexp = "^[A-Za-z0-9._/\\- ]+$")
     private String partNumber;
+
+    @Size(max = 255)
+    @Pattern(regexp = "^[A-Za-z0-9._/\\- ,]*$")
+    private String alternativePartNumber;
 
     @Size(max = 64)
     @Pattern(regexp = "^[A-Za-z0-9\\-]*$")

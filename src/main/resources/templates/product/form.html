@@ -115,7 +115,7 @@
                                             <div id="similarProductBox" class="position-relative">
                                                 <input type="text" id="similarProductSearch" class="form-control"
                                                        autocomplete="off"
-                                                       placeholder="Search by product name, part number, spec, or dimension">
+                                                       placeholder="Search by product name, part number, position, or dimension">
                                                 <div id="similarProductResults"
                                                      class="list-group position-absolute w-100 shadow-sm d-none"
                                                      style="z-index: 1050; max-height: 260px; overflow-y: auto;"></div>
@@ -152,6 +152,15 @@
                                         </div>
 
                                         <div class="col-md-6">
+                                            <label for="name" class="form-label">Product Name <span class="text-danger">*</span></label>
+                                            <input type="text" id="name" th:field="*{name}" class="form-control"
+                                                   th:classappend="${#fields.hasErrors('name')} ? ' is-invalid' : ''"
+                                                   placeholder="Category will be added automatically">
+                                            <div class="form-text">When category is selected, it is added before the product name automatically.</div>
+                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                                        </div>
+
+                                        <div class="col-md-6">
                                             <label for="brandId" class="form-label">Brand <span class="text-danger">*</span></label>
                                             <select id="brandId" th:field="*{brandId}" class="form-select"
                                                     th:classappend="${#fields.hasErrors('brandId')} ? ' is-invalid' : ''">
@@ -164,14 +173,6 @@
                                         </div>
 
                                         <div class="col-md-6">
-                                            <label for="name" class="form-label">Product Name <span class="text-danger">*</span></label>
-                                            <input type="text" id="name" th:field="*{name}" class="form-control"
-                                                   th:classappend="${#fields.hasErrors('name')} ? ' is-invalid' : ''"
-                                                   placeholder="e.g. Brake Pad">
-                                            <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
-                                        </div>
-
-                                        <div class="col-md-6">
                                             <label for="partNumber" class="form-label">Part Number <span class="text-danger">*</span></label>
                                             <input type="text" id="partNumber" th:field="*{partNumber}" class="form-control"
                                                    th:classappend="${#fields.hasErrors('partNumber')} ? ' is-invalid' : ''"
@@ -180,9 +181,23 @@
                                         </div>
 
                                         <div class="col-md-4">
-                                            <label for="specLabel" class="form-label">Spec Label</label>
-                                            <input type="text" id="specLabel" th:field="*{specLabel}" class="form-control"
-                                                   placeholder="e.g. Front, Rear, LH">
+                                            <label for="alternativePartNumber" class="form-label">Alternative Part Number</label>
+                                            <input type="hidden" id="alternativePartNumber" th:field="*{alternativePartNumber}">
+                                            <select id="alternativePartNumbersSelect" class="form-select" multiple="multiple"></select>
+                                            <div class="form-text">Type a number and press Enter to add more.</div>
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="position" class="form-label">Position</label>
+                                            <select id="position" th:field="*{position}" class="form-select">
+                                                <option value="">No position</option>
+                                                <option value="Front">Front</option>
+                                                <option value="Rear">Rear</option>
+                                                <option value="Left">Left</option>
+                                                <option value="Right">Right</option>
+                                                <option value="Inner">Inner</option>
+                                                <option value="Outer">Outer</option>
+                                            </select>
                                         </div>
 
                                         <div class="col-md-4">
@@ -197,10 +212,16 @@
                                                    placeholder="Internal SKU">
                                         </div>
 
-                                        <div class="col-md-6">
+                                        <div class="col-md-8">
                                             <label for="barcode" class="form-label">Barcode</label>
-                                            <input type="text" id="barcode" th:field="*{barcode}" class="form-control"
-                                                   placeholder="Barcode">
+                                            <div class="input-group">
+                                                <input type="text" id="barcode" th:field="*{barcode}" class="form-control"
+                                                       readonly placeholder="Auto generated after category selection">
+                                                <button type="button" id="generateBarcodeButton" class="btn btn-outline-primary">
+                                                    Generate
+                                                </button>
+                                            </div>
+                                            <div class="form-text">Barcode uses the category prefix and stays unique.</div>
                                         </div>
 
                                         <div class="col-12">
@@ -410,6 +431,10 @@
     $(function () {
         const $category = $('#categoryId');
         const $brand = $('#brandId');
+        const $barcode = $('#barcode');
+        const $generateBarcodeButton = $('#generateBarcodeButton');
+        const $alternativePartNumber = $('#alternativePartNumber');
+        const $alternativePartNumbersSelect = $('#alternativePartNumbersSelect');
         const $applications = $('#applicationIds');
         const $modalMake = $('#modalVehicleMakeName');
         const $modalMakeId = $('#modalVehicleMakeId');
@@ -427,6 +452,10 @@
         const $noSimilarProduct = $('#noSimilarProduct');
         const editMode = /*[[${editMode}]]*/ false;
         const currentProductId = /*[[${productId}]]*/ null;
+        const categoriesForPrefix = /*[[${categories}]]*/ [];
+        const categoryNames = (categoriesForPrefix || []).map(function (category) {
+            return category.name || '';
+        });
         let similarSearchTimer = null;
         const placeholderImageUrl = '/img/placeholder-image.png';
         const applicationDualList = $applications.bootstrapDualListbox({
@@ -450,18 +479,102 @@
         $applications.on('change', updateSelectedApplicationCount);
         updateSelectedApplicationCount();
 
+        function splitAlternativePartNumbers(value) {
+            return (value || '')
+                .split(',')
+                .map(function (item) { return item.trim(); })
+                .filter(function (item, index, items) {
+                    return item && items.indexOf(item) === index;
+                });
+        }
+
+        function syncAlternativePartNumbers() {
+            const values = ($alternativePartNumbersSelect.val() || [])
+                .map(function (item) { return (item || '').trim(); })
+                .filter(Boolean);
+            $alternativePartNumber.val(values.join(', '));
+        }
+
+        function initAlternativePartNumbers() {
+            const values = splitAlternativePartNumbers($alternativePartNumber.val());
+            values.forEach(function (value) {
+                $alternativePartNumbersSelect.append(new Option(value, value, true, true));
+            });
+
+            $alternativePartNumbersSelect.select2({
+                theme: 'bootstrap-5',
+                tags: true,
+                width: '100%',
+                placeholder: 'Add alternative part numbers',
+                tokenSeparators: [','],
+                createTag: function (params) {
+                    const term = $.trim(params.term);
+                    if (!term) {
+                        return null;
+                    }
+                    return {
+                        id: term,
+                        text: term,
+                        newTag: true
+                    };
+                },
+                templateResult: function (data) {
+                    if (data.newTag) {
+                        return $('<span></span>')
+                            .append(document.createTextNode('Add part number: '))
+                            .append($('<strong></strong>').text(data.text));
+                    }
+                    return data.text;
+                }
+            });
+
+            $alternativePartNumbersSelect.on('change select2:select select2:unselect', syncAlternativePartNumbers);
+            syncAlternativePartNumbers();
+        }
+
+        initAlternativePartNumbers();
+
+        function selectedCategoryName() {
+            return $category.val() ? (($category.find('option:selected').text() || '').trim()) : '';
+        }
+
+        function applyCategoryPrefixToName() {
+            const categoryName = selectedCategoryName();
+            const $name = $('#name');
+            let name = ($name.val() || '').trim();
+
+            if (!categoryName || !name) {
+                return;
+            }
+
+            $.each(categoryNames || [], function (_, existingCategoryName) {
+                const prefix = (existingCategoryName || '').trim();
+                if (prefix && name.toLowerCase().startsWith((prefix + ' ').toLowerCase())) {
+                    name = name.substring(prefix.length).trim();
+                    return false;
+                }
+            });
+
+            if (name.toLowerCase().startsWith((categoryName + ' ').toLowerCase())) {
+                return;
+            }
+
+            $name.val(categoryName + ' ' + name);
+        }
 
         function updatePreview() {
+            const category = selectedCategoryName();
             const name = ($('#name').val() || '').trim();
             const partNumber = ($('#partNumber').val() || '').trim();
-            const specLabel = ($('#specLabel').val() || '').trim();
+            const position = ($('#position').val() || '').trim();
             const dimension = ($('#dimension').val() || '').trim();
 
             let parts = [];
 
+            if ($category.val() && category) parts.push(category);
             if (name) parts.push(name);
             if (partNumber) parts.push(partNumber);
-            if (specLabel) parts.push(specLabel);
+            if (position) parts.push(position);
             if (dimension) parts.push(dimension);
 
             $('#productPreview').text(parts.length ? parts.join(' | ') : '-');
@@ -487,6 +600,32 @@
 
                     $brand.append(option);
                 });
+            });
+        }
+
+        function generateBarcode(force) {
+            const categoryId = $category.val();
+
+            if (!categoryId) {
+                if (force) {
+                    alert('Please select a category first.');
+                }
+                return;
+            }
+
+            if (!force && ($barcode.val() || '').trim()) {
+                return;
+            }
+
+            $generateBarcodeButton.prop('disabled', true).text('Generating...');
+            $.get('/products/barcode-suggestion', { categoryId: categoryId }, function (data) {
+                $barcode.val(data.barcode || '');
+            }).fail(function () {
+                if (force) {
+                    alert('Could not generate barcode. Please try again.');
+                }
+            }).always(function () {
+                $generateBarcodeButton.prop('disabled', false).text('Generate');
             });
         }
 
@@ -537,7 +676,7 @@
             loadBrands(product.categoryId, null);
 
             //$('#name').val(product.name || '');
-            $('#specLabel').val(product.specLabel || '');
+            $('#position').val(product.position || '');
             $('#dimension').val(product.dimension || '');
             $('#description').val(product.description || '');
             $('#active').prop('checked', product.active !== false);
@@ -545,7 +684,10 @@
             // These are intentionally cleared because they usually identify the new product uniquely.
             $('#partNumber').val('').removeClass('is-valid is-invalid');
             $('#sku').val('').removeClass('is-valid is-invalid');
-            $('#barcode').val('').removeClass('is-valid is-invalid');
+            $alternativePartNumbersSelect.val(null).trigger('change');
+            $alternativePartNumber.val('').removeClass('is-valid is-invalid');
+            $barcode.val('').removeClass('is-valid is-invalid');
+            generateBarcode(false);
 
             const applicationIds = (product.applicationIds || []).map(String);
             $applications.val(applicationIds);
@@ -623,6 +765,15 @@
 
         $category.on('change', function () {
             loadBrands($(this).val(), null);
+            $barcode.val('');
+            generateBarcode(false);
+            applyCategoryPrefixToName();
+            updatePreview();
+        });
+
+        $generateBarcodeButton.on('click', function () {
+            $barcode.val('');
+            generateBarcode(true);
         });
 
         $('#image').on('change', function () {
@@ -825,13 +976,19 @@
             });
         });
 
-        $('#name, #partNumber, #specLabel, #dimension').on('input', updatePreview);
+        $('#name').on('blur', function () {
+            applyCategoryPrefixToName();
+            updatePreview();
+        });
+        $('#name, #partNumber, #dimension').on('input', updatePreview);
+        $('#position').on('change', updatePreview);
         updatePreview();
 
         const initialCategoryId = $category.val();
         const initialBrandId = $brand.val();
         if (initialCategoryId) {
             loadBrands(initialCategoryId, initialBrandId);
+            generateBarcode(false);
         }
 
         $('#productForm').validate({
@@ -842,7 +999,8 @@
                 brandId: { required: true },
                 name: { required: true, maxlength: 200 },
                 partNumber: { required: true, maxlength: 100 },
-                specLabel: { maxlength: 120 },
+                alternativePartNumber: { maxlength: 255 },
+                position: { maxlength: 80 },
                 dimension: { maxlength: 120 },
                 sku: { maxlength: 100 },
                 barcode: { maxlength: 64 },
@@ -875,6 +1033,11 @@
             unhighlight: function (element) {
                 $(element).removeClass('is-invalid').addClass('is-valid');
             }
+        });
+
+        $('#productForm').on('submit', function () {
+            applyCategoryPrefixToName();
+            syncAlternativePartNumbers();
         });
     });
 </script>

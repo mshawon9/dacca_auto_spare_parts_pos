@@ -17,17 +17,27 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
 
     boolean existsByBrandIdAndNormalizedPartNumberAndIdNot(Long brandId, String normalizedPartNumber, Long id);
 
+    boolean existsByBarcode(String barcode);
+
+    boolean existsByBarcodeAndIdNot(String barcode, Long id);
+
+    long countByCategoryId(Long categoryId);
+
     @Query("""
         select distinct p
         from ProductEntity p
         left join ProductApplicationEntity pa on pa.product.id = p.id
         left join pa.vehicleApplication va
+        left join ProductAlternativePartNumberEntity alt on alt.product.id = p.id
         where (:keywordPattern is null or
                lower(p.name) like :keywordPattern or
                lower(coalesce(p.specLabel, '')) like :keywordPattern or
+               lower(coalesce(p.position, '')) like :keywordPattern or
                lower(coalesce(p.dimension, '')) like :keywordPattern or
                lower(coalesce(p.sku, '')) like :keywordPattern or
                lower(p.partNumber) like :keywordPattern or
+               lower(coalesce(p.alternativePartNumber, '')) like :keywordPattern or
+               lower(coalesce(alt.partNumber, '')) like :keywordPattern or
                lower(coalesce(p.barcode, '')) like :keywordPattern or
                lower(coalesce(va.displayName, '')) like :keywordPattern)
           and (:categoryId is null or p.category.id = :categoryId)
@@ -48,12 +58,70 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             from ProductEntity p
             left join ProductApplicationEntity pa on pa.product.id = p.id
             left join pa.vehicleApplication va
+            left join ProductAlternativePartNumberEntity alt on alt.product.id = p.id
             where (:keywordPattern is null or
                    lower(p.name) like :keywordPattern or
                    lower(coalesce(p.specLabel, '')) like :keywordPattern or
+                   lower(coalesce(p.position, '')) like :keywordPattern or
                    lower(coalesce(p.dimension, '')) like :keywordPattern or
                    lower(coalesce(p.sku, '')) like :keywordPattern or
                    lower(p.partNumber) like :keywordPattern or
+                   lower(coalesce(p.alternativePartNumber, '')) like :keywordPattern or
+                   lower(coalesce(alt.partNumber, '')) like :keywordPattern or
+                   lower(coalesce(p.barcode, '')) like :keywordPattern or
+                   lower(coalesce(va.displayName, '')) like :keywordPattern)
+              and (:categoryId is null or p.category.id = :categoryId)
+              and (:brandId is null or p.brand.id = :brandId)
+              and (:applicationId is null or va.id = :applicationId)
+              and (:active is null or p.active = :active)
+            order by p.name asc, p.partNumber asc
+            """,
+        countQuery = """
+            select count(distinct p.id)
+            from ProductEntity p
+            left join ProductApplicationEntity pa on pa.product.id = p.id
+            left join pa.vehicleApplication va
+            left join ProductAlternativePartNumberEntity alt on alt.product.id = p.id
+            where (:keywordPattern is null or
+                   lower(p.name) like :keywordPattern or
+                   lower(coalesce(p.specLabel, '')) like :keywordPattern or
+                   lower(coalesce(p.position, '')) like :keywordPattern or
+                   lower(coalesce(p.dimension, '')) like :keywordPattern or
+                   lower(coalesce(p.sku, '')) like :keywordPattern or
+                   lower(p.partNumber) like :keywordPattern or
+                   lower(coalesce(p.alternativePartNumber, '')) like :keywordPattern or
+                   lower(coalesce(alt.partNumber, '')) like :keywordPattern or
+                   lower(coalesce(p.barcode, '')) like :keywordPattern or
+                   lower(coalesce(va.displayName, '')) like :keywordPattern)
+              and (:categoryId is null or p.category.id = :categoryId)
+              and (:brandId is null or p.brand.id = :brandId)
+              and (:applicationId is null or va.id = :applicationId)
+              and (:active is null or p.active = :active)
+            """
+    )
+    Page<ProductEntity> searchPage(@Param("keywordPattern") String keywordPattern,
+                                   @Param("categoryId") Long categoryId,
+                                   @Param("brandId") Long brandId,
+                                   @Param("applicationId") Long applicationId,
+                                   @Param("active") Boolean active,
+                                   Pageable pageable);
+
+    @Query(
+        value = """
+            select distinct p
+            from ProductEntity p
+            left join ProductApplicationEntity pa on pa.product.id = p.id
+            left join pa.vehicleApplication va
+            left join ProductAlternativePartNumberEntity alt on alt.product.id = p.id
+            where (:keywordPattern is null or
+                   lower(p.name) like :keywordPattern or
+                   lower(coalesce(p.specLabel, '')) like :keywordPattern or
+                   lower(coalesce(p.position, '')) like :keywordPattern or
+                   lower(coalesce(p.dimension, '')) like :keywordPattern or
+                   lower(coalesce(p.sku, '')) like :keywordPattern or
+                   lower(p.partNumber) like :keywordPattern or
+                   lower(coalesce(p.alternativePartNumber, '')) like :keywordPattern or
+                   lower(coalesce(alt.partNumber, '')) like :keywordPattern or
                    lower(coalesce(p.barcode, '')) like :keywordPattern or
                    lower(coalesce(va.displayName, '')) like :keywordPattern)
               and (:categoryId is null or p.category.id = :categoryId)
@@ -64,12 +132,16 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             from ProductEntity p
             left join ProductApplicationEntity pa on pa.product.id = p.id
             left join pa.vehicleApplication va
+            left join ProductAlternativePartNumberEntity alt on alt.product.id = p.id
             where (:keywordPattern is null or
                    lower(p.name) like :keywordPattern or
                    lower(coalesce(p.specLabel, '')) like :keywordPattern or
+                   lower(coalesce(p.position, '')) like :keywordPattern or
                    lower(coalesce(p.dimension, '')) like :keywordPattern or
                    lower(coalesce(p.sku, '')) like :keywordPattern or
                    lower(p.partNumber) like :keywordPattern or
+                   lower(coalesce(p.alternativePartNumber, '')) like :keywordPattern or
+                   lower(coalesce(alt.partNumber, '')) like :keywordPattern or
                    lower(coalesce(p.barcode, '')) like :keywordPattern or
                    lower(coalesce(va.displayName, '')) like :keywordPattern)
               and (:categoryId is null or p.category.id = :categoryId)

@@ -13,6 +13,8 @@ import com.daccaauto.pos.service.VehicleApplicationService;
 import com.daccaauto.pos.service.VehicleMakeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -42,9 +44,32 @@ public class ProductController {
                        @RequestParam(required = false) Long brandId,
                        @RequestParam(required = false) Long applicationId,
                        @RequestParam(required = false) Boolean active,
+                       @RequestParam(defaultValue = "0") int page,
                        Model model) {
 
-        model.addAttribute("products", productService.search(keyword, categoryId, brandId, applicationId, active));
+        int pageSize = 15;
+        int safePage = Math.max(page, 0);
+        Page<ProductResponse> productPage = productService.searchPage(
+                keyword,
+                categoryId,
+                brandId,
+                applicationId,
+                active,
+                PageRequest.of(safePage, pageSize)
+        );
+
+        long totalItems = productPage.getTotalElements();
+        long startItem = totalItems == 0 ? 0 : (long) productPage.getNumber() * productPage.getSize() + 1;
+        long endItem = Math.min(startItem + productPage.getNumberOfElements() - 1, totalItems);
+
+        model.addAttribute("products", productPage.getContent());
+        model.addAttribute("productPage", productPage);
+        model.addAttribute("currentPage", productPage.getNumber());
+        model.addAttribute("totalPages", productPage.getTotalPages());
+        model.addAttribute("totalItems", totalItems);
+        model.addAttribute("startItem", startItem);
+        model.addAttribute("endItem", endItem);
+        model.addAttribute("pageSize", pageSize);
         model.addAttribute("categories", productCategoryService.getAll());
         model.addAttribute("brands", categoryId == null ? java.util.List.of() : brandCategoryService.getBrandsByCategoryId(categoryId));
         model.addAttribute("applications", vehicleApplicationService.getAll(null, null, null));
@@ -124,9 +149,11 @@ public class ProductController {
         ProductUpdateRequest form = new ProductUpdateRequest();
         form.setName(response.name());
         form.setSpecLabel(response.specLabel());
+        form.setPosition(response.position());
         form.setDimension(response.dimension());
         form.setSku(response.sku());
         form.setPartNumber(response.partNumber());
+        form.setAlternativePartNumber(String.join(", ", response.alternativePartNumbers()));
         form.setBarcode(response.barcode());
         form.setDescription(response.description());
         form.setCategoryId(response.categoryId());
@@ -201,6 +228,7 @@ public class ProductController {
                 product.id(),
                 product.name(),
                 product.specLabel(),
+                product.position(),
                 product.dimension(),
                 product.description(),
                 product.categoryId(),
@@ -216,6 +244,12 @@ public class ProductController {
         return productService.getSimilarityGroup(id);
     }
 
+    @GetMapping("/barcode-suggestion")
+    @ResponseBody
+    public BarcodeSuggestion suggestBarcode(@RequestParam Long categoryId) {
+        return new BarcodeSuggestion(productService.suggestBarcode(categoryId));
+    }
+
     @GetMapping("/{id}/image")
     public ResponseEntity<byte[]> getProductImage(@PathVariable Long id) {
         ProductService.ProductImage image = productService.getImage(id);
@@ -227,9 +261,10 @@ public class ProductController {
 
     private String buildCopySearchLabel(ProductResponse product) {
         return java.util.stream.Stream.of(
+                        product.categoryName(),
                         product.name(),
                         product.partNumber(),
-                        product.specLabel(),
+                        product.position(),
                         product.dimension()
                 )
                 .filter(value -> value != null && !value.isBlank())
@@ -243,6 +278,7 @@ public class ProductController {
             Long id,
             String name,
             String specLabel,
+            String position,
             String dimension,
             String description,
             Long categoryId,
@@ -250,6 +286,9 @@ public class ProductController {
             Set  <Long> applicationIds,
             boolean active
     ) {
+    }
+
+    public record BarcodeSuggestion(String barcode) {
     }
 
     @PostMapping("/{id}/delete")
