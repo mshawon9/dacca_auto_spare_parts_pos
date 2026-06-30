@@ -1,6 +1,7 @@
 package com.daccaauto.pos.controller;
 
 import com.daccaauto.pos.dto.product.ProductCreateRequest;
+import com.daccaauto.pos.dto.product.ProductDetailsResponse;
 import com.daccaauto.pos.dto.product.ProductResponse;
 import com.daccaauto.pos.dto.product.ProductUpdateRequest;
 import com.daccaauto.pos.exception.DuplicateResourceException;
@@ -15,6 +16,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -44,18 +46,23 @@ public class ProductController {
                        @RequestParam(required = false) Long brandId,
                        @RequestParam(required = false) Long applicationId,
                        @RequestParam(required = false) Boolean active,
+                       @RequestParam(defaultValue = "name") String sortBy,
+                       @RequestParam(defaultValue = "asc") String sortDir,
                        @RequestParam(defaultValue = "0") int page,
                        Model model) {
 
         int pageSize = 15;
         int safePage = Math.max(page, 0);
+        String selectedSortBy = normalizeProductSortBy(sortBy);
+        String selectedSortDir = "desc".equalsIgnoreCase(sortDir) ? "desc" : "asc";
+
         Page<ProductResponse> productPage = productService.searchPage(
                 keyword,
                 categoryId,
                 brandId,
                 applicationId,
                 active,
-                PageRequest.of(safePage, pageSize)
+                PageRequest.of(safePage, pageSize, buildProductSort(selectedSortBy, selectedSortDir))
         );
 
         long totalItems = productPage.getTotalElements();
@@ -79,8 +86,32 @@ public class ProductController {
         model.addAttribute("selectedBrandId", brandId);
         model.addAttribute("selectedApplicationId", applicationId);
         model.addAttribute("selectedActive", active);
+        model.addAttribute("sortBy", selectedSortBy);
+        model.addAttribute("sortDir", selectedSortDir);
 
         return "product/list";
+    }
+
+    private Sort buildProductSort(String sortBy, String sortDir) {
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDir) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        Sort.Order selectedOrder = new Sort.Order(direction, normalizeProductSortBy(sortBy));
+
+        if ("name".equals(sortBy)) {
+            return Sort.by(selectedOrder, Sort.Order.asc("partNumber"));
+        }
+
+        return Sort.by(selectedOrder, Sort.Order.asc("name"));
+    }
+
+    private String normalizeProductSortBy(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "name";
+        }
+
+        return switch (sortBy) {
+            case "id", "name", "partNumber", "barcode", "position", "dimension", "sku", "createdAt", "updatedAt" -> sortBy;
+            default -> "name";
+        };
     }
 
     @GetMapping("/create")
@@ -95,6 +126,15 @@ public class ProductController {
         model.addAttribute("editMode", false);
 
         return "product/form";
+    }
+
+    @GetMapping("/{id}")
+    public String details(@PathVariable Long id, Model model) {
+        ProductDetailsResponse details = productService.getDetails(id);
+        model.addAttribute("details", details);
+        model.addAttribute("product", details.product());
+        model.addAttribute("pageTitle", "Product Details");
+        return "product/details";
     }
 
     @PostMapping("/create")
@@ -224,6 +264,19 @@ public class ProductController {
     public ProductCopySource getProductCopySource(@PathVariable Long id) {
         ProductResponse product = productService.getById(id);
 
+        return toProductCopySource(product);
+    }
+
+    @GetMapping("/last-copy-source")
+    @ResponseBody
+    public ResponseEntity<ProductCopySource> getLastProductCopySource() {
+        return productService.getLastCreatedProduct()
+                .map(this::toProductCopySource)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    private ProductCopySource toProductCopySource(ProductResponse product) {
         return new ProductCopySource(
                 product.id(),
                 product.name(),

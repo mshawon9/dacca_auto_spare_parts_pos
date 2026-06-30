@@ -13,6 +13,8 @@ import com.daccaauto.pos.repository.VehicleMakeRepository;
 import com.daccaauto.pos.repository.VehicleModelRepository;
 import com.daccaauto.pos.service.VehicleApplicationService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,7 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
     private final VehicleModelRepository vehicleModelRepository;
 
     @Override
+    @CacheEvict(cacheNames = {"vehicleApplications", "vehicleMakes", "vehicleModels"}, allEntries = true)
     public VehicleApplicationResponse create(VehicleApplicationCreateRequest request) {
         VehicleMakeEntity make = resolveMake(request.getVehicleMakeId(), request.getVehicleMakeName());
         VehicleModelEntity model = resolveModel(make, request.getVehicleModelId(), request.getVehicleModelName());
@@ -57,6 +60,7 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
     }
 
     @Override
+    @CacheEvict(cacheNames = {"vehicleApplications", "vehicleMakes", "vehicleModels"}, allEntries = true)
     public VehicleApplicationResponse update(Long id, VehicleApplicationUpdateRequest request) {
         VehicleApplicationEntity entity = vehicleApplicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle application not found: " + id));
@@ -98,6 +102,7 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "vehicleApplications", key = "{#makeId, #modelId, #keyword}")
     public List<VehicleApplicationResponse> getAll(Long makeId, Long modelId, String keyword) {
         List<VehicleApplicationEntity> entities;
 
@@ -122,6 +127,7 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
     }
 
     @Override
+    @CacheEvict(cacheNames = "vehicleApplications", allEntries = true)
     public void delete(Long id) {
         VehicleApplicationEntity entity = vehicleApplicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle application not found: " + id));

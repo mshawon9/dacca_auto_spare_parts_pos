@@ -31,4 +31,6 @@ public interface ProductStockRepository extends JpaRepository<ProductStockEntity
     Optional<ProductStockEntity> findForUpdate(Long storeId, Long productId);
 
     List<ProductStockEntity> findByStoreIdAndProductIdIn(Long storeId, List<Long> productIds);
+
+    List<ProductStockEntity> findByProductIdOrderByStoreNameAsc(Long productId);
 }

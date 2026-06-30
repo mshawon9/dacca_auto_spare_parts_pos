@@ -1,6 +1,7 @@
 package com.daccaauto.pos.service.serviceImpl;
 
 import com.daccaauto.pos.dto.product.ProductCreateRequest;
+import com.daccaauto.pos.dto.product.ProductDetailsResponse;
 import com.daccaauto.pos.dto.product.ProductResponse;
 import com.daccaauto.pos.dto.product.ProductUpdateRequest;
 import com.daccaauto.pos.entity.*;
@@ -18,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -132,6 +135,46 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(readOnly = true)
+    public ProductDetailsResponse getDetails(Long id) {
+        ProductResponse product = getById(id);
+
+        List<ProductDetailsResponse.StockSummary> stockSummaries = productStockRepository
+            .findByProductIdOrderByStoreNameAsc(id)
+            .stream()
+            .map(stock -> new ProductDetailsResponse.StockSummary(
+                stock.getStore().getId(),
+                stock.getStore().getName(),
+                stock.getQuantity(),
+                stock.getSellingPrice()
+            ))
+            .toList();
+
+        BigDecimal totalStockQuantity = stockSummaries.stream()
+            .map(ProductDetailsResponse.StockSummary::quantity)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        List<ProductDetailsResponse.PriceHistorySummary> priceHistories = productPriceHistoryRepository
+            .findTop3ByProductIdOrderByCreatedAtDesc(id)
+            .stream()
+            .map(history -> new ProductDetailsResponse.PriceHistorySummary(
+                history.getStore().getName(),
+                history.getOldPrice(),
+                history.getNewPrice(),
+                history.getNote(),
+                history.getCreatedAt()
+            ))
+            .toList();
+
+        return new ProductDetailsResponse(
+            product,
+            totalStockQuantity,
+            stockSummaries,
+            priceHistories
+        );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<ProductResponse.SimilarProductSummary> getSimilarityGroup(Long productId) {
         if (!productRepository.existsById(productId)) {
             throw new ResourceNotFoundException("Product not found: " + productId);
@@ -154,6 +197,13 @@ public class ProductServiceImpl implements ProductService {
             productImageStorageService.load(product.getImageFileName()),
             product.getImageContentType()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<ProductResponse> getLastCreatedProduct() {
+        return productRepository.findTopByOrderByCreatedAtDescIdDesc()
+            .map(this::map);
     }
 
     @Override
@@ -312,7 +362,7 @@ public class ProductServiceImpl implements ProductService {
             .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
 
         List<String> applicationNames = applications.stream()
-            .map(pa -> pa.getVehicleApplication().getDisplayName())
+            .map(pa -> buildApplicationDisplayName(pa.getVehicleApplication()))
             .toList();
 
         Long selectedSimilarProductId = productSimilarityRepository.findSelectedSimilarity(entity.getId())
@@ -411,6 +461,14 @@ public class ProductServiceImpl implements ProductService {
             return applications.get(0);
         }
         return applications.get(0) + " + " + (applications.size() - 1) + " more";
+    }
+
+    private String buildApplicationDisplayName(VehicleApplicationEntity application) {
+        String makeName = application.getVehicleMake() != null ? application.getVehicleMake().getName() : null;
+
+        return java.util.stream.Stream.of(makeName, application.getDisplayName())
+            .filter(value -> value != null && !value.isBlank())
+            .collect(java.util.stream.Collectors.joining(" "));
     }
 
     private String normalizePartNumber(String input) {

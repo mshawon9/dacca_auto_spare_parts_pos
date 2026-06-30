@@ -11,6 +11,8 @@ public interface ProductPriceHistoryRepository extends JpaRepository<ProductPric
 
     List<ProductPriceHistoryEntity> findTop8ByOrderByCreatedAtDesc();
 
+    List<ProductPriceHistoryEntity> findTop3ByProductIdOrderByCreatedAtDesc(Long productId);
+
     List<ProductPriceHistoryEntity> findTop10ByStoreIdAndProductIdOrderByCreatedAtDesc(
         Long storeId,
         Long productId

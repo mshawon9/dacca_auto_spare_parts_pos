@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
 
@@ -22,6 +23,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
     boolean existsByBarcodeAndIdNot(String barcode, Long id);
 
     long countByCategoryId(Long categoryId);
+
+    Optional<ProductEntity> findTopByOrderByCreatedAtDescIdDesc();
 
     @Query("""
         select distinct p
@@ -74,7 +77,6 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
               and (:brandId is null or p.brand.id = :brandId)
               and (:applicationId is null or va.id = :applicationId)
               and (:active is null or p.active = :active)
-            order by p.name asc, p.partNumber asc
             """,
         countQuery = """
             select count(distinct p.id)

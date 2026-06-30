@@ -13,6 +13,8 @@ import  com.daccaauto.pos.repository.BrandRepository;
 import  com.daccaauto.pos.repository.ProductCategoryRepository;
 import  com.daccaauto.pos.service.ProductCategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
     private final BrandCategoryRepository brandCategoryRepository;
 
     @Override
+    @CacheEvict(cacheNames = {"productCategories", "brandsByCategory"}, allEntries = true)
     public ProductCategoryResponse create(ProductCategoryCreateRequest request) {
         String name = request.getName().trim();
 
@@ -50,6 +53,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"productCategories", "brandsByCategory"}, allEntries = true)
     public ProductCategoryResponse update(Long id, ProductCategoryUpdateRequest request) {
         ProductCategoryEntity entity = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
@@ -82,6 +86,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable("productCategories")
     public List<ProductCategoryResponse> getAll() {
         return categoryRepository.findAllByOrderByNameAsc()
                 .stream()
@@ -106,6 +111,7 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"productCategories", "brandsByCategory"}, allEntries = true)
     public void delete(Long id) {
         ProductCategoryEntity entity = categoryRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));

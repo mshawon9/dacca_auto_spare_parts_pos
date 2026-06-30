@@ -104,8 +104,14 @@
                     <div class="row">
                         <div class="col-lg-8">
                             <div class="card">
-                                <div class="card-header">
-                                    <h3 class="card-title">Basic Information</h3>
+                                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                    <h3 class="card-title mb-0">Basic Information</h3>
+                                    <button type="button"
+                                            id="loadLastProductButton"
+                                            class="btn btn-sm btn-outline-primary"
+                                            th:if="${!editMode}">
+                                        <i class="bi bi-clock-history me-1"></i> Get Last Entry
+                                    </button>
                                 </div>
                                 <div class="card-body">
                                     <div class="row g-3">
@@ -240,8 +246,7 @@
                                                     </div>
                                                     <div class="d-flex align-items-center gap-2">
                                                         <span id="selectedApplicationCount" class="badge text-bg-primary rounded-pill">0 selected</span>
-                                                        <button type="button" class="btn btn-sm btn-primary"
-                                                                data-bs-toggle="modal" data-bs-target="#applicationModal">
+                                                        <button type="button" id="openApplicationModalButton" class="btn btn-sm btn-primary">
                                                             <i class="bi bi-plus-circle me-1"></i> Create Application
                                                         </button>
                                                     </div>
@@ -445,6 +450,10 @@
         const $applicationModalForm = $('#applicationModalForm');
         const $applicationModalError = $('#applicationModalError');
         const $saveApplicationButton = $('#saveApplicationButton');
+        const $openApplicationModalButton = $('#openApplicationModalButton');
+        const $loadLastProductButton = $('#loadLastProductButton');
+        const applicationModalElement = document.getElementById('applicationModal');
+        const applicationModal = bootstrap.Modal.getOrCreateInstance(applicationModalElement);
         const $selectedApplicationCount = $('#selectedApplicationCount');
         const $similarSearch = $('#similarProductSearch');
         const $similarResults = $('#similarProductResults');
@@ -457,6 +466,7 @@
             return category.name || '';
         });
         let similarSearchTimer = null;
+        let suppressCategoryChange = false;
         const placeholderImageUrl = '/img/placeholder-image.png';
         const applicationDualList = $applications.bootstrapDualListbox({
             nonSelectedListLabel: 'Available fitments',
@@ -467,6 +477,20 @@
             infoText: 'Showing all {0}',
             infoTextFiltered: '<span class="badge text-bg-warning">Filtered</span> {0} from {1}',
             infoTextEmpty: 'No applications'
+        });
+
+        $category.select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select category',
+            allowClear: true
+        });
+
+        $brand.select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select brand',
+            allowClear: true
         });
 
         function updateSelectedApplicationCount() {
@@ -582,6 +606,7 @@
 
         function loadBrands(categoryId, selectedBrandId) {
             $brand.empty().append('<option value="">Select brand</option>');
+            $brand.val('').trigger('change');
 
             if (!categoryId) {
                 return $.Deferred().resolve().promise();
@@ -600,6 +625,8 @@
 
                     $brand.append(option);
                 });
+
+                $brand.trigger('change');
             });
         }
 
@@ -671,11 +698,15 @@
             });
         }
 
-        function fillFormFromSimilarProduct(product) {
-            $category.val(product.categoryId || '');
-            loadBrands(product.categoryId, null);
+        function fillFormFromCopySource(product, options) {
+            const copyBrand = options && options.copyBrand === true;
 
-            //$('#name').val(product.name || '');
+            suppressCategoryChange = true;
+            $category.val(product.categoryId ? String(product.categoryId) : '').trigger('change');
+            suppressCategoryChange = false;
+            loadBrands(product.categoryId, copyBrand ? product.brandId : null);
+
+            $('#name').val(product.name || '');
             $('#position').val(product.position || '');
             $('#dimension').val(product.dimension || '');
             $('#description').val(product.description || '');
@@ -745,10 +776,24 @@
             $.get('/products/' + productId + '/copy-source', function (product) {
                 addSimilarProduct({ id: product.id, displayName: displayName });
                 if (!editMode) {
-                    fillFormFromSimilarProduct(product);
+                    fillFormFromCopySource(product, { copyBrand: false });
                 }
                 $similarSearch.val('');
                 $similarResults.addClass('d-none').empty();
+            });
+        });
+
+        $loadLastProductButton.on('click', function () {
+            $loadLastProductButton.prop('disabled', true).text('Loading last entry...');
+
+            $.get('/products/last-copy-source', function (product) {
+                fillFormFromCopySource(product, { copyBrand: true });
+            }).fail(function () {
+                alert('No previous product entry found.');
+            }).always(function () {
+                $loadLastProductButton
+                    .prop('disabled', false)
+                    .html('<i class="bi bi-clock-history me-1"></i> Get Last Entry');
             });
         });
 
@@ -764,6 +809,9 @@
         });
 
         $category.on('change', function () {
+            if (suppressCategoryChange) {
+                return;
+            }
             loadBrands($(this).val(), null);
             $barcode.val('');
             generateBarcode(false);
@@ -809,6 +857,41 @@
         function showApplicationModalError(message) {
             $applicationModalError.text(message).removeClass('d-none');
         }
+
+        function cleanupApplicationModalBackdrop() {
+            $('.modal-backdrop').remove();
+            $('body')
+                .removeClass('modal-open')
+                .css({
+                    overflow: '',
+                    paddingRight: ''
+                });
+        }
+
+        function resetApplicationModalForm() {
+            $applicationModalForm[0].reset();
+            $modalMake.select2('close');
+            $modalModel.select2('close');
+            $modalMake.val(null).trigger('change');
+            $modalMakeId.val('');
+            $modalModel.val(null).trigger('change');
+            $modalModelId.val('');
+            $modalMakeHelp.text('Search an old make or type a new one, then press Enter.');
+            $modalModelHelp.text('Select a make first to search old models, or type a new model.');
+            $applicationModalError.addClass('d-none').empty();
+            $saveApplicationButton.prop('disabled', false).text('Add Application');
+        }
+
+        $openApplicationModalButton.on('click', function () {
+            resetApplicationModalForm();
+            cleanupApplicationModalBackdrop();
+            applicationModal.show();
+        });
+
+        $(applicationModalElement).on('hidden.bs.modal', function () {
+            resetApplicationModalForm();
+            cleanupApplicationModalBackdrop();
+        });
 
         function updateModalMakeState() {
             const value = ($modalMake.val() || '').trim();
@@ -949,6 +1032,7 @@
                 contentType: 'application/json',
                 data: JSON.stringify(payload)
             }).done(function (application) {
+                $applications.find('option[value="' + application.id + '"]').remove();
                 $applications.append($('<option>', {
                     value: application.id,
                     text: application.displayName,
@@ -956,14 +1040,7 @@
                 }));
                 applicationDualList.bootstrapDualListbox('refresh', true);
                 updateSelectedApplicationCount();
-                bootstrap.Modal.getOrCreateInstance(document.getElementById('applicationModal')).hide();
-                $applicationModalForm[0].reset();
-                $modalMake.val(null).trigger('change');
-                $modalMakeId.val('');
-                $modalModel.val(null).trigger('change');
-                $modalModelId.val('');
-                $modalMakeHelp.text('Search an old make or type a new one, then press Enter.');
-                $modalModelHelp.text('Select a make first to search old models, or type a new model.');
+                applicationModal.hide();
             }).fail(function (xhr) {
                 const response = xhr.responseJSON || {};
                 const fieldErrors = response.fieldErrors || {};

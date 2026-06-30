@@ -11,6 +11,8 @@ import com.daccaauto.pos.repository.VehicleMakeRepository;
 import com.daccaauto.pos.repository.VehicleModelRepository;
 import com.daccaauto.pos.service.VehicleModelService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class VehicleModelServiceImpl implements VehicleModelService {
     private final VehicleMakeRepository vehicleMakeRepository;
 
     @Override
+    @CacheEvict(cacheNames = {"vehicleModels", "vehicleApplications"}, allEntries = true)
     public VehicleModelResponse create(VehicleModelCreateRequest request) {
         VehicleMakeEntity make = vehicleMakeRepository.findById(request.getMakeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle make not found: " + request.getMakeId()));
@@ -44,6 +47,7 @@ public class VehicleModelServiceImpl implements VehicleModelService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"vehicleModels", "vehicleApplications"}, allEntries = true)
     public VehicleModelResponse update(Long id, VehicleModelUpdateRequest request) {
         VehicleModelEntity entity = vehicleModelRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle model not found: " + id));
@@ -75,6 +79,7 @@ public class VehicleModelServiceImpl implements VehicleModelService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "vehicleModels", key = "#makeId ?: 'all'")
     public List<VehicleModelResponse> getAll(Long makeId) {
         List<VehicleModelEntity> entities = makeId == null
                 ? vehicleModelRepository.findAllByOrderByNameAsc()
@@ -84,6 +89,7 @@ public class VehicleModelServiceImpl implements VehicleModelService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"vehicleModels", "vehicleApplications"}, allEntries = true)
     public void delete(Long id) {
         VehicleModelEntity entity = vehicleModelRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle model not found: " + id));

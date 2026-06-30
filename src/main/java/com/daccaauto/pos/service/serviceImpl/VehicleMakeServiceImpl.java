@@ -9,6 +9,8 @@ import com.daccaauto.pos.exception.ResourceNotFoundException;
 import com.daccaauto.pos.repository.VehicleMakeRepository;
 import com.daccaauto.pos.service.VehicleMakeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +24,7 @@ public class VehicleMakeServiceImpl implements VehicleMakeService {
     private final VehicleMakeRepository vehicleMakeRepository;
 
     @Override
+    @CacheEvict(cacheNames = {"vehicleMakes", "vehicleModels", "vehicleApplications"}, allEntries = true)
     public VehicleMakeResponse create(VehicleMakeCreateRequest request) {
         String name = request.getName().trim();
 
@@ -37,6 +40,7 @@ public class VehicleMakeServiceImpl implements VehicleMakeService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"vehicleMakes", "vehicleModels", "vehicleApplications"}, allEntries = true)
     public VehicleMakeResponse update(Long id, VehicleMakeUpdateRequest request) {
         VehicleMakeEntity entity = vehicleMakeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle make not found: " + id));
@@ -64,6 +68,7 @@ public class VehicleMakeServiceImpl implements VehicleMakeService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable("vehicleMakes")
     public List<VehicleMakeResponse> getAll() {
         return vehicleMakeRepository.findAllByOrderByNameAsc()
                 .stream()
@@ -72,6 +77,7 @@ public class VehicleMakeServiceImpl implements VehicleMakeService {
     }
 
     @Override
+    @CacheEvict(cacheNames = {"vehicleMakes", "vehicleModels", "vehicleApplications"}, allEntries = true)
     public void delete(Long id) {
         VehicleMakeEntity entity = vehicleMakeRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle make not found: " + id));

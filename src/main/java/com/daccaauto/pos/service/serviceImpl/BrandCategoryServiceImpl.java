@@ -14,6 +14,8 @@ import com.daccaauto.pos.repository.BrandRepository;
 import com.daccaauto.pos.repository.ProductCategoryRepository;
 import com.daccaauto.pos.service.BrandCategoryService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,7 @@ public class BrandCategoryServiceImpl implements BrandCategoryService {
     private final ProductCategoryRepository categoryRepository;
 
     @Override
+    @CacheEvict(cacheNames = "brandsByCategory", allEntries = true)
     public BrandCategoryResponse create(BrandCategoryCreateRequest request) {
         if (brandCategoryRepository.existsByBrandIdAndCategoryId(request.getBrandId(), request.getCategoryId())) {
             throw new DuplicateResourceException("Brand is already mapped to this category");
@@ -51,6 +54,7 @@ public class BrandCategoryServiceImpl implements BrandCategoryService {
     }
 
     @Override
+    @CacheEvict(cacheNames = "brandsByCategory", allEntries = true)
     public BrandCategoryResponse update(Long id, BrandCategoryUpdateRequest request) {
         BrandCategoryEntity entity = brandCategoryRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Brand category mapping not found: " + id));
@@ -94,6 +98,7 @@ public class BrandCategoryServiceImpl implements BrandCategoryService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "brandsByCategory", key = "#categoryId ?: 'none'")
     public List<BrandResponse> getBrandsByCategoryId(Long categoryId) {
         return brandCategoryRepository.findByCategoryIdAndActiveTrueOrderByDisplayOrderAscBrandNameAsc(categoryId)
             .stream()
@@ -105,6 +110,7 @@ public class BrandCategoryServiceImpl implements BrandCategoryService {
     }
 
     @Override
+    @CacheEvict(cacheNames = "brandsByCategory", allEntries = true)
     public void delete(Long id) {
         BrandCategoryEntity entity = brandCategoryRepository.findById(id)
             .orElseThrow(() -> new ResourceNotFoundException("Brand category mapping not found: " + id));

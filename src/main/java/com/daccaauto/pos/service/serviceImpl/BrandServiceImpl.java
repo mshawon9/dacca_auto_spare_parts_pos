@@ -9,6 +9,7 @@ import com.daccaauto.pos.exception.ResourceNotFoundException;
 import com.daccaauto.pos.repository.BrandRepository;
 import com.daccaauto.pos.service.BrandService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ public class BrandServiceImpl implements BrandService {
     private final BrandRepository brandRepository;
 
     @Override
+    @CacheEvict(cacheNames = "brandsByCategory", allEntries = true)
     public BrandResponse create(BrandCreateRequest request) {
         if (brandRepository.existsByNameIgnoreCase(request.getName().trim())) {
             throw new DuplicateResourceException("Brand already exists: " + request.getName());
@@ -36,6 +38,7 @@ public class BrandServiceImpl implements BrandService {
     }
 
     @Override
+    @CacheEvict(cacheNames = "brandsByCategory", allEntries = true)
     public BrandResponse update(Long id, BrandUpdateRequest request) {
         BrandEntity entity = brandRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Brand not found: " + id));
@@ -65,6 +68,7 @@ public class BrandServiceImpl implements BrandService {
     }
 
     @Override
+    @CacheEvict(cacheNames = "brandsByCategory", allEntries = true)
     public void delete(Long id) {
         BrandEntity entity = brandRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Brand not found: " + id));
