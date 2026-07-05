@@ -39,9 +39,14 @@
             <div class="container-fluid">
                 <div class="d-flex justify-content-between align-items-center">
                     <div class="fw-semibold">Product Management</div>
-                    <a th:href="@{/products/create}" class="btn btn-primary">
-                        <i class="bi bi-plus-circle me-1"></i> Create Product
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/products/import}" class="btn btn-outline-primary">
+                            <i class="bi bi-file-earmark-spreadsheet me-1"></i> Import Excel
+                        </a>
+                        <a th:href="@{/products/create}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Create Product
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -213,6 +218,7 @@
                                             Dimension <span th:if="${sortBy == 'dimension'}" class="small text-primary" th:text="${sortDir == 'asc' ? 'ASC' : 'DESC'}"></span>
                                         </a>
                                     </th>
+                                    <th class="text-end">Reorder</th>
                                     <th>Applications</th>
                                     <th>Status</th>
                                     <th class="text-end">Actions</th>
@@ -220,7 +226,7 @@
                                 </thead>
                                 <tbody>
                                 <tr th:if="${#lists.isEmpty(products)}">
-                                    <td colspan="12" class="text-center text-muted py-4">No products found.</td>
+                                    <td colspan="13" class="text-center text-muted py-4">No products found.</td>
                                 </tr>
                                 <tr th:each="item : ${products}">
                                     <td th:text="${item.id()}">1</td>
@@ -237,7 +243,16 @@
                                                class="text-decoration-none"
                                                th:text="${item.name()}">Brake Pad</a>
                                             <span th:if="${item.position() != null}"
-                                                  class="badge text-bg-light border"
+                                                  class="badge"
+                                                  th:classappend="${
+                                                    item.position() == 'Front' ? ' text-bg-primary' :
+                                                    item.position() == 'Rear' ? ' text-bg-success' :
+                                                    item.position() == 'Left' ? ' text-bg-info' :
+                                                    item.position() == 'Right' ? ' text-bg-warning' :
+                                                    item.position() == 'Inner' ? ' text-bg-secondary' :
+                                                    item.position() == 'Outer' ? ' text-bg-dark' :
+                                                    ' text-bg-light border'
+                                                  }"
                                                   th:text="${item.position()}">Front</span>
                                         </div>
                                         <small class="text-muted" th:if="${item.sku() != null}" th:text="${item.sku()}">SKU</small>
@@ -245,8 +260,23 @@
                                     <td th:text="${item.partNumber()}">BP-1001</td>
                                     <td th:text="${item.barcode() != null ? item.barcode() : '-'}">BRA-000001</td>
                                     <td th:text="${item.brandName()}">Brembo</td>
-                                    <td th:text="${item.position() != null ? item.position() : '-'}">Front</td>
+                                    <td>
+                                        <span th:if="${item.position() != null}"
+                                              class="badge"
+                                              th:classappend="${
+                                                item.position() == 'Front' ? ' text-bg-primary' :
+                                                item.position() == 'Rear' ? ' text-bg-success' :
+                                                item.position() == 'Left' ? ' text-bg-info' :
+                                                item.position() == 'Right' ? ' text-bg-warning' :
+                                                item.position() == 'Inner' ? ' text-bg-secondary' :
+                                                item.position() == 'Outer' ? ' text-bg-dark' :
+                                                ' text-bg-light border'
+                                              }"
+                                              th:text="${item.position()}">Front</span>
+                                        <span th:unless="${item.position() != null}">-</span>
+                                    </td>
                                     <td th:text="${item.dimension() != null ? item.dimension() : '-'}">38 X 25 X 9</td>
+                                    <td class="text-end" th:text="${item.reorderLevel().stripTrailingZeros().toPlainString()}">2</td>
                                     <td th:text="${item.applicationSummary()}">Civic 2006 Up + 2 more</td>
                                     <td>
                                         <span th:if="${item.active()}" class="badge text-bg-success">Active</span>

@@ -51,7 +51,8 @@ public class ProductServiceImpl implements ProductService {
 
         validateBrandAllowedForCategory(request.getBrandId(), request.getCategoryId());
 
-        String normalizedPartNumber = normalizePartNumber(request.getPartNumber());
+        String partNumber = removePartNumberSpaces(request.getPartNumber());
+        String normalizedPartNumber = normalizePartNumber(partNumber);
 
         if (productRepository.existsByBrandIdAndNormalizedPartNumber(request.getBrandId(), normalizedPartNumber)) {
             throw new DuplicateResourceException("Same brand cannot have duplicate part number");
@@ -63,7 +64,8 @@ public class ProductServiceImpl implements ProductService {
         entity.setPosition(trimToNull(request.getPosition()));
         entity.setDimension(trimToNull(request.getDimension()));
         entity.setSku(trimToNull(request.getSku()));
-        entity.setPartNumber(request.getPartNumber().trim());
+        entity.setReorderLevel(defaultReorderLevel(request.getReorderLevel()));
+        entity.setPartNumber(partNumber);
         entity.setAlternativePartNumber(trimToNull(request.getAlternativePartNumber()));
         entity.setBarcode(resolveBarcode(category, request.getBarcode(), null));
         entity.setDescription(trimToNull(request.getDescription()));
@@ -94,7 +96,8 @@ public class ProductServiceImpl implements ProductService {
 
         validateBrandAllowedForCategory(request.getBrandId(), request.getCategoryId());
 
-        String normalizedPartNumber = normalizePartNumber(request.getPartNumber());
+        String partNumber = removePartNumberSpaces(request.getPartNumber());
+        String normalizedPartNumber = normalizePartNumber(partNumber);
 
         if (productRepository.existsByBrandIdAndNormalizedPartNumberAndIdNot(
             request.getBrandId(), normalizedPartNumber, id)) {
@@ -106,7 +109,8 @@ public class ProductServiceImpl implements ProductService {
         entity.setPosition(trimToNull(request.getPosition()));
         entity.setDimension(trimToNull(request.getDimension()));
         entity.setSku(trimToNull(request.getSku()));
-        entity.setPartNumber(request.getPartNumber().trim());
+        entity.setReorderLevel(defaultReorderLevel(request.getReorderLevel()));
+        entity.setPartNumber(partNumber);
         entity.setAlternativePartNumber(trimToNull(request.getAlternativePartNumber()));
         entity.setBarcode(resolveBarcode(category, request.getBarcode(), id));
         entity.setDescription(trimToNull(request.getDescription()));
@@ -379,6 +383,7 @@ public class ProductServiceImpl implements ProductService {
             entity.getPosition(),
             entity.getDimension(),
             entity.getSku(),
+            defaultReorderLevel(entity.getReorderLevel()),
             entity.getPartNumber(),
             buildAlternativePartNumberSummary(alternativePartNumbers),
             alternativePartNumbers,
@@ -473,6 +478,14 @@ public class ProductServiceImpl implements ProductService {
 
     private String normalizePartNumber(String input) {
         return input.replaceAll("[\\s\\-_/\\.]", "").toUpperCase(Locale.ROOT);
+    }
+
+    private BigDecimal defaultReorderLevel(BigDecimal reorderLevel) {
+        return reorderLevel == null ? BigDecimal.valueOf(2) : reorderLevel;
+    }
+
+    private String removePartNumberSpaces(String input) {
+        return input == null ? null : input.replaceAll("\\s+", "");
     }
 
     private List<String> getAlternativePartNumbers(ProductEntity product) {

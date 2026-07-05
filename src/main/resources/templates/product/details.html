@@ -82,6 +82,10 @@
                                         <div class="text-muted small">Dimension</div>
                                         <div class="fw-semibold" th:text="${product.dimension() != null ? product.dimension() : '-'}">38 X 25 X 9</div>
                                     </div>
+                                    <div class="col-md-4">
+                                        <div class="text-muted small">Reorder Level</div>
+                                        <div class="fw-semibold" th:text="${product.reorderLevel().stripTrailingZeros().toPlainString()}">2</div>
+                                    </div>
                                     <div class="col-12">
                                         <div class="text-muted small">Description</div>
                                         <div th:text="${product.description() != null ? product.description() : '-'}">Description</div>

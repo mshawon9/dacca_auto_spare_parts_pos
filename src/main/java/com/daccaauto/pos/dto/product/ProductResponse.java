@@ -1,5 +1,6 @@
 package com.daccaauto.pos.dto.product;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
 
@@ -10,6 +11,7 @@ public record ProductResponse(
     String position,
     String dimension,
     String sku,
+    BigDecimal reorderLevel,
     String partNumber,
     String alternativePartNumber,
     List<String> alternativePartNumbers,

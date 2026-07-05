@@ -1,14 +1,12 @@
 package com.daccaauto.pos.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.util.Locale;
 
 @Getter
@@ -61,7 +59,7 @@ public class ProductEntity extends BaseEntity {
     @NotBlank
     @Size(max = 100)
     @Pattern(
-            regexp = "^[A-Za-z0-9._/\\- ]+$",
+            regexp = "^[A-Za-z0-9._/\\-]+$",
             message = "partNumber contains unsupported characters"
     )
     @Column(name = "part_number", nullable = false, length = 100)
@@ -100,6 +98,11 @@ public class ProductEntity extends BaseEntity {
     @Column(name = "image_content_type", length = 50)
     private String imageContentType;
 
+    @DecimalMin("0.000")
+    @Digits(integer = 16, fraction = 3)
+    @Column(name = "reorder_level", precision = 19, scale = 3)
+    private BigDecimal reorderLevel = BigDecimal.valueOf(2);
+
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "brand_id", nullable = false)
@@ -116,6 +119,9 @@ public class ProductEntity extends BaseEntity {
     @PrePersist
     @PreUpdate
     public void normalizePartNumber() {
+        if (this.reorderLevel == null) {
+            this.reorderLevel = BigDecimal.valueOf(2);
+        }
         if (this.partNumber != null) {
             this.normalizedPartNumber = this.partNumber
                     .replaceAll("[\\s\\-_/\\.]", "")

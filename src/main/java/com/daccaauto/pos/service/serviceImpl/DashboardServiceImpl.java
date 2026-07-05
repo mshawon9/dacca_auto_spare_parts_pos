@@ -4,6 +4,7 @@ import com.daccaauto.pos.dto.dashboard.DashboardSummaryResponse;
 import com.daccaauto.pos.repository.*;
 import com.daccaauto.pos.service.DashboardService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +52,16 @@ public class DashboardServiceImpl implements DashboardService {
             .toList();
 
         BigDecimal totalStock = productStockRepository.sumQuantity();
+        var reorderAlerts = productRepository.findProductsAtOrBelowReorderLevel(PageRequest.of(0, 10))
+            .stream()
+            .map(item -> new DashboardSummaryResponse.ReorderLevelAlert(
+                item.getProductId(),
+                item.getProductName(),
+                item.getPartNumber(),
+                item.getTotalQuantity(),
+                item.getReorderLevel()
+            ))
+            .toList();
 
         return new DashboardSummaryResponse(
             productRepository.count(),
@@ -62,6 +73,7 @@ public class DashboardServiceImpl implements DashboardService {
             totalStock == null ? BigDecimal.ZERO : totalStock,
             productStockRepository.countZeroQuantity(),
             productStockRepository.countBySellingPriceIsNull(),
+            reorderAlerts,
             stockActivity,
             priceActivity
         );

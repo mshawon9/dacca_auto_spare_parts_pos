@@ -2,6 +2,7 @@ package com.daccaauto.pos.controller;
 
 import com.daccaauto.pos.dto.product.ProductCreateRequest;
 import com.daccaauto.pos.dto.product.ProductDetailsResponse;
+import com.daccaauto.pos.dto.product.ProductImportResult;
 import com.daccaauto.pos.dto.product.ProductResponse;
 import com.daccaauto.pos.dto.product.ProductUpdateRequest;
 import com.daccaauto.pos.exception.DuplicateResourceException;
@@ -9,6 +10,7 @@ import com.daccaauto.pos.exception.ResourceNotFoundException;
 import com.daccaauto.pos.exception.ProductImageException;
 import com.daccaauto.pos.service.BrandCategoryService;
 import com.daccaauto.pos.service.ProductCategoryService;
+import com.daccaauto.pos.service.ProductImportService;
 import com.daccaauto.pos.service.ProductService;
 import com.daccaauto.pos.service.VehicleApplicationService;
 import com.daccaauto.pos.service.VehicleMakeService;
@@ -19,11 +21,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
@@ -35,6 +39,7 @@ import java.util.Set;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductImportService productImportService;
     private final ProductCategoryService productCategoryService;
     private final BrandCategoryService brandCategoryService;
     private final VehicleApplicationService vehicleApplicationService;
@@ -128,6 +133,28 @@ public class ProductController {
         return "product/form";
     }
 
+    @GetMapping("/import")
+    public String showImportForm(Model model) {
+        model.addAttribute("pageTitle", "Import Products");
+        return "product/import";
+    }
+
+    @PostMapping("/import")
+    public String importProducts(@RequestParam("file") MultipartFile file, Model model) {
+        ProductImportResult result = productImportService.importProducts(file);
+        model.addAttribute("result", result);
+        model.addAttribute("pageTitle", "Import Products");
+        return "product/import";
+    }
+
+    @GetMapping("/import/sample")
+    public ResponseEntity<byte[]> downloadProductImportSample() {
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"product-import-sample.xlsx\"")
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(productImportService.buildSampleTemplate());
+    }
+
     @GetMapping("/{id}")
     public String details(@PathVariable Long id, Model model) {
         ProductDetailsResponse details = productService.getDetails(id);
@@ -154,8 +181,14 @@ public class ProductController {
 
         try {
             productService.create(request);
-            redirectAttributes.addFlashAttribute("successMessage", "Product created successfully.");
-            return "redirect:/products";
+            model.addAttribute("successMessage", "Product created successfully. You can add another product now.");
+            model.addAttribute("form", new ProductCreateRequest());
+            loadReferences(model, null);
+            model.addAttribute("selectedSimilarProduct", null);
+            model.addAttribute("pageTitle", "Create Product");
+            model.addAttribute("submitUrl", "/products/create");
+            model.addAttribute("editMode", false);
+            return "product/form";
         } catch (DuplicateResourceException | ResourceNotFoundException | ProductImageException ex) {
             model.addAttribute("errorMessage", ex.getMessage());
             loadReferences(model, request.getCategoryId());
@@ -192,6 +225,7 @@ public class ProductController {
         form.setPosition(response.position());
         form.setDimension(response.dimension());
         form.setSku(response.sku());
+        form.setReorderLevel(response.reorderLevel());
         form.setPartNumber(response.partNumber());
         form.setAlternativePartNumber(String.join(", ", response.alternativePartNumbers()));
         form.setBarcode(response.barcode());
@@ -283,6 +317,7 @@ public class ProductController {
                 product.specLabel(),
                 product.position(),
                 product.dimension(),
+                product.reorderLevel(),
                 product.description(),
                 product.categoryId(),
                 product.brandId(),
@@ -333,6 +368,7 @@ public class ProductController {
             String specLabel,
             String position,
             String dimension,
+            java.math.BigDecimal reorderLevel,
             String description,
             Long categoryId,
             Long brandId,

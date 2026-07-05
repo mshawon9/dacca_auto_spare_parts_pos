@@ -191,6 +191,10 @@
                                     <span><i class="bi bi-exclamation-triangle me-2 text-danger"></i>Zero-stock entries</span>
                                     <strong class="text-danger" th:text="${dashboard.zeroStockRecords()}">0</strong>
                                 </div>
+                                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                    <span><i class="bi bi-bell me-2 text-danger"></i>Reorder alerts</span>
+                                    <strong class="text-danger" th:text="${#lists.size(dashboard.reorderLevelAlerts())}">0</strong>
+                                </div>
                                 <div class="d-flex justify-content-between align-items-center py-2">
                                     <span><i class="bi bi-cash-coin me-2 text-warning"></i>Entries missing price</span>
                                     <strong class="text-warning-emphasis" th:text="${dashboard.productsWithoutPrice()}">0</strong>
@@ -201,6 +205,48 @@
                 </div>
 
                 <div class="row g-3">
+                    <div class="col-xl-12" th:if="${!#lists.isEmpty(dashboard.reorderLevelAlerts())}">
+                        <div class="card dashboard-card border-danger">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3 class="card-title mb-0 text-danger">
+                                    <i class="bi bi-bell-fill me-1"></i> Products Reached Reorder Level
+                                </h3>
+                                <a th:href="@{/inventory}" class="small text-decoration-none">Open Inventory</a>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Part No</th>
+                                            <th class="text-end">Stock</th>
+                                            <th class="text-end">Reorder Level</th>
+                                            <th class="text-end">Action</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr th:each="item : ${dashboard.reorderLevelAlerts()}">
+                                            <td class="fw-semibold" th:text="${item.productName()}">Product</td>
+                                            <td th:text="${item.partNumber()}">PART</td>
+                                            <td class="text-end">
+                                                <span class="badge text-bg-danger"
+                                                      th:text="${item.totalQuantity().stripTrailingZeros().toPlainString()}">0</span>
+                                            </td>
+                                            <td class="text-end"
+                                                th:text="${item.reorderLevel().stripTrailingZeros().toPlainString()}">2</td>
+                                            <td class="text-end">
+                                                <a th:href="@{/products/{id}(id=${item.productId()})}"
+                                                   class="btn btn-sm btn-outline-primary">Details</a>
+                                            </td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-xl-6">
                         <div class="card dashboard-card h-100">
                             <div class="card-header d-flex justify-content-between align-items-center">

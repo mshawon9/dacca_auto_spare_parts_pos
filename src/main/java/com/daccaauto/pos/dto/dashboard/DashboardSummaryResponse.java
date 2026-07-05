@@ -14,9 +14,19 @@ public record DashboardSummaryResponse(
     BigDecimal totalStockQuantity,
     long zeroStockRecords,
     long productsWithoutPrice,
+    List<ReorderLevelAlert> reorderLevelAlerts,
     List<RecentStockActivity> recentStockActivity,
     List<RecentPriceActivity> recentPriceActivity
 ) {
+    public record ReorderLevelAlert(
+        Long productId,
+        String productName,
+        String partNumber,
+        BigDecimal totalQuantity,
+        BigDecimal reorderLevel
+    ) {
+    }
+
     public record RecentStockActivity(
         String productName,
         String storeName,

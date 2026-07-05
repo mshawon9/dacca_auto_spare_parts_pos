@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<div class="app-wrapper">
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h3 class="mb-0">Import Products</h3>
+                        <div class="text-muted">Upload up to 500 products from one Excel file.</div>
+                    </div>
+                    <a th:href="@{/products}" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i> Back to Products
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+                <div class="row g-3">
+                    <div class="col-lg-5">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h3 class="card-title">Upload Excel</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                    <span>Start with the sample file to avoid column mistakes.</span>
+                                    <a th:href="@{/products/import/sample}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-download me-1"></i> Download Sample Excel
+                                    </a>
+                                </div>
+                                <form th:action="@{/products/import}" method="post" enctype="multipart/form-data">
+                                    <div class="mb-3">
+                                        <label for="file" class="form-label">Excel File (.xlsx)</label>
+                                        <input type="file" id="file" name="file" class="form-control" accept=".xlsx" required>
+                                        <div class="form-text">Maximum 500 product rows. The first row must be the header row.</div>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-upload me-1"></i> Validate and Import
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-7">
+                        <div class="card h-100">
+                            <div class="card-header">
+                                <h3 class="card-title">Required Columns</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-light border mb-3">
+                                    Missing Category and Brand names will be created automatically, and the brand will be mapped to the category.
+                                </div>
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle">
+                                        <thead>
+                                        <tr>
+                                            <th>Column</th>
+                                            <th>Required</th>
+                                            <th>Example</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr><td>Category</td><td><span class="badge text-bg-danger">Yes</span></td><td>Brake Pad</td></tr>
+                                        <tr><td>Brand</td><td><span class="badge text-bg-danger">Yes</span></td><td>Brembo</td></tr>
+                                        <tr><td>Product Name</td><td><span class="badge text-bg-danger">Yes</span></td><td>Civic Front Pad</td></tr>
+                                        <tr><td>Part Number</td><td><span class="badge text-bg-danger">Yes</span></td><td>BP1001</td></tr>
+                                        <tr><td>Position</td><td>No</td><td>Front</td></tr>
+                                        <tr><td>Dimension</td><td>No</td><td>38 X 25 X 9</td></tr>
+                                        <tr><td>SKU</td><td>No</td><td>SKU-001</td></tr>
+                                        <tr><td>Reorder Level</td><td>No</td><td>2</td></tr>
+                                        <tr><td>Barcode</td><td>No</td><td>BP-000001</td></tr>
+                                        <tr><td>Alternative Part Number</td><td>No</td><td>BP-ALT1, BP-ALT2</td></tr>
+                                        <tr><td>Description</td><td>No</td><td>Ceramic pad</td></tr>
+                                        <tr><td>Active</td><td>No</td><td>TRUE</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12" th:if="${result != null}">
+                        <div class="card">
+                            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <h3 class="card-title mb-0">Import Result</h3>
+                                <div class="d-flex flex-wrap gap-2">
+                                    <span class="badge text-bg-light border" th:text="${'Total: ' + result.totalRows()}">Total: 0</span>
+                                    <span class="badge text-bg-success" th:text="${'Inserted: ' + result.successCount()}">Inserted: 0</span>
+                                    <span class="badge text-bg-danger" th:text="${'Failed: ' + result.failedCount()}">Failed: 0</span>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover align-middle mb-0">
+                                        <thead class="table-light">
+                                        <tr>
+                                            <th>Row</th>
+                                            <th>Status</th>
+                                            <th>Category</th>
+                                            <th>Brand</th>
+                                            <th>Name</th>
+                                            <th>Part No</th>
+                                            <th>Message</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        <tr th:each="row : ${result.rows()}">
+                                            <td th:text="${row.rowNumber()}">2</td>
+                                            <td>
+                                                <span th:if="${row.success()}" class="badge text-bg-success">Success</span>
+                                                <span th:unless="${row.success()}" class="badge text-bg-danger">Failed</span>
+                                            </td>
+                                            <td th:text="${row.category()}">Brake Pad</td>
+                                            <td th:text="${row.brand()}">Brembo</td>
+                                            <td th:text="${row.name()}">Product</td>
+                                            <td th:text="${row.partNumber()}">BP1001</td>
+                                            <td th:text="${row.message()}">Inserted successfully</td>
+                                        </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="float-end d-none d-sm-inline">Dacca POS</div>
+        <strong>Copyright &copy; 2014-2026&nbsp;<a href="https://adminlte.io" class="text-decoration-none">AdminLTE.io</a>.</strong>
+        All rights reserved.
+    </footer>
+</div>
+
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+</body>
+</html>

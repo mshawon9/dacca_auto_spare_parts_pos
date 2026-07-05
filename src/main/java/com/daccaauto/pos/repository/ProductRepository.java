@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +26,32 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
     long countByCategoryId(Long categoryId);
 
     Optional<ProductEntity> findTopByOrderByCreatedAtDescIdDesc();
+
+    @Query(
+        value = """
+            select p.id as "productId",
+                   p.name as "productName",
+                   p.part_number as "partNumber",
+                   coalesce(p.reorder_level, 2) as "reorderLevel",
+                   coalesce(sum(ps.quantity), 0) as "totalQuantity"
+            from products p
+            left join product_stocks ps on ps.product_id = p.id
+            where p.active = true
+            group by p.id, p.name, p.part_number, p.reorder_level
+            having coalesce(sum(ps.quantity), 0) <= coalesce(p.reorder_level, 2)
+            order by coalesce(sum(ps.quantity), 0) asc, p.name asc
+            """,
+        nativeQuery = true
+    )
+    List<ReorderLevelProjection> findProductsAtOrBelowReorderLevel(Pageable pageable);
+
+    interface ReorderLevelProjection {
+        Long getProductId();
+        String getProductName();
+        String getPartNumber();
+        BigDecimal getReorderLevel();
+        BigDecimal getTotalQuantity();
+    }
 
     @Query("""
         select distinct p

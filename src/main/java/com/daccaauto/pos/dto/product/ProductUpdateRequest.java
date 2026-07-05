@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -28,9 +29,14 @@ public class ProductUpdateRequest {
     @Size(max = 100)
     private String sku;
 
+    @NotNull
+    @DecimalMin("0.000")
+    @Digits(integer = 16, fraction = 3)
+    private BigDecimal reorderLevel = BigDecimal.valueOf(2);
+
     @NotBlank
     @Size(max = 100)
-    @Pattern(regexp = "^[A-Za-z0-9._/\\- ]+$")
+    @Pattern(regexp = "^[A-Za-z0-9._/\\-]+$", message = "Part number cannot contain spaces")
     private String partNumber;
 
     @Size(max = 255)

@@ -100,6 +100,11 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
                 <form th:action="@{${submitUrl}}" th:object="${form}" method="post" enctype="multipart/form-data" id="productForm">
                     <div class="row">
                         <div class="col-lg-8">
@@ -210,6 +215,13 @@
                                             <label for="dimension" class="form-label">Dimension</label>
                                             <input type="text" id="dimension" th:field="*{dimension}" class="form-control"
                                                    placeholder="e.g. 38 X 25 X 9">
+                                        </div>
+
+                                        <div class="col-md-4">
+                                            <label for="reorderLevel" class="form-label">Reorder Level <span class="text-danger">*</span></label>
+                                            <input type="number" id="reorderLevel" th:field="*{reorderLevel}" class="form-control"
+                                                   min="0" step="0.001" placeholder="2">
+                                            <div class="form-text">Dashboard alert appears when total stock reaches this level.</div>
                                         </div>
 
                                         <div class="col-md-4">
@@ -334,6 +346,9 @@
                                 <button type="submit" class="btn btn-primary">
                                     <span th:text="${editMode ? 'Update Product' : 'Create Product'}"></span>
                                 </button>
+                                <a th:if="${!editMode}" th:href="@{/products/create}" class="btn btn-outline-primary">
+                                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh Form
+                                </a>
                                 <a th:href="@{/products}" class="btn btn-outline-secondary">Cancel</a>
                             </div>
                         </div>
@@ -604,6 +619,15 @@
             $('#productPreview').text(parts.length ? parts.join(' | ') : '-');
         }
 
+        function removePartNumberSpaces() {
+            const $partNumber = $('#partNumber');
+            const cleaned = ($partNumber.val() || '').replace(/\s+/g, '');
+            if ($partNumber.val() !== cleaned) {
+                $partNumber.val(cleaned);
+            }
+            return cleaned;
+        }
+
         function loadBrands(categoryId, selectedBrandId) {
             $brand.empty().append('<option value="">Select brand</option>');
             $brand.val('').trigger('change');
@@ -709,6 +733,7 @@
             $('#name').val(product.name || '');
             $('#position').val(product.position || '');
             $('#dimension').val(product.dimension || '');
+            $('#reorderLevel').val(product.reorderLevel || 2);
             $('#description').val(product.description || '');
             $('#active').prop('checked', product.active !== false);
 
@@ -1057,7 +1082,13 @@
             applyCategoryPrefixToName();
             updatePreview();
         });
-        $('#name, #partNumber, #dimension').on('input', updatePreview);
+        $('#name, #dimension').on('input', updatePreview);
+        $('#partNumber').on('input blur paste', function () {
+            setTimeout(function () {
+                removePartNumberSpaces();
+                updatePreview();
+            }, 0);
+        });
         $('#position').on('change', updatePreview);
         updatePreview();
 
@@ -1075,7 +1106,12 @@
                 categoryId: { required: true },
                 brandId: { required: true },
                 name: { required: true, maxlength: 200 },
-                partNumber: { required: true, maxlength: 100 },
+                partNumber: {
+                    required: true,
+                    maxlength: 100,
+                    pattern: /^[A-Za-z0-9._\/-]+$/
+                },
+                reorderLevel: { required: true, min: 0, number: true },
                 alternativePartNumber: { maxlength: 255 },
                 position: { maxlength: 80 },
                 dimension: { maxlength: 120 },
@@ -1092,7 +1128,13 @@
                 },
                 partNumber: {
                     required: 'Part number is required.',
-                    maxlength: 'Part number must not exceed 100 characters.'
+                    maxlength: 'Part number must not exceed 100 characters.',
+                    pattern: 'Part number cannot contain spaces.'
+                },
+                reorderLevel: {
+                    required: 'Reorder level is required.',
+                    min: 'Reorder level cannot be negative.',
+                    number: 'Reorder level must be a number.'
                 }
             },
             errorPlacement: function (error, element) {
@@ -1115,6 +1157,10 @@
         $('#productForm').on('submit', function () {
             applyCategoryPrefixToName();
             syncAlternativePartNumbers();
+        });
+
+        $('#productForm').on('submit', function () {
+            removePartNumberSpaces();
         });
     });
 </script>
