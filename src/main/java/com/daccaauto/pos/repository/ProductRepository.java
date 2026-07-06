@@ -45,6 +45,22 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
     )
     List<ReorderLevelProjection> findProductsAtOrBelowReorderLevel(Pageable pageable);
 
+    @Query(
+        value = """
+            select count(*)
+            from (
+                select p.id
+                from products p
+                left join product_stocks ps on ps.product_id = p.id
+                where p.active = true
+                group by p.id, p.reorder_level
+                having coalesce(sum(ps.quantity), 0) <= coalesce(p.reorder_level, 2)
+            ) reorder_products
+            """,
+        nativeQuery = true
+    )
+    long countProductsAtOrBelowReorderLevel();
+
     interface ReorderLevelProjection {
         Long getProductId();
         String getProductName();

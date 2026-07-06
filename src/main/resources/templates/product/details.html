@@ -97,18 +97,32 @@
 
                     <div class="col-lg-5">
                         <div class="card h-100">
-                            <div class="card-header">
-                                <h3 class="card-title">Alternative Part Numbers</h3>
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h3 class="card-title mb-0">Part Numbers</h3>
+                                <span class="badge text-bg-primary"
+                                      th:text="${details.partNumberCount()}">1</span>
                             </div>
                             <div class="card-body">
-                                <div th:if="${#lists.isEmpty(product.alternativePartNumbers())}" class="text-muted">
-                                    No alternative part number added.
+                                <div class="vstack gap-3">
+                                    <div th:each="partGroup : ${details.partNumberGroups()}"
+                                         class="border rounded-3 p-3 bg-body-tertiary">
+                                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                            <a th:href="@{/products/{id}(id=${partGroup.productId()})}"
+                                               class="fw-semibold text-decoration-none"
+                                               th:text="${partGroup.productName()}">Product Name</a>
+                                            <span th:if="${partGroup.currentProduct()}" class="badge text-bg-success">Current product</span>
+                                            <span th:unless="${partGroup.currentProduct()}" class="badge text-bg-light border text-dark">Similar product</span>
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2">
+                                            <span class="badge text-bg-primary fs-6 px-3 py-2"
+                                                  th:text="${partGroup.partNumber()}">MAIN</span>
+                                            <span th:each="partNo : ${partGroup.alternativePartNumbers()}"
+                                                  class="badge text-bg-light border fs-6 px-3 py-2"
+                                                  th:text="${partNo}">ALT</span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div th:unless="${#lists.isEmpty(product.alternativePartNumbers())}" class="d-flex flex-wrap gap-2">
-                                    <span th:each="partNo : ${product.alternativePartNumbers()}"
-                                          class="badge text-bg-light border fs-6 px-3 py-2"
-                                          th:text="${partNo}">ALT</span>
-                                </div>
+                                <div class="form-text mt-2">Primary part numbers are highlighted. Other numbers are alternatives.</div>
                             </div>
                         </div>
                     </div>

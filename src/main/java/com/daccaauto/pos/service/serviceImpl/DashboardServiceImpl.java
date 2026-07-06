@@ -52,7 +52,8 @@ public class DashboardServiceImpl implements DashboardService {
             .toList();
 
         BigDecimal totalStock = productStockRepository.sumQuantity();
-        var reorderAlerts = productRepository.findProductsAtOrBelowReorderLevel(PageRequest.of(0, 10))
+        long reorderAlertCount = productRepository.countProductsAtOrBelowReorderLevel();
+        var reorderAlerts = productRepository.findProductsAtOrBelowReorderLevel(PageRequest.of(0, 5))
             .stream()
             .map(item -> new DashboardSummaryResponse.ReorderLevelAlert(
                 item.getProductId(),
@@ -73,6 +74,7 @@ public class DashboardServiceImpl implements DashboardService {
             totalStock == null ? BigDecimal.ZERO : totalStock,
             productStockRepository.countZeroQuantity(),
             productStockRepository.countBySellingPriceIsNull(),
+            reorderAlertCount,
             reorderAlerts,
             stockActivity,
             priceActivity

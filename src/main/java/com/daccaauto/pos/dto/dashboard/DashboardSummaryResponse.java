@@ -14,6 +14,7 @@ public record DashboardSummaryResponse(
     BigDecimal totalStockQuantity,
     long zeroStockRecords,
     long productsWithoutPrice,
+    long reorderLevelAlertCount,
     List<ReorderLevelAlert> reorderLevelAlerts,
     List<RecentStockActivity> recentStockActivity,
     List<RecentPriceActivity> recentPriceActivity

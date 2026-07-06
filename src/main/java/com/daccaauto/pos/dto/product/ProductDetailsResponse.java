@@ -6,10 +6,21 @@ import java.util.List;
 
 public record ProductDetailsResponse(
     ProductResponse product,
+    List<PartNumberGroup> partNumberGroups,
+    int partNumberCount,
     BigDecimal totalStockQuantity,
     List<StockSummary> stockSummaries,
     List<PriceHistorySummary> priceHistories
 ) {
+    public record PartNumberGroup(
+        Long productId,
+        String productName,
+        String partNumber,
+        List<String> alternativePartNumbers,
+        boolean currentProduct
+    ) {
+    }
+
     public record StockSummary(
         Long storeId,
         String storeName,

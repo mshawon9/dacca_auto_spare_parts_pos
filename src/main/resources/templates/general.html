@@ -71,7 +71,7 @@
         <div class="app-content">
             <div class="container-fluid">
                 <div class="row g-3 mb-3">
-                    <div class="col-sm-6 col-xl-3">
+                    <div class="col-sm-6 col-xl">
                         <div class="card dashboard-card h-100">
                             <div class="card-body d-flex align-items-center gap-3">
                                 <div class="metric-icon bg-primary-subtle text-primary">
@@ -87,7 +87,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-6 col-xl-3">
+                    <div class="col-sm-6 col-xl">
                         <div class="card dashboard-card h-100">
                             <div class="card-body d-flex align-items-center gap-3">
                                 <div class="metric-icon bg-success-subtle text-success">
@@ -102,7 +102,22 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-6 col-xl-3">
+                    <div class="col-sm-6 col-xl">
+                        <div class="card dashboard-card h-100">
+                            <div class="card-body d-flex align-items-center gap-3">
+                                <div class="metric-icon bg-danger-subtle text-danger">
+                                    <i class="bi bi-bell-fill"></i>
+                                </div>
+                                <div>
+                                    <div class="text-muted small">Reorder Alerts</div>
+                                    <div class="fs-3 fw-bold text-danger"
+                                         th:text="${dashboard.reorderLevelAlertCount()}">0</div>
+                                    <small class="text-muted">Products need stock</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xl">
                         <div class="card dashboard-card h-100">
                             <div class="card-body d-flex align-items-center gap-3">
                                 <div class="metric-icon bg-warning-subtle text-warning-emphasis">
@@ -116,7 +131,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-sm-6 col-xl-3">
+                    <div class="col-sm-6 col-xl">
                         <div class="card dashboard-card h-100">
                             <div class="card-body d-flex align-items-center gap-3">
                                 <div class="metric-icon bg-info-subtle text-info-emphasis">
@@ -193,7 +208,7 @@
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
                                     <span><i class="bi bi-bell me-2 text-danger"></i>Reorder alerts</span>
-                                    <strong class="text-danger" th:text="${#lists.size(dashboard.reorderLevelAlerts())}">0</strong>
+                                    <strong class="text-danger" th:text="${dashboard.reorderLevelAlertCount()}">0</strong>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center py-2">
                                     <span><i class="bi bi-cash-coin me-2 text-warning"></i>Entries missing price</span>
@@ -208,10 +223,19 @@
                     <div class="col-xl-12" th:if="${!#lists.isEmpty(dashboard.reorderLevelAlerts())}">
                         <div class="card dashboard-card border-danger">
                             <div class="card-header d-flex justify-content-between align-items-center">
-                                <h3 class="card-title mb-0 text-danger">
-                                    <i class="bi bi-bell-fill me-1"></i> Products Reached Reorder Level
-                                </h3>
-                                <a th:href="@{/inventory}" class="small text-decoration-none">Open Inventory</a>
+                                <div>
+                                    <h3 class="card-title mb-0 text-danger">
+                                        <i class="bi bi-bell-fill me-1"></i> Top Urgent Reorder Products
+                                    </h3>
+                                    <div class="small text-muted">
+                                        Showing
+                                        <span th:text="${#lists.size(dashboard.reorderLevelAlerts())}">0</span>
+                                        of
+                                        <span th:text="${dashboard.reorderLevelAlertCount()}">0</span>
+                                        products needing stock.
+                                    </div>
+                                </div>
+                                <a th:href="@{/inventory}" class="btn btn-sm btn-outline-danger">Open Inventory</a>
                             </div>
                             <div class="card-body p-0">
                                 <div class="table-responsive">

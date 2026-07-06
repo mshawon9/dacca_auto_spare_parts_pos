@@ -16,11 +16,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.math.BigDecimal;
 
 @Service
@@ -141,6 +144,10 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(readOnly = true)
     public ProductDetailsResponse getDetails(Long id) {
         ProductResponse product = getById(id);
+        List<ProductDetailsResponse.PartNumberGroup> partNumberGroups = buildPartNumberGroups(product);
+        int partNumberCount = partNumberGroups.stream()
+            .mapToInt(group -> 1 + group.alternativePartNumbers().size())
+            .sum();
 
         List<ProductDetailsResponse.StockSummary> stockSummaries = productStockRepository
             .findByProductIdOrderByStoreNameAsc(id)
@@ -171,6 +178,8 @@ public class ProductServiceImpl implements ProductService {
 
         return new ProductDetailsResponse(
             product,
+            partNumberGroups,
+            partNumberCount,
             totalStockQuantity,
             stockSummaries,
             priceHistories
@@ -413,6 +422,47 @@ public class ProductServiceImpl implements ProductService {
                 buildProductDisplayName(product)
             ))
             .toList();
+    }
+
+    private List<ProductDetailsResponse.PartNumberGroup> buildPartNumberGroups(ProductResponse product) {
+        List<ProductDetailsResponse.PartNumberGroup> groups = new ArrayList<>();
+        groups.add(new ProductDetailsResponse.PartNumberGroup(
+            product.id(),
+            product.name(),
+            product.partNumber(),
+            product.alternativePartNumbers(),
+            true
+        ));
+
+        List<Long> similarProductIds = product.similarProducts()
+            .stream()
+            .map(ProductResponse.SimilarProductSummary::id)
+            .toList();
+
+        if (similarProductIds.isEmpty()) {
+            return groups;
+        }
+
+        Map<Long, ProductEntity> similarProductsById = productRepository.findAllById(similarProductIds)
+            .stream()
+            .collect(java.util.stream.Collectors.toMap(ProductEntity::getId, Function.identity()));
+
+        for (ProductResponse.SimilarProductSummary similarProduct : product.similarProducts()) {
+            ProductEntity entity = similarProductsById.get(similarProduct.id());
+            if (entity == null) {
+                continue;
+            }
+
+            groups.add(new ProductDetailsResponse.PartNumberGroup(
+                entity.getId(),
+                buildProductDisplayName(entity),
+                entity.getPartNumber(),
+                getAlternativePartNumbers(entity),
+                false
+            ));
+        }
+
+        return groups;
     }
 
     private String buildProductDisplayName(ProductEntity product) {
