@@ -12,7 +12,7 @@ public record StockAdjustmentRequest(
     @NotNull Long storeId,
     @NotNull Long productId,
     @NotNull StockAdjustmentType adjustmentType,
-    @NotNull @DecimalMin("0.000") @Digits(integer = 16, fraction = 3) BigDecimal quantity,
+    @NotNull @DecimalMin("0") @Digits(integer = 16, fraction = 0) BigDecimal quantity,
     @Size(max = 250) String note
 ) {
 }

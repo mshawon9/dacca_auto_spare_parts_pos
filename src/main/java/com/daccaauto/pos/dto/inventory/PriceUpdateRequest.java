@@ -11,6 +11,7 @@ public record PriceUpdateRequest(
     @NotNull Long storeId,
     @NotNull Long productId,
     @NotNull @DecimalMin("0.01") @Digits(integer = 17, fraction = 2) BigDecimal price,
+    @DecimalMin("0.00") @Digits(integer = 17, fraction = 2) BigDecimal costPrice,
     @Size(max = 250) String note
 ) {
 }

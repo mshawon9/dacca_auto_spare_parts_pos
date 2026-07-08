@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 @Transactional
 public class InventoryServiceImpl implements InventoryService {
 
-    private static final int QUANTITY_SCALE = 3;
+    private static final int QUANTITY_SCALE = 0;
     private static final int PRICE_SCALE = 2;
     private static final int INVENTORY_PAGE_SIZE = 15;
 
@@ -113,7 +113,9 @@ public class InventoryServiceImpl implements InventoryService {
                 product.getImageFileName() != null,
                 stockByProductId.getOrDefault(product.getId(), emptyStock()).getQuantity(),
                 stockByProductId.getOrDefault(product.getId(), emptyStock()).getSellingPrice(),
-                previousPrice(storeId, product.getId())
+                previousPrice(storeId, product.getId()),
+                stockByProductId.getOrDefault(product.getId(), emptyStock()).getCostPrice(),
+                previousCostPrice(storeId, product.getId())
             ))
             .toList();
 
@@ -185,17 +187,26 @@ public class InventoryServiceImpl implements InventoryService {
         StoreEntity store = requireActiveStore(request.storeId());
         ProductEntity product = requireActiveProduct(request.productId());
         BigDecimal newPrice = normalizePrice(request.price());
+        BigDecimal newCostPrice = request.costPrice() == null ? null : normalizePrice(request.costPrice());
 
         ProductStockEntity stock = productStockRepository
             .findForUpdate(store.getId(), product.getId())
             .orElseGet(() -> newStock(store, product));
 
         BigDecimal oldPrice = stock.getSellingPrice();
-        if (oldPrice != null && oldPrice.compareTo(newPrice) == 0) {
-            throw new DuplicateResourceException("Product price is already " + formatPrice(newPrice));
+        BigDecimal oldCostPrice = stock.getCostPrice();
+        boolean sellingPriceChanged = oldPrice == null || oldPrice.compareTo(newPrice) != 0;
+        boolean costPriceChanged = newCostPrice != null
+            && (oldCostPrice == null || oldCostPrice.compareTo(newCostPrice) != 0);
+
+        if (!sellingPriceChanged && !costPriceChanged) {
+            throw new DuplicateResourceException("Product price information is already up to date");
         }
 
         stock.setSellingPrice(newPrice);
+        if (newCostPrice != null) {
+            stock.setCostPrice(newCostPrice);
+        }
         productStockRepository.save(stock);
 
         ProductPriceHistoryEntity history = new ProductPriceHistoryEntity();
@@ -203,10 +214,19 @@ public class InventoryServiceImpl implements InventoryService {
         history.setProduct(product);
         history.setOldPrice(oldPrice);
         history.setNewPrice(newPrice);
+        history.setOldCostPrice(oldCostPrice);
+        history.setNewCostPrice(newCostPrice == null ? oldCostPrice : newCostPrice);
         history.setNote(trimToNull(request.note()));
         productPriceHistoryRepository.save(history);
 
-        return new PriceUpdateResponse(store.getId(), product.getId(), oldPrice, newPrice);
+        return new PriceUpdateResponse(
+            store.getId(),
+            product.getId(),
+            oldPrice,
+            newPrice,
+            oldCostPrice,
+            newCostPrice == null ? oldCostPrice : newCostPrice
+        );
     }
 
     @Override
@@ -223,6 +243,8 @@ public class InventoryServiceImpl implements InventoryService {
             .map(history -> new PriceHistoryResponse(
                 history.getOldPrice(),
                 history.getNewPrice(),
+                history.getOldCostPrice(),
+                history.getNewCostPrice(),
                 history.getNote(),
                 history.getCreatedAt()
             ))
@@ -272,7 +294,11 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     private BigDecimal normalizeQuantity(BigDecimal quantity) {
-        return quantity.setScale(QUANTITY_SCALE, RoundingMode.UNNECESSARY);
+        try {
+            return quantity.setScale(QUANTITY_SCALE, RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException ex) {
+            throw new DuplicateResourceException("Quantity must be a whole number");
+        }
     }
 
     private BigDecimal normalizePrice(BigDecimal price) {
@@ -305,6 +331,12 @@ public class InventoryServiceImpl implements InventoryService {
         ProductPriceHistoryEntity latest = productPriceHistoryRepository
             .findFirstByStoreIdAndProductIdOrderByCreatedAtDesc(storeId, productId);
         return latest == null ? null : latest.getOldPrice();
+    }
+
+    private BigDecimal previousCostPrice(Long storeId, Long productId) {
+        ProductPriceHistoryEntity latest = productPriceHistoryRepository
+            .findFirstByStoreIdAndProductIdOrderByCreatedAtDesc(storeId, productId);
+        return latest == null ? null : latest.getOldCostPrice();
     }
 
     private StoreResponse mapStore(StoreEntity store) {

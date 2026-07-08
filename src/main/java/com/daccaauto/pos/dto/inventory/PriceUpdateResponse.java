@@ -6,6 +6,8 @@ public record PriceUpdateResponse(
     Long storeId,
     Long productId,
     BigDecimal oldPrice,
-    BigDecimal newPrice
+    BigDecimal newPrice,
+    BigDecimal oldCostPrice,
+    BigDecimal newCostPrice
 ) {
 }

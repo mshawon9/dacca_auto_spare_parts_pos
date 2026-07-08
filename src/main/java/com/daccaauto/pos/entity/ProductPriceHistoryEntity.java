@@ -39,6 +39,12 @@ public class ProductPriceHistoryEntity extends BaseEntity {
     @Column(name = "new_price", nullable = false, precision = 19, scale = 2)
     private BigDecimal newPrice;
 
+    @Column(name = "old_cost_price", precision = 19, scale = 2)
+    private BigDecimal oldCostPrice;
+
+    @Column(name = "new_cost_price", precision = 19, scale = 2)
+    private BigDecimal newCostPrice;
+
     @Size(max = 250)
     @Column(length = 250)
     private String note;

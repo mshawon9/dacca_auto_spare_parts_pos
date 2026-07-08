@@ -12,6 +12,8 @@ public record InventoryRowResponse(
     boolean hasImage,
     BigDecimal quantity,
     BigDecimal sellingPrice,
-    BigDecimal previousPrice
+    BigDecimal previousPrice,
+    BigDecimal costPrice,
+    BigDecimal previousCostPrice
 ) {
 }

@@ -45,4 +45,7 @@ public class ProductStockEntity extends BaseEntity {
 
     @Column(name = "selling_price", precision = 19, scale = 2)
     private BigDecimal sellingPrice;
+
+    @Column(name = "cost_price", precision = 19, scale = 2)
+    private BigDecimal costPrice;
 }

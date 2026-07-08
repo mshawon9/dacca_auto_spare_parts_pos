@@ -6,11 +6,15 @@ import com.daccaauto.pos.entity.BrandEntity;
 import com.daccaauto.pos.entity.ProductAlternativePartNumberEntity;
 import com.daccaauto.pos.entity.ProductCategoryEntity;
 import com.daccaauto.pos.entity.ProductEntity;
+import com.daccaauto.pos.entity.ProductStockEntity;
+import com.daccaauto.pos.entity.StoreEntity;
 import com.daccaauto.pos.repository.BrandCategoryRepository;
 import com.daccaauto.pos.repository.BrandRepository;
 import com.daccaauto.pos.repository.ProductAlternativePartNumberRepository;
 import com.daccaauto.pos.repository.ProductCategoryRepository;
 import com.daccaauto.pos.repository.ProductRepository;
+import com.daccaauto.pos.repository.ProductStockRepository;
+import com.daccaauto.pos.repository.StoreRepository;
 import com.daccaauto.pos.service.ProductImportService;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -56,6 +60,9 @@ public class ProductImportServiceImpl implements ProductImportService {
         "Dimension",
         "SKU",
         "Reorder Level",
+        "Warehouse",
+        "Current Stock",
+        "Cost Price",
         "Barcode",
         "Alternative Part Number",
         "Description",
@@ -67,6 +74,8 @@ public class ProductImportServiceImpl implements ProductImportService {
     private final BrandRepository brandRepository;
     private final BrandCategoryRepository brandCategoryRepository;
     private final ProductAlternativePartNumberRepository alternativePartNumberRepository;
+    private final ProductStockRepository productStockRepository;
+    private final StoreRepository storeRepository;
     private final CacheManager cacheManager;
 
     @Override
@@ -85,9 +94,9 @@ public class ProductImportServiceImpl implements ProductImportService {
                 header.getCell(i).setCellStyle(headerStyle);
             }
 
-            addSampleRow(sheet, 1, "Brake Pad", "Brembo", "Civic Front Pad", "BP1001", "Front", "38 X 25 X 9", "SKU-001", "2", "", "BP-ALT1, BP-ALT2", "Ceramic brake pad", "TRUE");
-            addSampleRow(sheet, 2, "Shock Absorber", "KYB", "Corolla Rear Shock", "SA2001", "Rear", "", "SKU-002", "3", "", "", "Rear shock absorber", "TRUE");
-            addSampleRow(sheet, 3, "Bearing", "NSK", "Yaris Wheel Bearing", "WB3001", "Front", "", "", "2", "", "WB-ALT1", "", "TRUE");
+            addSampleRow(sheet, 1, "Brake Pad", "Brembo", "Civic Front Pad", "BP1001", "Front", "38 X 25 X 9", "SKU-001", "2", "Main Store", "10", "35.50", "", "BP-ALT1, BP-ALT2", "Ceramic brake pad", "TRUE");
+            addSampleRow(sheet, 2, "Shock Absorber", "KYB", "Corolla Rear Shock", "SA2001", "Rear", "", "SKU-002", "3", "Main Store", "5", "62.00", "", "", "Rear shock absorber", "TRUE");
+            addSampleRow(sheet, 3, "Bearing", "NSK", "Yaris Wheel Bearing", "WB3001", "Front", "", "", "2", "", "", "", "", "WB-ALT1", "", "TRUE");
 
             for (int i = 0; i < SAMPLE_HEADERS.length; i++) {
                 sheet.autoSizeColumn(i);
@@ -132,6 +141,7 @@ public class ProductImportServiceImpl implements ProductImportService {
 
         Map<String, ProductCategoryEntity> categories = resolveCategories(rows);
         Map<String, BrandEntity> brands = resolveBrands(rows);
+        Map<String, StoreEntity> stores = resolveStores(rows);
         validateDuplicates(rows, brands);
 
         Set<String> reservedBarcodes = new HashSet<>();
@@ -162,6 +172,7 @@ public class ProductImportServiceImpl implements ProductImportService {
 
             ProductEntity saved = productRepository.save(product);
             syncAlternativePartNumbers(saved, row.alternativePartNumber);
+            syncInitialStock(saved, stores.get(key(row.warehouse)), row);
             row.success = true;
             row.message = "Inserted successfully";
         }
@@ -180,6 +191,9 @@ public class ProductImportServiceImpl implements ProductImportService {
                               String dimension,
                               String sku,
                               String reorderLevel,
+                              String warehouse,
+                              String currentStock,
+                              String costPrice,
                               String barcode,
                               String alternativePartNumber,
                               String description,
@@ -194,6 +208,9 @@ public class ProductImportServiceImpl implements ProductImportService {
             dimension,
             sku,
             reorderLevel,
+            warehouse,
+            currentStock,
+            costPrice,
             barcode,
             alternativePartNumber,
             description,
@@ -227,6 +244,9 @@ public class ProductImportServiceImpl implements ProductImportService {
                     readCell(sheetRow, headers, "dimension", formatter, evaluator),
                     readCell(sheetRow, headers, "sku", formatter, evaluator),
                     readCell(sheetRow, headers, "reorderlevel", formatter, evaluator),
+                    readCell(sheetRow, headers, "warehouse", formatter, evaluator),
+                    readCell(sheetRow, headers, "currentstock", formatter, evaluator),
+                    readCell(sheetRow, headers, "costprice", formatter, evaluator),
                     readCell(sheetRow, headers, "barcode", formatter, evaluator),
                     readCell(sheetRow, headers, "alternativepartnumber", formatter, evaluator),
                     readCell(sheetRow, headers, "description", formatter, evaluator),
@@ -288,9 +308,15 @@ public class ProductImportServiceImpl implements ProductImportService {
                 row.errors.add("Barcode must be alphanumeric or hyphen");
             }
             row.reorderLevel = parseReorderLevel(row.reorderLevelInput, row);
+            row.currentStock = parseCurrentStock(row.currentStockInput, row);
+            row.costPrice = parseCostPrice(row.costPriceInput, row);
+            if (row.hasStockInfo() && row.warehouse.isBlank()) {
+                row.errors.add("Warehouse is required when Current Stock or Cost Price is provided");
+            }
             if (row.name.length() > 200) row.errors.add("Product Name must not exceed 200 characters");
             if (row.category.length() > 100) row.errors.add("Category must not exceed 100 characters");
             if (row.brand.length() > 100) row.errors.add("Brand must not exceed 100 characters");
+            if (row.warehouse.length() > 120) row.errors.add("Warehouse must not exceed 120 characters");
             if (row.position.length() > 80) row.errors.add("Position must not exceed 80 characters");
             if (row.dimension.length() > 120) row.errors.add("Dimension must not exceed 120 characters");
             if (row.sku.length() > 100) row.errors.add("SKU must not exceed 100 characters");
@@ -351,6 +377,26 @@ public class ProductImportServiceImpl implements ProductImportService {
         return brands;
     }
 
+    private Map<String, StoreEntity> resolveStores(List<ImportRow> rows) {
+        Map<String, StoreEntity> stores = new LinkedHashMap<>();
+        for (String storeName : rows.stream()
+            .filter(ImportRow::hasStockInfo)
+            .map(row -> row.warehouse)
+            .filter(value -> value != null && !value.isBlank())
+            .distinct()
+            .toList()) {
+            StoreEntity store = storeRepository.findByNameIgnoreCase(storeName)
+                .orElseGet(() -> {
+                    StoreEntity created = new StoreEntity();
+                    created.setName(storeName.trim());
+                    created.setActive(true);
+                    return storeRepository.save(created);
+                });
+            stores.put(key(storeName), store);
+        }
+        return stores;
+    }
+
     private void ensureBrandCategoryMapping(ProductCategoryEntity category, BrandEntity brand) {
         if (brandCategoryRepository.existsByBrandIdAndCategoryId(brand.getId(), category.getId())) {
             return;
@@ -394,6 +440,19 @@ public class ProductImportServiceImpl implements ProductImportService {
             alternative.setPartNumber(partNumber);
             alternativePartNumberRepository.save(alternative);
         }
+    }
+
+    private void syncInitialStock(ProductEntity product, StoreEntity store, ImportRow row) {
+        if (!row.hasStockInfo()) {
+            return;
+        }
+
+        ProductStockEntity stock = new ProductStockEntity();
+        stock.setProduct(product);
+        stock.setStore(store);
+        stock.setQuantity(row.currentStock == null ? BigDecimal.ZERO : row.currentStock);
+        stock.setCostPrice(row.costPrice);
+        productStockRepository.save(stock);
     }
 
     private Set<String> parseAlternativePartNumbers(String input) {
@@ -448,6 +507,9 @@ public class ProductImportServiceImpl implements ProductImportService {
             case "productname" -> "name";
             case "partno", "partnumber", "part" -> "partnumber";
             case "altpartnumber", "alternativepartno", "alternativepartnumbers", "altpartno" -> "alternativepartnumber";
+            case "store", "storename", "warehouse", "warehousename" -> "warehouse";
+            case "stock", "currentstock", "quantity", "currentquantity" -> "currentstock";
+            case "cost", "costprice", "purchaseprice", "buyingprice" -> "costprice";
             default -> normalized;
         };
     }
@@ -474,6 +536,44 @@ public class ProductImportServiceImpl implements ProductImportService {
         } catch (NumberFormatException ex) {
             row.errors.add("Reorder Level must be a number");
             return BigDecimal.valueOf(2);
+        }
+    }
+
+    private BigDecimal parseCurrentStock(String value, ImportRow row) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            BigDecimal parsed = new BigDecimal(value.trim());
+            if (parsed.compareTo(BigDecimal.ZERO) < 0) {
+                row.errors.add("Current Stock cannot be negative");
+                return null;
+            }
+            if (parsed.stripTrailingZeros().scale() > 0) {
+                row.errors.add("Current Stock must be a whole number");
+                return null;
+            }
+            return parsed.setScale(0);
+        } catch (NumberFormatException ex) {
+            row.errors.add("Current Stock must be a number");
+            return null;
+        }
+    }
+
+    private BigDecimal parseCostPrice(String value, ImportRow row) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        try {
+            BigDecimal parsed = new BigDecimal(value.trim());
+            if (parsed.compareTo(BigDecimal.ZERO) < 0) {
+                row.errors.add("Cost Price cannot be negative");
+                return null;
+            }
+            return parsed.setScale(2, java.math.RoundingMode.UNNECESSARY);
+        } catch (ArithmeticException | NumberFormatException ex) {
+            row.errors.add("Cost Price must be a number with up to 2 decimal places");
+            return null;
         }
     }
 
@@ -532,6 +632,11 @@ public class ProductImportServiceImpl implements ProductImportService {
         private final String sku;
         private final String reorderLevelInput;
         private BigDecimal reorderLevel = BigDecimal.valueOf(2);
+        private final String warehouse;
+        private final String currentStockInput;
+        private final String costPriceInput;
+        private BigDecimal currentStock;
+        private BigDecimal costPrice;
         private final String barcode;
         private final String alternativePartNumber;
         private final String description;
@@ -549,6 +654,9 @@ public class ProductImportServiceImpl implements ProductImportService {
                           String dimension,
                           String sku,
                           String reorderLevelInput,
+                          String warehouse,
+                          String currentStockInput,
+                          String costPriceInput,
                           String barcode,
                           String alternativePartNumber,
                           String description,
@@ -562,10 +670,18 @@ public class ProductImportServiceImpl implements ProductImportService {
             this.dimension = dimension;
             this.sku = sku;
             this.reorderLevelInput = reorderLevelInput;
+            this.warehouse = warehouse;
+            this.currentStockInput = currentStockInput;
+            this.costPriceInput = costPriceInput;
             this.barcode = barcode;
             this.alternativePartNumber = alternativePartNumber;
             this.description = description;
             this.active = active;
+        }
+
+        private boolean hasStockInfo() {
+            return (currentStockInput != null && !currentStockInput.isBlank())
+                || (costPriceInput != null && !costPriceInput.isBlank());
         }
     }
 }

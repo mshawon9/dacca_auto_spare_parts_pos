@@ -202,7 +202,7 @@
                                         <th class="ps-3">Product</th>
                                         <th>Category / Brand</th>
                                         <th>Current Stock</th>
-                                        <th>Selling Price</th>
+                                        <th>Prices</th>
                                         <th class="text-end pe-3">Actions</th>
                                     </tr>
                                     </thead>
@@ -217,7 +217,8 @@
                                         th:attr="data-product-id=${row.productId()},
                                                  data-product-name=${row.productName()},
                                                  data-quantity=${row.quantity()},
-                                                 data-price=${row.sellingPrice()}">
+                                                 data-price=${row.sellingPrice()},
+                                                 data-cost-price=${row.costPrice()}">
                                         <td class="ps-3">
                                             <div class="d-flex align-items-center gap-3">
                                                 <img class="inventory-product-image"
@@ -244,13 +245,27 @@
                                                   th:text="${row.quantity().stripTrailingZeros().toPlainString()}">0</span>
                                         </td>
                                         <td>
-                                            <div class="fw-semibold current-price"
-                                                 th:text="${row.sellingPrice() != null ? #numbers.formatDecimal(row.sellingPrice(), 1, 2) : 'Not set'}">
-                                                Not set
+                                            <div>
+                                                <span class="text-muted small">Selling:</span>
+                                                <span class="fw-semibold current-price"
+                                                      th:text="${row.sellingPrice() != null ? #numbers.formatDecimal(row.sellingPrice(), 1, 2) : 'Not set'}">
+                                                    Not set
+                                                </span>
                                             </div>
-                                            <small class="text-muted previous-price"
-                                                   th:text="${row.previousPrice() != null ? 'Previous: ' + #numbers.formatDecimal(row.previousPrice(), 1, 2) : 'No previous price'}">
-                                                No previous price
+                                            <small class="text-muted previous-price d-block"
+                                                   th:text="${row.previousPrice() != null ? 'Last selling: ' + #numbers.formatDecimal(row.previousPrice(), 1, 2) : 'No last selling price'}">
+                                                No last selling price
+                                            </small>
+                                            <div class="mt-1">
+                                                <span class="text-muted small">Cost:</span>
+                                                <span class="fw-semibold current-cost-price"
+                                                      th:text="${row.costPrice() != null ? #numbers.formatDecimal(row.costPrice(), 1, 2) : 'Not set'}">
+                                                    Not set
+                                                </span>
+                                            </div>
+                                            <small class="text-muted previous-cost-price d-block"
+                                                   th:text="${row.previousCostPrice() != null ? 'Last cost: ' + #numbers.formatDecimal(row.previousCostPrice(), 1, 2) : 'No last cost price'}">
+                                                No last cost price
                                             </small>
                                         </td>
                                         <td class="text-end pe-3">
@@ -274,7 +289,7 @@
                                             </div>
                                             <div class="btn-group inventory-action-group" role="group">
                                                 <button type="button" class="btn btn-sm btn-warning js-edit-price"
-                                                        title="Update selling price">
+                                                        title="Update prices">
                                                     <i class="bi bi-cash-coin"></i>
                                                 </button>
                                                 <button type="button" class="btn btn-sm btn-outline-secondary js-price-history"
@@ -347,8 +362,8 @@
                     <div class="mb-3" id="adjustmentQuantityGroup">
                         <label for="adjustmentQuantity" class="form-label" id="adjustmentQuantityLabel">Quantity</label>
                         <input type="number" id="adjustmentQuantity" class="form-control form-control-lg"
-                               min="0" step="0.001" max="9999999999999999.999" required>
-                        <div class="form-text">Up to 3 decimal places are allowed.</div>
+                               min="0" step="1" max="9999999999999999" required>
+                        <div class="form-text">Quantity must be a whole number.</div>
                     </div>
                     <div>
                         <label for="adjustmentNote" class="form-label">Note <span class="text-muted">(optional)</span></label>
@@ -370,7 +385,7 @@
         <div class="modal-content">
             <form id="priceForm">
                 <div class="modal-header">
-                    <h5 class="modal-title">Update Selling Price</h5>
+                    <h5 class="modal-title">Update Prices</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -379,7 +394,10 @@
                         <div class="small text-muted">Product</div>
                         <div class="fw-semibold" id="priceProductName">-</div>
                         <div class="small mt-2">
-                            Current price: <strong id="currentPriceText">Not set</strong>
+                            Current selling price: <strong id="currentPriceText">Not set</strong>
+                        </div>
+                        <div class="small">
+                            Current cost price: <strong id="currentCostPriceText">Not set</strong>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -387,6 +405,12 @@
                         <input type="number" id="newPrice" class="form-control form-control-lg"
                                min="0.01" step="0.01" max="99999999999999999.99" required>
                         <div class="form-text">Price must be greater than zero, with up to 2 decimal places.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newCostPrice" class="form-label">New Cost Price</label>
+                        <input type="number" id="newCostPrice" class="form-control form-control-lg"
+                               min="0" step="0.01" max="99999999999999999.99">
+                        <div class="form-text">Optional. Cost price can be zero or greater, with up to 2 decimal places.</div>
                     </div>
                     <div>
                         <label for="priceNote" class="form-label">Note <span class="text-muted">(optional)</span></label>
@@ -420,8 +444,10 @@
                         <thead class="table-light">
                         <tr>
                             <th class="ps-3">Changed At</th>
-                            <th>Old Price</th>
-                            <th>New Price</th>
+                            <th>Old Selling</th>
+                            <th>New Selling</th>
+                            <th>Old Cost</th>
+                            <th>New Cost</th>
                             <th>Note</th>
                         </tr>
                         </thead>
@@ -498,9 +524,7 @@
 
         function formatQuantity(value) {
             const number = Number(value);
-            return Number.isInteger(number)
-                ? String(number)
-                : number.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+            return Number.isFinite(number) ? String(Math.trunc(number)) : '0';
         }
 
         function formatPrice(value) {
@@ -548,7 +572,10 @@
             $('#adjustmentProductId').val($row.attr('data-product-id'));
             $('#adjustmentType').val(action);
             $('#adjustmentQuantityLabel').text(config.quantity);
-            $('#adjustmentQuantity').val(action === 'SET' ? formatQuantity(currentQuantity) : '1').attr('min', action === 'SET' ? '0' : '0.001');
+            $('#adjustmentQuantity')
+                .val(action === 'SET' ? formatQuantity(currentQuantity) : '1')
+                .attr('min', action === 'SET' ? '0' : '1')
+                .attr('step', '1');
             $('#adjustmentNote').val('');
             $('#adjustmentQuantityGroup').removeClass('d-none');
             $('#saveAdjustmentButton')
@@ -607,10 +634,10 @@
             const type = $('#adjustmentType').val();
             const quantity = Number($('#adjustmentQuantity').val());
 
-            if (!Number.isFinite(quantity) || quantity < 0 || (type !== 'SET' && quantity <= 0)) {
+            if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity < 0 || (type !== 'SET' && quantity <= 0)) {
                 $('#adjustmentError').text(type === 'SET'
-                    ? 'Quantity must be zero or greater.'
-                    : 'Quantity must be greater than zero.').removeClass('d-none');
+                    ? 'Quantity must be a whole number, zero or greater.'
+                    : 'Quantity must be a whole number greater than zero.').removeClass('d-none');
                 return;
             }
 
@@ -621,10 +648,13 @@
         $('.js-edit-price').on('click', function () {
             priceRow = $(this).closest('.inventory-row');
             const currentPrice = priceRow.attr('data-price');
+            const currentCostPrice = priceRow.attr('data-cost-price');
             $('#priceError').addClass('d-none').empty();
             $('#priceProductName').text(priceRow.attr('data-product-name'));
             $('#currentPriceText').text(formatPrice(currentPrice));
+            $('#currentCostPriceText').text(formatPrice(currentCostPrice));
             $('#newPrice').val(currentPrice || '');
+            $('#newCostPrice').val(currentCostPrice || '');
             $('#priceNote').val('');
             priceModal.show();
         });
@@ -632,8 +662,14 @@
         $('#priceForm').on('submit', function (event) {
             event.preventDefault();
             const newPrice = Number($('#newPrice').val());
+            const costPriceValue = ($('#newCostPrice').val() || '').trim();
+            const newCostPrice = costPriceValue ? Number(costPriceValue) : null;
             if (!Number.isFinite(newPrice) || newPrice <= 0) {
                 $('#priceError').text('Price must be greater than zero.').removeClass('d-none');
+                return;
+            }
+            if (newCostPrice !== null && (!Number.isFinite(newCostPrice) || newCostPrice < 0)) {
+                $('#priceError').text('Cost price must be zero or greater.').removeClass('d-none');
                 return;
             }
 
@@ -646,16 +682,22 @@
                     storeId: Number(selectedStoreId),
                     productId: Number(priceRow.attr('data-product-id')),
                     price: newPrice,
+                    costPrice: newCostPrice,
                     note: ($('#priceNote').val() || '').trim() || null
                 })
             }).done(function (response) {
                 priceRow.attr('data-price', response.newPrice);
+                priceRow.attr('data-cost-price', response.newCostPrice);
                 priceRow.find('.current-price').text(formatPrice(response.newPrice));
                 priceRow.find('.previous-price').text(
-                    response.oldPrice === null ? 'No previous price' : 'Previous: ' + formatPrice(response.oldPrice)
+                    response.oldPrice === null ? 'No last selling price' : 'Last selling: ' + formatPrice(response.oldPrice)
+                );
+                priceRow.find('.current-cost-price').text(formatPrice(response.newCostPrice));
+                priceRow.find('.previous-cost-price').text(
+                    response.oldCostPrice === null ? 'No last cost price' : 'Last cost: ' + formatPrice(response.oldCostPrice)
                 );
                 priceModal.hide();
-                showAlert('Price updated successfully to ' + formatPrice(response.newPrice), 'success');
+                showAlert('Prices updated successfully.', 'success');
             }).fail(function (xhr) {
                 $('#priceError').text(errorMessage(xhr, 'Could not update price.')).removeClass('d-none');
             }).always(function () {
@@ -668,7 +710,7 @@
             $('#priceHistoryProductName').text($row.attr('data-product-name'));
             $('#priceHistoryError').addClass('d-none').empty();
             $('#priceHistoryBody').html(
-                '<tr><td colspan="4" class="text-center text-muted py-4">Loading price history...</td></tr>'
+                '<tr><td colspan="6" class="text-center text-muted py-4">Loading price history...</td></tr>'
             );
             priceHistoryModal.show();
 
@@ -678,7 +720,7 @@
             }).done(function (items) {
                 const $body = $('#priceHistoryBody').empty();
                 if (!items.length) {
-                    $body.append('<tr><td colspan="4" class="text-center text-muted py-4">No price changes recorded.</td></tr>');
+                    $body.append('<tr><td colspan="6" class="text-center text-muted py-4">No price changes recorded.</td></tr>');
                     return;
                 }
 
@@ -687,6 +729,8 @@
                     $('<td>', { class: 'ps-3' }).text(new Date(item.changedAt).toLocaleString()).appendTo($tr);
                     $('<td>').text(formatPrice(item.oldPrice)).appendTo($tr);
                     $('<td>', { class: 'fw-semibold' }).text(formatPrice(item.newPrice)).appendTo($tr);
+                    $('<td>').text(formatPrice(item.oldCostPrice)).appendTo($tr);
+                    $('<td>', { class: 'fw-semibold' }).text(formatPrice(item.newCostPrice)).appendTo($tr);
                     $('<td>').text(item.note || '-').appendTo($tr);
                     $body.append($tr);
                 });
