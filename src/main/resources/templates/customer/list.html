@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<div class="app-wrapper">
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h3 class="mb-1">Customers</h3>
+                        <div class="text-muted">Manage customer contact information.</div>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btnAddCustomer" data-bs-toggle="modal" data-bs-target="#customerModal">
+                        <i class="bi bi-plus-circle me-1"></i> Add Customer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">Customer List</h3>
+                        <span class="badge text-bg-light border" th:text="${customerPage.totalElements} + ' customers'">0 customers</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Name</th>
+                                    <th>TRN</th>
+                                    <th>Contact Person</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Address</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-3">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(customers)}">
+                                    <td colspan="8" class="text-center text-muted py-5">No customers found.</td>
+                                </tr>
+                                <tr th:each="item : ${customers}">
+                                    <td class="ps-3 fw-semibold" th:text="${item.name()}">Customer</td>
+                                    <td th:text="${item.trnNumber() != null ? item.trnNumber() : '-'}">-</td>
+                                    <td th:text="${item.contactPerson() != null ? item.contactPerson() : '-'}">-</td>
+                                    <td th:text="${item.phone() != null ? item.phone() : '-'}">-</td>
+                                    <td th:text="${item.email() != null ? item.email() : '-'}">-</td>
+                                    <td th:text="${item.address() != null ? item.address() : '-'}">-</td>
+                                    <td>
+                                        <span th:if="${item.active()}" class="badge text-bg-success">Active</span>
+                                        <span th:unless="${item.active()}" class="badge text-bg-secondary">Inactive</span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-info btn-customer-details"
+                                                    data-bs-toggle="modal" data-bs-target="#customerDetailsModal"
+                                                    th:attr="data-name=${item.name()},data-contact-person=${item.contactPerson()},data-phone=${item.phone()},data-email=${item.email()},data-trn-number=${item.trnNumber()},data-address=${item.address()},data-active=${item.active()}">
+                                                Details
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-warning btn-customer-edit"
+                                                    data-bs-toggle="modal" data-bs-target="#customerModal"
+                                                    th:attr="data-id=${item.id()},data-name=${item.name()},data-contact-person=${item.contactPerson()},data-phone=${item.phone()},data-email=${item.email()},data-trn-number=${item.trnNumber()},data-address=${item.address()},data-active=${item.active()}">
+                                                Edit
+                                            </button>
+                                            <form th:action="@{/customers/{id}/delete(id=${item.id()})}" method="post"
+                                                  onsubmit="return confirm('Delete this customer?');">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="small text-muted">
+                                Page <span th:text="${customerPage.totalPages == 0 ? 0 : customerPage.number + 1}">1</span>
+                                of <span th:text="${customerPage.totalPages}">1</span>
+                                <span class="ms-2" th:text="${customerPage.totalElements} + ' customers'">0 customers</span>
+                            </div>
+                            <div class="btn-group">
+                                <a class="btn btn-outline-secondary"
+                                   th:classappend="${!customerPage.hasPrevious()} ? ' disabled' : ''"
+                                   th:href="${customerPage.hasPrevious()} ? @{/customers(page=${customerPage.number - 1})} : '#'">
+                                    <i class="bi bi-chevron-left me-1"></i> Previous
+                                </a>
+                                <a class="btn btn-outline-primary"
+                                   th:classappend="${!customerPage.hasNext()} ? ' disabled' : ''"
+                                   th:href="${customerPage.hasNext()} ? @{/customers(page=${customerPage.number + 1})} : '#'">
+                                    Next <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <strong>Dacca POS</strong>
+        <span class="text-muted ms-2">Customer management</span>
+    </footer>
+</div>
+
+<div class="modal fade" id="customerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="customerForm" th:action="${modalAction}" method="post" th:object="${form}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customerModalTitle" th:text="${modalTitle}">Add Customer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" id="name" th:field="*{name}" class="form-control"
+                               th:classappend="${#fields.hasErrors('name')} ? ' is-invalid' : ''">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactPerson" class="form-label">Contact Person</label>
+                        <input type="text" id="contactPerson" th:field="*{contactPerson}" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="trnNumber" class="form-label">TRN Number</label>
+                        <input type="text" id="trnNumber" th:field="*{trnNumber}" class="form-control"
+                               th:classappend="${#fields.hasErrors('trnNumber')} ? ' is-invalid' : ''">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('trnNumber')}" th:errors="*{trnNumber}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="phone" class="form-label">Phone</label>
+                        <input type="text" id="phone" th:field="*{phone}" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" id="email" th:field="*{email}" class="form-control"
+                               th:classappend="${#fields.hasErrors('email')} ? ' is-invalid' : ''">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea id="address" th:field="*{address}" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="active" th:field="*{active}" class="form-check-input">
+                        <label class="form-check-label" for="active">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="customerSubmitButton" th:text="${submitLabel}">Add Customer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="customerDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Customer Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt><dd class="col-sm-8" id="customerDetailName">-</dd>
+                    <dt class="col-sm-4">TRN</dt><dd class="col-sm-8" id="customerDetailTrn">-</dd>
+                    <dt class="col-sm-4">Contact</dt><dd class="col-sm-8" id="customerDetailContact">-</dd>
+                    <dt class="col-sm-4">Phone</dt><dd class="col-sm-8" id="customerDetailPhone">-</dd>
+                    <dt class="col-sm-4">Email</dt><dd class="col-sm-8" id="customerDetailEmail">-</dd>
+                    <dt class="col-sm-4">Address</dt><dd class="col-sm-8" id="customerDetailAddress">-</dd>
+                    <dt class="col-sm-4">Status</dt><dd class="col-sm-8" id="customerDetailStatus">-</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<script th:inline="javascript">
+    $(function () {
+        const openCreateModal = /*[[${openCreateModal}]]*/ false;
+        if (openCreateModal) {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('customerModal')).show();
+        }
+
+        function valueOrDash(value) {
+            return value ? value : '-';
+        }
+
+        $('#btnAddCustomer').on('click', function () {
+            $('#customerForm').attr('action', '/customers');
+            $('#customerModalTitle').text('Add Customer');
+            $('#customerSubmitButton').text('Add Customer');
+            $('#name, #contactPerson, #trnNumber, #phone, #email').val('');
+            $('#address').val('');
+            $('#active').prop('checked', true);
+        });
+
+        $('.btn-customer-edit').on('click', function () {
+            const $btn = $(this);
+            $('#customerForm').attr('action', '/customers/' + $btn.data('id') + '/edit');
+            $('#customerModalTitle').text('Edit Customer');
+            $('#customerSubmitButton').text('Update Customer');
+            $('#name').val($btn.data('name') || '');
+            $('#contactPerson').val($btn.data('contact-person') || '');
+            $('#trnNumber').val($btn.data('trn-number') || '');
+            $('#phone').val($btn.data('phone') || '');
+            $('#email').val($btn.data('email') || '');
+            $('#address').val($btn.data('address') || '');
+            $('#active').prop('checked', String($btn.data('active')) === 'true');
+        });
+
+        $('.btn-customer-details').on('click', function () {
+            const $btn = $(this);
+            $('#customerDetailName').text(valueOrDash($btn.data('name')));
+            $('#customerDetailTrn').text(valueOrDash($btn.data('trn-number')));
+            $('#customerDetailContact').text(valueOrDash($btn.data('contact-person')));
+            $('#customerDetailPhone').text(valueOrDash($btn.data('phone')));
+            $('#customerDetailEmail').text(valueOrDash($btn.data('email')));
+            $('#customerDetailAddress').text(valueOrDash($btn.data('address')));
+            $('#customerDetailStatus').text(String($btn.data('active')) === 'true' ? 'Active' : 'Inactive');
+        });
+    });
+</script>
+</body>
+</html>

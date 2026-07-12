@@ -9,6 +9,8 @@ import com.daccaauto.pos.exception.ResourceNotFoundException;
 import com.daccaauto.pos.repository.SupplierRepository;
 import com.daccaauto.pos.service.SupplierService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -89,6 +91,12 @@ public class SupplierServiceImpl implements SupplierService {
             .stream()
             .map(this::map)
             .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SupplierResponse> getPage(Pageable pageable) {
+        return supplierRepository.findAllByOrderByNameAsc(pageable).map(this::map);
     }
 
     @Override

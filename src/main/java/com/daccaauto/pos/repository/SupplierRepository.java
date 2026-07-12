@@ -1,6 +1,8 @@
 package com.daccaauto.pos.repository;
 
 import com.daccaauto.pos.entity.SupplierEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -16,4 +18,6 @@ public interface SupplierRepository extends JpaRepository<SupplierEntity, Long> 
     boolean existsByTrnNumberIgnoreCaseAndIdNot(String trnNumber, Long id);
 
     List<SupplierEntity> findAllByOrderByNameAsc();
+
+    Page<SupplierEntity> findAllByOrderByNameAsc(Pageable pageable);
 }
