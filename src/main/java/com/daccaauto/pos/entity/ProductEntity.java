@@ -113,6 +113,10 @@ public class ProductEntity extends BaseEntity {
     @JoinColumn(name = "category_id", nullable = false)
     private ProductCategoryEntity category;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "product_group_id")
+    private ProductGroupEntity productGroup;
+
     @Column(nullable = false)
     private boolean active = true;
 

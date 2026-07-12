@@ -6,6 +6,7 @@ import com.daccaauto.pos.exception.DuplicateResourceException;
 import com.daccaauto.pos.exception.ResourceNotFoundException;
 import com.daccaauto.pos.repository.*;
 import com.daccaauto.pos.service.InventoryService;
+import com.daccaauto.pos.service.OrderTodoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +36,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final ProductStockRepository productStockRepository;
     private final StockAdjustmentRepository stockAdjustmentRepository;
     private final ProductPriceHistoryRepository productPriceHistoryRepository;
+    private final OrderTodoService orderTodoService;
 
     @Override
     @Transactional(readOnly = true)
@@ -171,6 +173,7 @@ public class InventoryServiceImpl implements InventoryService {
         adjustment.setNewQuantity(newQuantity);
         adjustment.setNote(trimToNull(request.note()));
         stockAdjustmentRepository.save(adjustment);
+        orderTodoService.cleanupForProduct(product.getId());
 
         return new StockAdjustmentResponse(
             product.getId(),

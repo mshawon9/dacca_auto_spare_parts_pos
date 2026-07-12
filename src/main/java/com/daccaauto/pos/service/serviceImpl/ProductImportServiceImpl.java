@@ -6,12 +6,14 @@ import com.daccaauto.pos.entity.BrandEntity;
 import com.daccaauto.pos.entity.ProductAlternativePartNumberEntity;
 import com.daccaauto.pos.entity.ProductCategoryEntity;
 import com.daccaauto.pos.entity.ProductEntity;
+import com.daccaauto.pos.entity.ProductGroupEntity;
 import com.daccaauto.pos.entity.ProductStockEntity;
 import com.daccaauto.pos.entity.StoreEntity;
 import com.daccaauto.pos.repository.BrandCategoryRepository;
 import com.daccaauto.pos.repository.BrandRepository;
 import com.daccaauto.pos.repository.ProductAlternativePartNumberRepository;
 import com.daccaauto.pos.repository.ProductCategoryRepository;
+import com.daccaauto.pos.repository.ProductGroupRepository;
 import com.daccaauto.pos.repository.ProductRepository;
 import com.daccaauto.pos.repository.ProductStockRepository;
 import com.daccaauto.pos.repository.StoreRepository;
@@ -55,6 +57,7 @@ public class ProductImportServiceImpl implements ProductImportService {
         "Category",
         "Brand",
         "Product Name",
+        "Product Group",
         "Part Number",
         "Position",
         "Dimension",
@@ -74,6 +77,7 @@ public class ProductImportServiceImpl implements ProductImportService {
     private final BrandRepository brandRepository;
     private final BrandCategoryRepository brandCategoryRepository;
     private final ProductAlternativePartNumberRepository alternativePartNumberRepository;
+    private final ProductGroupRepository productGroupRepository;
     private final ProductStockRepository productStockRepository;
     private final StoreRepository storeRepository;
     private final CacheManager cacheManager;
@@ -94,9 +98,9 @@ public class ProductImportServiceImpl implements ProductImportService {
                 header.getCell(i).setCellStyle(headerStyle);
             }
 
-            addSampleRow(sheet, 1, "Brake Pad", "Brembo", "Civic Front Pad", "BP1001", "Front", "38 X 25 X 9", "SKU-001", "2", "Main Store", "10", "35.50", "", "BP-ALT1, BP-ALT2", "Ceramic brake pad", "TRUE");
-            addSampleRow(sheet, 2, "Shock Absorber", "KYB", "Corolla Rear Shock", "SA2001", "Rear", "", "SKU-002", "3", "Main Store", "5", "62.00", "", "", "Rear shock absorber", "TRUE");
-            addSampleRow(sheet, 3, "Bearing", "NSK", "Yaris Wheel Bearing", "WB3001", "Front", "", "", "2", "", "", "", "", "WB-ALT1", "", "TRUE");
+            addSampleRow(sheet, 1, "Brake Pad", "Brembo", "Civic Front Pad", "Civic Front Pad", "BP1001", "Front", "38 X 25 X 9", "SKU-001", "2", "Main Store", "10", "35.50", "", "BP-ALT1, BP-ALT2", "Ceramic brake pad", "TRUE");
+            addSampleRow(sheet, 2, "Brake Pad", "Bosch", "Civic Front Pad", "Civic Front Pad", "BS2001", "Front", "38 X 25 X 9", "SKU-002", "2", "Main Store", "5", "28.00", "", "", "Same product, different brand", "TRUE");
+            addSampleRow(sheet, 3, "Bearing", "NSK", "Yaris Wheel Bearing", "Yaris Wheel Bearing", "WB3001", "Front", "", "", "2", "", "", "", "", "WB-ALT1", "", "TRUE");
 
             for (int i = 0; i < SAMPLE_HEADERS.length; i++) {
                 sheet.autoSizeColumn(i);
@@ -168,6 +172,7 @@ public class ProductImportServiceImpl implements ProductImportService {
             product.setDescription(trimToNull(row.description));
             product.setCategory(category);
             product.setBrand(brand);
+            product.setProductGroup(resolveProductGroup(category, row));
             product.setActive(row.active);
 
             ProductEntity saved = productRepository.save(product);
@@ -186,6 +191,7 @@ public class ProductImportServiceImpl implements ProductImportService {
                               String category,
                               String brand,
                               String productName,
+                              String productGroup,
                               String partNumber,
                               String position,
                               String dimension,
@@ -203,6 +209,7 @@ public class ProductImportServiceImpl implements ProductImportService {
             category,
             brand,
             productName,
+            productGroup,
             partNumber,
             position,
             dimension,
@@ -239,6 +246,7 @@ public class ProductImportServiceImpl implements ProductImportService {
                     readCell(sheetRow, headers, "category", formatter, evaluator),
                     readCell(sheetRow, headers, "brand", formatter, evaluator),
                     readCell(sheetRow, headers, "name", formatter, evaluator),
+                    readCell(sheetRow, headers, "productgroup", formatter, evaluator),
                     readCell(sheetRow, headers, "partnumber", formatter, evaluator),
                     readCell(sheetRow, headers, "position", formatter, evaluator),
                     readCell(sheetRow, headers, "dimension", formatter, evaluator),
@@ -314,6 +322,7 @@ public class ProductImportServiceImpl implements ProductImportService {
                 row.errors.add("Warehouse is required when Current Stock or Cost Price is provided");
             }
             if (row.name.length() > 200) row.errors.add("Product Name must not exceed 200 characters");
+            if (row.productGroup.length() > 200) row.errors.add("Product Group must not exceed 200 characters");
             if (row.category.length() > 100) row.errors.add("Category must not exceed 100 characters");
             if (row.brand.length() > 100) row.errors.add("Brand must not exceed 100 characters");
             if (row.warehouse.length() > 120) row.errors.add("Warehouse must not exceed 120 characters");
@@ -455,6 +464,30 @@ public class ProductImportServiceImpl implements ProductImportService {
         productStockRepository.save(stock);
     }
 
+    private ProductGroupEntity resolveProductGroup(ProductCategoryEntity category, ImportRow row) {
+        String groupNameInput = row.productGroup == null || row.productGroup.isBlank()
+            ? row.name
+            : row.productGroup;
+        String groupName = buildCategoryProductName(category, groupNameInput);
+        String normalizedKey = buildProductGroupKey(groupName, row.position, row.dimension);
+
+        return productGroupRepository.findByCategoryIdAndNormalizedKey(category.getId(), normalizedKey)
+            .orElseGet(() -> {
+                ProductGroupEntity group = new ProductGroupEntity();
+                group.setCategory(category);
+                group.setName(groupName);
+                group.setNormalizedKey(normalizedKey);
+                return productGroupRepository.save(group);
+            });
+    }
+
+    private String buildProductGroupKey(String productName, String position, String dimension) {
+        return java.util.stream.Stream.of(productName, position, dimension)
+            .filter(value -> value != null && !value.isBlank())
+            .map(value -> value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", ""))
+            .collect(Collectors.joining("|"));
+    }
+
     private Set<String> parseAlternativePartNumbers(String input) {
         if (input == null || input.isBlank()) {
             return Set.of();
@@ -505,6 +538,7 @@ public class ProductImportServiceImpl implements ProductImportService {
         String normalized = value == null ? "" : value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
         return switch (normalized) {
             case "productname" -> "name";
+            case "productgroup", "group", "family", "productfamily" -> "productgroup";
             case "partno", "partnumber", "part" -> "partnumber";
             case "altpartnumber", "alternativepartno", "alternativepartnumbers", "altpartno" -> "alternativepartnumber";
             case "store", "storename", "warehouse", "warehousename" -> "warehouse";
@@ -626,6 +660,7 @@ public class ProductImportServiceImpl implements ProductImportService {
         private final String category;
         private final String brand;
         private final String name;
+        private final String productGroup;
         private String partNumber;
         private final String position;
         private final String dimension;
@@ -649,6 +684,7 @@ public class ProductImportServiceImpl implements ProductImportService {
                           String category,
                           String brand,
                           String name,
+                          String productGroup,
                           String partNumber,
                           String position,
                           String dimension,
@@ -665,6 +701,7 @@ public class ProductImportServiceImpl implements ProductImportService {
             this.category = category;
             this.brand = brand;
             this.name = name;
+            this.productGroup = productGroup;
             this.partNumber = partNumber;
             this.position = position;
             this.dimension = dimension;

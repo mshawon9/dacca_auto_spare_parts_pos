@@ -22,6 +22,9 @@ public interface ProductStockRepository extends JpaRepository<ProductStockEntity
     @Query("select coalesce(sum(ps.quantity), 0) from ProductStockEntity ps")
     BigDecimal sumQuantity();
 
+    @Query("select coalesce(sum(ps.quantity), 0) from ProductStockEntity ps where ps.product.id = :productId")
+    BigDecimal sumQuantityByProductId(Long productId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
         select ps

@@ -27,6 +27,15 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
 
     Optional<ProductEntity> findTopByOrderByCreatedAtDescIdDesc();
 
+    @Query("""
+        select p
+        from ProductEntity p
+        join p.brand b
+        where p.productGroup.id = :productGroupId
+        order by b.name asc, p.partNumber asc
+        """)
+    List<ProductEntity> findByProductGroupIdOrderByBrandNameAscPartNumberAsc(Long productGroupId);
+
     @Query(
         value = """
             select p.id as "productId",

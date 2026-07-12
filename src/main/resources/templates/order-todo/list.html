@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<div class="app-wrapper">
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h3 class="mb-1">Order Todo List</h3>
+                        <div class="text-muted">Your selected order list. Reorder items can be reviewed separately before adding.</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addTodoModal">
+                            <i class="bi bi-plus-circle me-1"></i> Add Todo
+                        </button>
+                        <a th:if="${!showReorder}" th:href="@{/order-todos(showReorder=true, keyword=${keyword})}" class="btn btn-outline-primary">
+                            <i class="bi bi-layout-sidebar-inset-reverse me-1"></i> Open Reorder Panel
+                        </a>
+                        <a th:if="${showReorder}" th:href="@{/order-todos(keyword=${keyword})}" class="btn btn-outline-secondary">
+                            <i class="bi bi-x-lg me-1"></i> Close Reorder Panel
+                        </a>
+                        <a th:href="@{/inventory}" class="btn btn-primary">
+                            <i class="bi bi-box-seam me-1"></i> Add Inventory
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <form th:action="@{/order-todos}" method="get" class="row g-2 align-items-end">
+                            <div class="col-md-9">
+                                <label for="keyword" class="form-label">Search Todo</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="keyword" name="keyword" class="form-control"
+                                           th:value="${keyword}"
+                                           placeholder="Product, part number, category, brand, note...">
+                                </div>
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-fill">Search</button>
+                                <a th:href="@{/order-todos}" class="btn btn-outline-secondary">Reset</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h3 class="card-title mb-0">Products To Order</h3>
+                        <span class="badge text-bg-danger" th:text="${todoPage.totalElements} + ' open'">0 open</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Product</th>
+                                    <th>Category / Brand</th>
+                                    <th class="text-end">Current Stock</th>
+                                    <th class="text-end">Reorder Level</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-3">Action</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(todos)}">
+                                    <td colspan="6" class="text-center text-muted py-5">
+                                        <i class="bi bi-check2-circle fs-2 d-block mb-2 text-success"></i>
+                                        No matching order todos found.
+                                    </td>
+                                </tr>
+                                <tr th:each="todo : ${todos}">
+                                    <td class="ps-3">
+                                        <a th:href="@{/products/{id}(id=${todo.productId()})}"
+                                           class="fw-semibold text-decoration-none"
+                                           th:text="${todo.productName()}">Product</a>
+                                        <div class="small text-muted">
+                                            Part: <span th:text="${todo.partNumber()}">PN</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div th:text="${todo.categoryName()}">Category</div>
+                                        <small class="text-muted" th:text="${todo.brandName()}">Brand</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge text-bg-danger"
+                                              th:text="${todo.currentQuantity().stripTrailingZeros().toPlainString()}">0</span>
+                                    </td>
+                                    <td class="text-end"
+                                        th:text="${todo.reorderLevel().stripTrailingZeros().toPlainString()}">2</td>
+                                    <td>
+                                        <span class="badge"
+                                              th:classappend="${todo.status().name() == 'PENDING' ? ' text-bg-warning' : ' text-bg-info'}"
+                                              th:text="${todo.status()}">PENDING</span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <div class="d-flex flex-wrap justify-content-end gap-2">
+                                            <button type="button"
+                                                    class="btn btn-sm btn-success js-open-stock-modal"
+                                                    th:if="${todo.status().name() != 'RECEIVED'}"
+                                                    th:attr="data-product-id=${todo.productId()},
+                                                             data-todo-id=${todo.id()},
+                                                             data-product-name=${todo.productName()},
+                                                             data-part-number=${todo.partNumber()},
+                                                             data-current-stock=${todo.currentQuantity().stripTrailingZeros().toPlainString()}">
+                                                <i class="bi bi-box-seam me-1"></i> Add Stock
+                                            </button>
+                                            <form th:action="@{/order-todos/{id}/status(id=${todo.id()})}" method="post"
+                                                  th:if="${todo.status().name() != 'RECEIVED'}"
+                                                  class="d-flex justify-content-end gap-2">
+                                                <select name="status" class="form-select form-select-sm" style="max-width: 140px;">
+                                                    <option th:each="status : ${statuses}"
+                                                            th:value="${status}"
+                                                            th:text="${status}"
+                                                            th:selected="${status == todo.status()}"></option>
+                                                </select>
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
+                                            </form>
+                                            <span th:if="${todo.status().name() == 'RECEIVED'}"
+                                                  class="badge text-bg-success align-self-center">
+                                                Stock received
+                                            </span>
+                                            <form th:action="@{/order-todos/{id}/status(id=${todo.id()})}" method="post">
+                                                <input type="hidden" name="status" value="CANCELLED">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Remove</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer text-muted small">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                Todos stay in this list until you click Remove, even after receiving stock.
+                            </div>
+                            <div class="d-flex align-items-center gap-2" th:if="${todoPage.totalPages > 1}">
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   th:classappend="${todoPage.first} ? ' disabled' : ''"
+                                   th:href="@{/order-todos(page=${todoPage.number - 1}, keyword=${keyword})}">Previous</a>
+                                <span>
+                                    Page <strong th:text="${todoPage.number + 1}">1</strong>
+                                    of <strong th:text="${todoPage.totalPages}">1</strong>
+                                </span>
+                                <a class="btn btn-sm btn-outline-secondary"
+                                   th:classappend="${todoPage.last} ? ' disabled' : ''"
+                                   th:href="@{/order-todos(page=${todoPage.number + 1}, keyword=${keyword})}">Next</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <strong>Dacca POS</strong>
+        <span class="text-muted ms-2">Inventory and product management</span>
+    </footer>
+</div>
+
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<div class="offcanvas offcanvas-end" tabindex="-1" id="reorderOffcanvas" aria-labelledby="reorderOffcanvasLabel"
+     style="width: min(760px, 100vw);">
+    <div class="offcanvas-header border-bottom">
+        <div>
+            <h5 class="offcanvas-title" id="reorderOffcanvasLabel">Reorder Items</h5>
+            <div class="small text-muted">Select only the products you want to add to the main todo list.</div>
+        </div>
+        <a th:href="@{/order-todos(keyword=${keyword})}" class="btn-close" aria-label="Close"></a>
+    </div>
+    <form th:action="@{/order-todos/add-reorder}" method="post" class="d-flex flex-column flex-grow-1" style="min-height: 0;">
+        <div class="offcanvas-body p-0 flex-grow-1 overflow-auto" style="min-height: 0;">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 p-3 border-bottom bg-body-tertiary">
+                <div class="small text-muted">
+                    Already added items are disabled so they cannot be duplicated.
+                </div>
+                <button type="submit"
+                        form="reorderRefreshForm"
+                        class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+                </button>
+            </div>
+            <div class="table-responsive pb-3">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                    <tr>
+                        <th class="ps-3" style="width: 48px;"></th>
+                        <th>Product</th>
+                        <th>Part No</th>
+                        <th class="text-end">Stock</th>
+                        <th class="text-end pe-3">Level</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${#lists.isEmpty(reorderItems)}">
+                        <td colspan="5" class="text-center text-muted py-4">No reorder item found.</td>
+                    </tr>
+                    <tr th:each="item : ${reorderItems}" th:classappend="${item.alreadyInTodo()} ? ' table-secondary' : ''">
+                        <td class="ps-3">
+                            <input class="form-check-input" type="checkbox" name="productIds"
+                                   th:value="${item.productId()}"
+                                   th:disabled="${item.alreadyInTodo()}">
+                        </td>
+                        <td>
+                            <a th:href="@{/products/{id}(id=${item.productId()})}"
+                               class="fw-semibold text-decoration-none"
+                               th:text="${item.productName()}">Product</a>
+                            <div class="small text-muted" th:if="${item.alreadyInTodo()}">Already in main todo list</div>
+                        </td>
+                        <td th:text="${item.partNumber()}">PART</td>
+                        <td class="text-end">
+                            <span class="badge text-bg-danger"
+                                  th:text="${item.currentQuantity().stripTrailingZeros().toPlainString()}">0</span>
+                        </td>
+                        <td class="text-end pe-3"
+                            th:text="${item.reorderLevel().stripTrailingZeros().toPlainString()}">2</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="border-top p-3 bg-white flex-shrink-0">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span class="small text-muted">Only checked products will be added.</span>
+                <div class="d-flex gap-2">
+                    <a th:href="@{/order-todos(keyword=${keyword})}" class="btn btn-outline-secondary">Close</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> Add Selected
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<form th:action="@{/order-todos/refresh}" method="post" id="reorderRefreshForm"></form>
+
+<div class="modal fade" id="addTodoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form th:action="@{/order-todos/create}" method="post" id="addTodoForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Order Todo</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="todoProductSearch" class="form-label">Product <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" id="todoProductSearch" class="form-control"
+                                   autocomplete="off"
+                                   placeholder="Search by product name">
+                            <div id="todoProductResults"
+                                 class="list-group position-absolute w-100 shadow-sm d-none"
+                                 style="z-index: 1060; max-height: 260px; overflow-y: auto;"></div>
+                        </div>
+                        <div id="selectedTodoProduct" class="form-text">No product selected.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="todoBrandSelect" class="form-label">Brand <span class="text-danger">*</span></label>
+                        <select id="todoBrandSelect" name="productId" class="form-select" required disabled>
+                            <option value="">Select product first</option>
+                        </select>
+                        <div id="selectedTodoBrand" class="form-text">Choose the brand/part number after selecting product.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Add Todo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="todoStockModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form th:action="@{/order-todos/stock}" method="post" id="todoStockForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Stock</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="todoId" id="stockTodoId">
+                    <input type="hidden" name="productId" id="stockProductId">
+                    <div id="stockModalError" class="alert alert-danger d-none"></div>
+                    <div class="p-3 bg-body-tertiary rounded mb-3">
+                        <div class="small text-muted">Product</div>
+                        <div class="fw-semibold" id="stockProductName">-</div>
+                        <div class="small text-muted">Part: <span id="stockPartNumber">-</span></div>
+                        <div class="small mt-2">Current stock: <strong id="stockCurrentQuantity">0</strong></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="stockStoreId" class="form-label">Warehouse <span class="text-danger">*</span></label>
+                        <select id="stockStoreId" name="storeId" class="form-select" required>
+                            <option value="">Select warehouse</option>
+                            <option th:each="store : ${stores}"
+                                    th:value="${store.id()}"
+                                    th:text="${store.code() != null ? store.name() + ' (' + store.code() + ')' : store.name()}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="stockQuantity" class="form-label">Quantity To Add <span class="text-danger">*</span></label>
+                        <input type="number" id="stockQuantity" name="quantity" class="form-control form-control-lg"
+                               min="1" step="1" max="9999999999999999" required>
+                        <div class="form-text">Quantity must be a whole number greater than zero.</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success"
+                            th:disabled="${#lists.isEmpty(stores)}">Add Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    $(function () {
+        const showReorderPanel = /*[[${showReorder}]]*/ false;
+        const reorderPanel = document.getElementById('reorderOffcanvas');
+        if (showReorderPanel && reorderPanel && window.bootstrap) {
+            const reorderOffcanvas = bootstrap.Offcanvas.getOrCreateInstance(reorderPanel);
+            reorderOffcanvas.show();
+            reorderPanel.addEventListener('hidden.bs.offcanvas', function () {
+                const targetUrl = new URL(window.location.href);
+                targetUrl.searchParams.delete('showReorder');
+                window.location.href = targetUrl.toString();
+            }, { once: true });
+        }
+
+        const $search = $('#todoProductSearch');
+        const $results = $('#todoProductResults');
+        const $brandSelect = $('#todoBrandSelect');
+        const $selected = $('#selectedTodoProduct');
+        const $selectedBrand = $('#selectedTodoBrand');
+        const stockModalElement = document.getElementById('todoStockModal');
+        const stockModal = stockModalElement && window.bootstrap
+            ? new bootstrap.Modal(stockModalElement)
+            : null;
+        let searchTimer = null;
+
+        function resetBrandSelect(message) {
+            $brandSelect.prop('disabled', true)
+                .empty()
+                .append($('<option>', {value: '', text: 'Select product first'}));
+            $selectedBrand.removeClass('text-danger').text(message || 'Choose the brand/part number after selecting product.');
+        }
+
+        function loadBrandOptions(productId) {
+            resetBrandSelect('Loading brands...');
+            $.get('/products/' + productId + '/brand-options-json', function (items) {
+                $brandSelect.empty().append($('<option>', {value: '', text: 'Select brand'}));
+                if (!items || !items.length) {
+                    resetBrandSelect('No brand found for this product.');
+                    return;
+                }
+
+                $.each(items, function (_, item) {
+                    $('<option>', {
+                        value: item.id,
+                        text: item.text
+                    }).appendTo($brandSelect);
+                });
+                $brandSelect.prop('disabled', false);
+                if (items.length === 1) {
+                    $brandSelect.val(items[0].id);
+                    $selectedBrand.text('Selected: ' + items[0].text);
+                } else {
+                    $selectedBrand.text('Select a brand from the list.');
+                }
+            }).fail(function () {
+                resetBrandSelect('Could not load brands for this product.');
+                $selectedBrand.addClass('text-danger');
+            });
+        }
+
+        function renderResults(items) {
+            $results.empty();
+            if (!items || !items.length) {
+                $results.removeClass('d-none')
+                    .append('<div class="list-group-item text-muted small">No matching product found.</div>');
+                return;
+            }
+
+            $.each(items, function (_, item) {
+                $('<button>', {
+                    type: 'button',
+                    class: 'list-group-item list-group-item-action js-select-todo-product',
+                    text: item.text
+                }).attr('data-product-id', item.id).appendTo($results);
+            });
+            $results.removeClass('d-none');
+        }
+
+        $search.on('input', function () {
+            const term = ($(this).val() || '').trim();
+            $selected.text('No product selected.');
+            resetBrandSelect();
+            clearTimeout(searchTimer);
+
+            if (term.length < 2) {
+                $results.addClass('d-none').empty();
+                return;
+            }
+
+            searchTimer = setTimeout(function () {
+                $.get('/products/search-groups-json', { keyword: term }, renderResults)
+                    .fail(function () {
+                        $results.empty().removeClass('d-none')
+                            .append('<div class="list-group-item text-danger small">Could not load products.</div>');
+                    });
+            }, 250);
+        });
+
+        $results.on('click', '.js-select-todo-product', function () {
+            $search.val($(this).text());
+            $selected.text('Selected: ' + $(this).text());
+            $results.addClass('d-none').empty();
+            loadBrandOptions($(this).attr('data-product-id'));
+        });
+
+        $brandSelect.on('change', function () {
+            const label = $(this).find('option:selected').text();
+            if ($(this).val()) {
+                $selectedBrand.removeClass('text-danger').text('Selected: ' + label);
+            } else {
+                $selectedBrand.text('Select a brand from the list.');
+            }
+        });
+
+        $('#addTodoForm').on('submit', function (event) {
+            if (!$brandSelect.val()) {
+                event.preventDefault();
+                $selectedBrand.text('Please select a brand before adding todo.').addClass('text-danger');
+            }
+        });
+
+        $('#addTodoModal').on('hidden.bs.modal', function () {
+            $search.val('');
+            $selected.removeClass('text-danger').text('No product selected.');
+            resetBrandSelect();
+            $results.addClass('d-none').empty();
+        });
+
+        $('.js-open-stock-modal').on('click', function () {
+            $('#stockModalError').addClass('d-none').empty();
+            $('#stockTodoId').val($(this).attr('data-todo-id'));
+            $('#stockProductId').val($(this).attr('data-product-id'));
+            $('#stockProductName').text($(this).attr('data-product-name'));
+            $('#stockPartNumber').text($(this).attr('data-part-number'));
+            $('#stockCurrentQuantity').text($(this).attr('data-current-stock'));
+            $('#stockQuantity').val('1');
+            if (stockModal) {
+                stockModal.show();
+            }
+        });
+
+        $('#todoStockForm').on('submit', function (event) {
+            const quantity = Number($('#stockQuantity').val());
+            if (!Number.isFinite(quantity) || !Number.isInteger(quantity) || quantity <= 0) {
+                event.preventDefault();
+                $('#stockModalError')
+                    .text('Quantity must be a whole number greater than zero.')
+                    .removeClass('d-none');
+            }
+        });
+    });
+</script>
+</body>
+</html>

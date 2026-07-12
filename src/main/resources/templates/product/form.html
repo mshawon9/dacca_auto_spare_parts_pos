@@ -122,18 +122,18 @@
                                     <div class="row g-3">
 
                                         <div class="col-12">
-                                            <label for="similarProductSearch" class="form-label">Similar Product</label>
+                                            <label for="similarProductSearch" class="form-label">Product Group / Brand Variant</label>
                                             <div id="similarProductBox" class="position-relative">
                                                 <input type="text" id="similarProductSearch" class="form-control"
                                                        autocomplete="off"
-                                                       placeholder="Search by product name, part number, position, or dimension">
+                                                       placeholder="Search same product group by name, part number, position, or dimension">
                                                 <div id="similarProductResults"
                                                      class="list-group position-absolute w-100 shadow-sm d-none"
                                                      style="z-index: 1050; max-height: 260px; overflow-y: auto;"></div>
                                             </div>
                                             <div class="form-text">
-                                                <span th:if="${!editMode}">Choose one similar product. It will connect this product to that product's full similarity group and copy reusable details.</span>
-                                                <span th:if="${editMode}">Choose one similar product to connect this product to its full similarity group.</span>
+                                                <span th:if="${!editMode}">Choose an existing same product to join its product group and copy reusable details. Brand and part number stay separate.</span>
+                                                <span th:if="${editMode}">Choose an existing same product to move this product into that product group.</span>
                                             </div>
                                             <div id="selectedSimilarProduct" class="mt-2">
                                                 <div class="badge text-bg-light border text-dark d-flex align-items-center gap-2 py-2 px-3 js-similar-chip"
@@ -146,7 +146,7 @@
                                             </div>
                                             <div id="noSimilarProduct" class="form-text fst-italic"
                                                  th:classappend="${selectedSimilarProduct != null} ? ' d-none' : ''">
-                                                No similar product selected.
+                                                No product group source selected. If blank, the group is created from category, name, position, and dimension.
                                             </div>
                                         </div>
 

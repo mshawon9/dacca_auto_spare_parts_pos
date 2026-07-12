@@ -293,6 +293,39 @@ public class ProductController {
                 .toList();
     }
 
+    @GetMapping("/search-groups-json")
+    @ResponseBody
+    public List<ProductSearchItem> searchProductGroups(@RequestParam String keyword) {
+        if (keyword == null || keyword.trim().length() < 2) {
+            return List.of();
+        }
+
+        Set<String> seenGroups = new java.util.LinkedHashSet<>();
+        return productService.search(keyword.trim(), null, null, null, true)
+                .stream()
+                .filter(product -> seenGroups.add(product.productGroupId() == null
+                        ? "p:" + product.id()
+                        : "g:" + product.productGroupId()))
+                .limit(15)
+                .map(product -> new ProductSearchItem(product.id(), product.name()))
+                .toList();
+    }
+
+    @GetMapping("/{id}/brand-options-json")
+    @ResponseBody
+    public List<ProductBrandOption> getProductBrandOptions(@PathVariable Long id) {
+        return productService.getDetails(id)
+                .variants()
+                .stream()
+                .map(variant -> new ProductBrandOption(
+                        variant.productId(),
+                        variant.brandName(),
+                        variant.partNumber(),
+                        buildBrandOptionLabel(variant)
+                ))
+                .toList();
+    }
+
     @GetMapping("/{id}/copy-source")
     @ResponseBody
     public ProductCopySource getProductCopySource(@PathVariable Long id) {
@@ -359,7 +392,19 @@ public class ProductController {
                 .collect(java.util.stream.Collectors.joining(" | "));
     }
 
+    private String buildBrandOptionLabel(ProductDetailsResponse.ProductVariantSummary variant) {
+        return java.util.stream.Stream.of(
+                        variant.brandName(),
+                        variant.partNumber()
+                )
+                .filter(value -> value != null && !value.isBlank())
+                .collect(java.util.stream.Collectors.joining(" | "));
+    }
+
     public record ProductSearchItem(Long id, String text) {
+    }
+
+    public record ProductBrandOption(Long id, String brandName, String partNumber, String text) {
     }
 
     public record ProductCopySource(

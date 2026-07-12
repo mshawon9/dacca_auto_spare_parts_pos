@@ -8,6 +8,8 @@ public record ProductDetailsResponse(
     ProductResponse product,
     List<PartNumberGroup> partNumberGroups,
     int partNumberCount,
+    List<ProductVariantSummary> variants,
+    BigDecimal variantTotalStockQuantity,
     BigDecimal totalStockQuantity,
     List<StockSummary> stockSummaries,
     List<PriceHistorySummary> priceHistories
@@ -35,6 +37,16 @@ public record ProductDetailsResponse(
         BigDecimal newPrice,
         String note,
         OffsetDateTime changedAt
+    ) {
+    }
+
+    public record ProductVariantSummary(
+        Long productId,
+        String productName,
+        String brandName,
+        String partNumber,
+        BigDecimal totalStockQuantity,
+        boolean currentProduct
     ) {
     }
 }

@@ -20,10 +20,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.math.BigDecimal;
 
 @Service
@@ -38,6 +36,7 @@ public class ProductServiceImpl implements ProductService {
     private final VehicleApplicationRepository vehicleApplicationRepository;
     private final ProductRepository productRepository;
     private final ProductSimilarityRepository productSimilarityRepository;
+    private final ProductGroupRepository productGroupRepository;
     private final ProductImageStorageService productImageStorageService;
     private final ProductStockRepository productStockRepository;
     private final StockAdjustmentRepository stockAdjustmentRepository;
@@ -74,6 +73,7 @@ public class ProductServiceImpl implements ProductService {
         entity.setDescription(trimToNull(request.getDescription()));
         entity.setCategory(category);
         entity.setBrand(brand);
+        entity.setProductGroup(resolveProductGroup(category, entity.getName(), request.getPosition(), request.getDimension(), request.getSimilarProductId()));
         entity.setActive(request.getActive() == null || request.getActive());
 
         ProductEntity saved = productRepository.save(entity);
@@ -81,7 +81,6 @@ public class ProductServiceImpl implements ProductService {
 
         syncApplications(saved, request.getApplicationIds());
         syncAlternativePartNumbers(saved, request.getAlternativePartNumber());
-        syncSimilarProduct(saved, request.getSimilarProductId());
 
         return map(saved);
     }
@@ -119,6 +118,7 @@ public class ProductServiceImpl implements ProductService {
         entity.setDescription(trimToNull(request.getDescription()));
         entity.setCategory(category);
         entity.setBrand(brand);
+        entity.setProductGroup(resolveProductGroup(category, entity.getName(), request.getPosition(), request.getDimension(), request.getSimilarProductId()));
         entity.setActive(request.getActive() == null || request.getActive());
 
         ProductEntity saved = productRepository.save(entity);
@@ -126,7 +126,6 @@ public class ProductServiceImpl implements ProductService {
 
         syncApplications(saved, request.getApplicationIds());
         syncAlternativePartNumbers(saved, request.getAlternativePartNumber());
-        syncSimilarProduct(saved, request.getSimilarProductId());
 
         return map(saved);
     }
@@ -148,6 +147,10 @@ public class ProductServiceImpl implements ProductService {
         int partNumberCount = partNumberGroups.stream()
             .mapToInt(group -> 1 + group.alternativePartNumbers().size())
             .sum();
+        List<ProductDetailsResponse.ProductVariantSummary> variants = buildProductVariants(product);
+        BigDecimal variantTotalStockQuantity = variants.stream()
+            .map(ProductDetailsResponse.ProductVariantSummary::totalStockQuantity)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         List<ProductDetailsResponse.StockSummary> stockSummaries = productStockRepository
             .findByProductIdOrderByStoreNameAsc(id)
@@ -180,6 +183,8 @@ public class ProductServiceImpl implements ProductService {
             product,
             partNumberGroups,
             partNumberCount,
+            variants,
+            variantTotalStockQuantity,
             totalStockQuantity,
             stockSummaries,
             priceHistories
@@ -403,6 +408,8 @@ public class ProductServiceImpl implements ProductService {
             entity.getCategory().getName(),
             entity.getBrand().getId(),
             entity.getBrand().getName(),
+            entity.getProductGroup() == null ? null : entity.getProductGroup().getId(),
+            entity.getProductGroup() == null ? null : entity.getProductGroup().getName(),
             applicationIds,
             applicationNames,
             buildApplicationSummary(applicationNames),
@@ -425,44 +432,92 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private List<ProductDetailsResponse.PartNumberGroup> buildPartNumberGroups(ProductResponse product) {
-        List<ProductDetailsResponse.PartNumberGroup> groups = new ArrayList<>();
-        groups.add(new ProductDetailsResponse.PartNumberGroup(
-            product.id(),
-            product.name(),
-            product.partNumber(),
-            product.alternativePartNumbers(),
-            true
-        ));
+        List<ProductEntity> variants = product.productGroupId() == null
+            ? productRepository.findAllById(List.of(product.id()))
+            : productRepository.findByProductGroupIdOrderByBrandNameAscPartNumberAsc(product.productGroupId());
 
-        List<Long> similarProductIds = product.similarProducts()
-            .stream()
-            .map(ProductResponse.SimilarProductSummary::id)
+        return variants.stream()
+            .map(variant -> new ProductDetailsResponse.PartNumberGroup(
+                variant.getId(),
+                buildProductDisplayName(variant),
+                variant.getPartNumber(),
+                getAlternativePartNumbers(variant),
+                variant.getId().equals(product.id())
+            ))
             .toList();
+    }
 
-        if (similarProductIds.isEmpty()) {
-            return groups;
-        }
-
-        Map<Long, ProductEntity> similarProductsById = productRepository.findAllById(similarProductIds)
-            .stream()
-            .collect(java.util.stream.Collectors.toMap(ProductEntity::getId, Function.identity()));
-
-        for (ProductResponse.SimilarProductSummary similarProduct : product.similarProducts()) {
-            ProductEntity entity = similarProductsById.get(similarProduct.id());
-            if (entity == null) {
-                continue;
-            }
-
-            groups.add(new ProductDetailsResponse.PartNumberGroup(
-                entity.getId(),
-                buildProductDisplayName(entity),
-                entity.getPartNumber(),
-                getAlternativePartNumbers(entity),
-                false
+    private List<ProductDetailsResponse.ProductVariantSummary> buildProductVariants(ProductResponse product) {
+        if (product.productGroupId() == null) {
+            return List.of(new ProductDetailsResponse.ProductVariantSummary(
+                product.id(),
+                product.name(),
+                product.brandName(),
+                product.partNumber(),
+                productStockRepository.sumQuantityByProductId(product.id()),
+                true
             ));
         }
 
-        return groups;
+        return productRepository.findByProductGroupIdOrderByBrandNameAscPartNumberAsc(product.productGroupId())
+            .stream()
+            .map(variant -> new ProductDetailsResponse.ProductVariantSummary(
+                variant.getId(),
+                variant.getName(),
+                variant.getBrand().getName(),
+                variant.getPartNumber(),
+                productStockRepository.sumQuantityByProductId(variant.getId()),
+                variant.getId().equals(product.id())
+            ))
+            .toList();
+    }
+
+    private ProductGroupEntity resolveProductGroup(ProductCategoryEntity category,
+                                                   String productName,
+                                                   String position,
+                                                   String dimension,
+                                                   Long similarProductId) {
+        if (similarProductId != null) {
+            ProductEntity similarProduct = productRepository.findById(similarProductId)
+                .orElseThrow(() -> new ResourceNotFoundException("Similar product not found: " + similarProductId));
+            if (similarProduct.getProductGroup() != null) {
+                return similarProduct.getProductGroup();
+            }
+
+            ProductGroupEntity group = findOrCreateProductGroup(
+                similarProduct.getCategory(),
+                similarProduct.getName(),
+                similarProduct.getPosition(),
+                similarProduct.getDimension()
+            );
+            similarProduct.setProductGroup(group);
+            productRepository.save(similarProduct);
+            return group;
+        }
+
+        return findOrCreateProductGroup(category, productName, position, dimension);
+    }
+
+    private ProductGroupEntity findOrCreateProductGroup(ProductCategoryEntity category,
+                                                        String productName,
+                                                        String position,
+                                                        String dimension) {
+        String normalizedKey = buildProductGroupKey(productName, position, dimension);
+        return productGroupRepository.findByCategoryIdAndNormalizedKey(category.getId(), normalizedKey)
+            .orElseGet(() -> {
+                ProductGroupEntity group = new ProductGroupEntity();
+                group.setCategory(category);
+                group.setName(productName);
+                group.setNormalizedKey(normalizedKey);
+                return productGroupRepository.save(group);
+            });
+    }
+
+    private String buildProductGroupKey(String productName, String position, String dimension) {
+        return java.util.stream.Stream.of(productName, position, dimension)
+            .filter(value -> value != null && !value.isBlank())
+            .map(value -> value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", ""))
+            .collect(java.util.stream.Collectors.joining("|"));
     }
 
     private String buildProductDisplayName(ProductEntity product) {

@@ -22,6 +22,8 @@ public record ProductResponse(
     String categoryName,
     Long brandId,
     String brandName,
+    Long productGroupId,
+    String productGroupName,
     Set<Long> applicationIds,
     List<String> applicationDisplayNames,
     String applicationSummary,
