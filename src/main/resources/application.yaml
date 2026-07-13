@@ -25,6 +25,10 @@ spring:
 
 app:
   product-image-directory: uploads/product-images
+  purchase:
+    default-tax-percent: 5.00
+  sale:
+    default-vat-percent: 5.00
 
 logging:
   level:

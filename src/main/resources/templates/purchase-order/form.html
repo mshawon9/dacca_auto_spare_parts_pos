@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<style>
+    .purchase-supplier-group .select2-container {
+        flex: 1 1 auto;
+        width: 1% !important;
+    }
+
+    .purchase-supplier-group .select2-container--bootstrap-5 .select2-selection {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+</style>
+<div class="app-wrapper">
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h3 class="mb-1" th:text="${formTitle}">Purchase Order Entry</h3>
+                        <div class="text-muted">Enter supplier invoice, map supplier product code, and update stock in one step.</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/purchase-orders}" class="btn btn-outline-primary">
+                            <i class="bi bi-list-ul me-1"></i> PO List
+                        </a>
+                        <a th:href="@{/inventory}" class="btn btn-outline-secondary">
+                            <i class="bi bi-box-seam me-1"></i> Inventory
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <form th:action="${formAction}" method="post" th:object="${form}" id="purchaseForm">
+                    <input type="hidden" th:field="*{id}">
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h3 class="card-title mb-0">Invoice Details</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-3 align-items-end">
+                                <div class="col-lg-4">
+                                    <label for="supplierId" class="form-label">Supplier <span class="text-danger">*</span></label>
+                                    <div class="input-group purchase-supplier-group">
+                                        <select id="supplierId" th:field="*{supplierId}" class="form-select js-select2"
+                                                data-placeholder="Search and select supplier" required>
+                                            <option value="">Select supplier</option>
+                                            <option th:each="supplier : ${suppliers}"
+                                                    th:value="${supplier.id()}"
+                                                    th:text="${supplier.name()}"></option>
+                                        </select>
+                                        <button type="button" class="btn btn-outline-primary"
+                                                data-bs-toggle="modal" data-bs-target="#supplierQuickModal">
+                                            Add
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="storeId" class="form-label">Warehouse <span class="text-danger">*</span></label>
+                                    <select id="storeId" th:field="*{storeId}" class="form-select" required>
+                                        <option value="">Select warehouse</option>
+                                        <option th:each="store : ${stores}"
+                                                th:value="${store.id()}"
+                                                th:text="${store.code() != null ? store.name() + ' (' + store.code() + ')' : store.name()}"></option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-2">
+                                    <label for="purchaseDate" class="form-label">Date <span class="text-danger">*</span></label>
+                                    <input type="date" id="purchaseDate" th:field="*{purchaseDate}" class="form-control" required>
+                                </div>
+                                <div class="col-lg-3">
+                                    <label for="invoiceId" class="form-label">Invoice ID <span class="text-danger">*</span></label>
+                                    <input type="text" id="invoiceId" th:field="*{invoiceId}" class="form-control" required
+                                           autocomplete="off" placeholder="Supplier invoice number">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div>
+                                <h3 class="card-title mb-0">Products</h3>
+                                <div class="small text-muted">Search once from the box below, add to table, then continue with the next product.</div>
+                            </div>
+                            <button type="submit" class="btn btn-success" form="purchaseForm">
+                                <i class="bi bi-check2-circle me-1"></i> <span th:text="${submitLabel}">Save & Update Stock</span>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-lg-5">
+                                    <label for="productSelect" class="form-label">Search Product / Brand</label>
+                                    <select id="productSelect" class="form-select"
+                                            data-placeholder="Search product, brand, or part number">
+                                        <option value="">Search product, brand, or part number</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-2">
+                                    <label for="quickQuantity" class="form-label">Qty</label>
+                                    <input type="number" id="quickQuantity" class="form-control form-control-lg"
+                                           min="1" step="1" value="1">
+                                </div>
+                                <div class="col-lg-2">
+                                    <label for="quickUnitPrice" class="form-label">Unit Price</label>
+                                    <input type="number" id="quickUnitPrice" class="form-control form-control-lg"
+                                           min="0.01" step="0.01" placeholder="0.00">
+                                </div>
+                                <div class="col-lg-1">
+                                    <label class="form-label">Total</label>
+                                    <div class="form-control form-control-lg bg-light fw-semibold text-end" id="quickLineTotal">0.00</div>
+                                </div>
+                                <div class="col-lg-2 d-grid">
+                                    <button type="button" id="addSelectedProductButton" class="btn btn-primary btn-lg">
+                                        <i class="bi bi-plus-circle me-1"></i> Add Product
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0 border-top">
+                            <div class="table-responsive">
+                                <table class="table table-hover align-middle mb-0" id="purchaseLineTable">
+                                    <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3" style="min-width: 300px;">Product</th>
+                                        <th style="width: 170px;">Supplier Product</th>
+                                        <th style="width: 120px;">Qty</th>
+                                        <th style="width: 140px;">Unit Price</th>
+                                        <th class="text-end" style="width: 130px;">Subtotal</th>
+                                        <th style="width: 120px;">Tax %</th>
+                                        <th class="text-end" style="width: 130px;">Tax</th>
+                                        <th class="text-end" style="width: 140px;">Total</th>
+                                        <th class="text-end pe-3" style="width: 80px;">Action</th>
+                                    </tr>
+                                    </thead>
+                                    <tbody id="purchaseLines">
+                                    <tr th:each="line, stat : *{lines}" th:attr="data-row-id=${stat.index}">
+                                        <td class="ps-3">
+                                            <input type="hidden" class="line-id" data-field="id" th:value="${line.id}">
+                                            <input type="hidden" class="line-product-id" data-field="productId" th:value="${line.productId}">
+                                            <input type="hidden" class="line-product-text" data-field="productText" th:value="${line.productText}">
+                                            <div class="fw-semibold product-label" th:text="${line.productText}">Selected product</div>
+                                            <div class="small text-muted">Selected product</div>
+                                        </td>
+                                        <td><input type="text" class="form-control supplier-code" data-field="supplierProductCode" maxlength="100" placeholder="Supplier code" th:value="${line.supplierProductCode}"></td>
+                                        <td><input type="number" class="form-control line-quantity" data-field="quantity" min="1" step="1" th:value="${line.quantity}"></td>
+                                        <td><input type="number" class="form-control line-unit-price" data-field="unitPrice" min="0.01" step="0.01" placeholder="0.00" th:value="${line.unitPrice}"></td>
+                                        <td class="text-end fw-semibold line-subtotal">0.00</td>
+                                        <td><input type="number" class="form-control line-tax-percent" data-field="taxPercent" min="0" step="0.01" th:value="${line.taxPercent}"></td>
+                                        <td class="text-end fw-semibold line-tax-amount">0.00</td>
+                                        <td class="text-end fw-semibold line-total">0.00</td>
+                                        <td class="text-end pe-3"><button type="button" class="btn btn-sm btn-outline-danger remove-line">Remove</button></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                                <div class="small text-muted">Empty rows are not submitted. Product rows are added only after selection.</div>
+                                <div class="d-flex align-items-center gap-3">
+                                    <div>Subtotal: <strong id="subTotal">0.00</strong></div>
+                                    <div>Tax: <strong id="taxTotal">0.00</strong></div>
+                                    <div class="fs-5">Total: <strong id="grandTotal">0.00</strong></div>
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="bi bi-check2-circle me-1"></i> <span th:text="${submitLabel}">Save & Update Stock</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <strong>Dacca POS</strong>
+        <span class="text-muted ms-2">Purchase order entry</span>
+    </footer>
+</div>
+
+<div class="modal fade" id="supplierQuickModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="supplierQuickForm">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="supplierQuickError" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label for="quickSupplierName" class="form-label">Name <span class="text-danger">*</span></label>
+                        <input type="text" id="quickSupplierName" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="quickSupplierContactPerson" class="form-label">Contact Person</label>
+                        <input type="text" id="quickSupplierContactPerson" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="quickSupplierPhone" class="form-label">Phone</label>
+                        <input type="text" id="quickSupplierPhone" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="quickSupplierEmail" class="form-label">Email</label>
+                        <input type="email" id="quickSupplierEmail" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="quickSupplierTrn" class="form-label">TRN Number</label>
+                        <input type="text" id="quickSupplierTrn" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="quickSupplierAddress" class="form-label">Address</label>
+                        <textarea id="quickSupplierAddress" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="quickSupplierActive" class="form-check-input" checked>
+                        <label for="quickSupplierActive" class="form-check-label">Active</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveQuickSupplierButton">Add Supplier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<script src="/resources/js/select2.min.js"></script>
+<script th:inline="javascript">
+    $(function () {
+        let lineIndex = $('#purchaseLines tr').length;
+        const supplierModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('supplierQuickModal'));
+        const defaultTaxPercent = Number(/*[[${defaultTaxPercent}]]*/ 5);
+
+        $('#supplierId').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            allowClear: true,
+            placeholder: function () {
+                return $(this).data('placeholder') || 'Select';
+            }
+        });
+
+        $('#productSelect').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            allowClear: true,
+            minimumInputLength: 2,
+            placeholder: $('#productSelect').data('placeholder') || 'Search product, brand, or part number',
+            ajax: {
+                url: '/purchase-orders/product-search',
+                dataType: 'json',
+                delay: 250,
+                data: function (params) {
+                    return { keyword: params.term || '' };
+                },
+                processResults: function (items) {
+                    return {
+                        results: $.map(items || [], function (item) {
+                            return { id: item.id, text: item.text };
+                        })
+                    };
+                }
+            }
+        });
+
+        function money(value) {
+            return (Number(value) || 0).toFixed(2);
+        }
+
+        function reindexLines() {
+            $('#purchaseLines tr').each(function (index) {
+                $(this).find('[data-field]').each(function () {
+                    $(this).attr('name', 'lines[' + index + '].' + $(this).attr('data-field'));
+                });
+            });
+        }
+
+        function calculateTotals() {
+            let subTotalAmount = 0;
+            let taxTotalAmount = 0;
+            let grandTotal = 0;
+            $('#purchaseLines tr').each(function () {
+                const quantity = Number($(this).find('.line-quantity').val()) || 0;
+                const unitPrice = Number($(this).find('.line-unit-price').val()) || 0;
+                const taxPercent = Number($(this).find('.line-tax-percent').val()) || 0;
+                const subTotal = quantity * unitPrice;
+                const taxAmount = subTotal * taxPercent / 100;
+                const lineTotal = subTotal + taxAmount;
+                subTotalAmount += subTotal;
+                taxTotalAmount += taxAmount;
+                grandTotal += lineTotal;
+                $(this).find('.line-subtotal').text(money(subTotal));
+                $(this).find('.line-tax-amount').text(money(taxAmount));
+                $(this).find('.line-total').text(money(lineTotal));
+            });
+            $('#subTotal').text(money(subTotalAmount));
+            $('#taxTotal').text(money(taxTotalAmount));
+            $('#grandTotal').text(money(grandTotal));
+        }
+
+        function calculateQuickTotal() {
+            const quantity = Number($('#quickQuantity').val()) || 0;
+            const unitPrice = Number($('#quickUnitPrice').val()) || 0;
+            const subTotal = quantity * unitPrice;
+            const taxAmount = subTotal * defaultTaxPercent / 100;
+            $('#quickLineTotal').text(money(subTotal + taxAmount));
+        }
+
+        function loadQuickSupplierProduct(productId) {
+            const supplierId = $('#supplierId').val();
+            if (!supplierId || !productId) {
+                return;
+            }
+            $.get('/purchase-orders/supplier-product-code', {supplierId: supplierId, productId: productId})
+                .done(function (response) {
+                    if (response.priceValue && !$('#quickUnitPrice').val()) {
+                        $('#quickUnitPrice').val(response.priceValue);
+                        calculateQuickTotal();
+                    }
+                });
+        }
+
+        function addLine(product) {
+            const rowId = lineIndex++;
+            const row = $(
+                '<tr>' +
+                '<td class="ps-3">' +
+                '<input type="hidden" class="line-id" data-field="id">' +
+                '<input type="hidden" class="line-product-id" data-field="productId">' +
+                '<input type="hidden" class="line-product-text" data-field="productText">' +
+                '<div class="fw-semibold product-label"></div>' +
+                '<div class="small text-muted">Selected product</div>' +
+                '</td>' +
+                '<td><input type="text" class="form-control supplier-code" data-field="supplierProductCode" maxlength="100" placeholder="Supplier code"></td>' +
+                '<td><input type="number" class="form-control line-quantity" data-field="quantity" min="1" step="1" value="1"></td>' +
+                '<td><input type="number" class="form-control line-unit-price" data-field="unitPrice" min="0.01" step="0.01" placeholder="0.00"></td>' +
+                '<td class="text-end fw-semibold line-subtotal">0.00</td>' +
+                '<td><input type="number" class="form-control line-tax-percent" data-field="taxPercent" min="0" step="0.01" value="0"></td>' +
+                '<td class="text-end fw-semibold line-tax-amount">0.00</td>' +
+                '<td class="text-end fw-semibold line-total">0.00</td>' +
+                '<td class="text-end pe-3"><button type="button" class="btn btn-sm btn-outline-danger remove-line">Remove</button></td>' +
+                '</tr>'
+            ).attr('data-row-id', rowId);
+            row.find('.line-product-id').val(product.id);
+            row.find('.line-product-text').val(product.text);
+            row.find('.product-label').text(product.text);
+            row.find('.line-quantity').val($('#quickQuantity').val() || '1');
+            row.find('.line-unit-price').val($('#quickUnitPrice').val() || '');
+            row.find('.line-tax-percent').val(defaultTaxPercent.toFixed(2));
+            $('#purchaseLines').prepend(row);
+            reindexLines();
+            loadSupplierProduct(row);
+            calculateTotals();
+        }
+
+        function loadSupplierProduct(row) {
+            const supplierId = $('#supplierId').val();
+            const productId = row.find('.line-product-id').val();
+            if (!supplierId || !productId) {
+                return;
+            }
+            $.get('/purchase-orders/supplier-product-code', {supplierId: supplierId, productId: productId})
+                .done(function (response) {
+                    if (response.supplierProductCode) {
+                        row.find('.supplier-code').val(response.supplierProductCode);
+                    }
+                    if (response.priceValue && !row.find('.line-unit-price').val()) {
+                        row.find('.line-unit-price').val(response.priceValue);
+                    }
+                    calculateTotals();
+                });
+        }
+
+        $('#supplierId').on('change', function () {
+            $('#purchaseLines tr').each(function () {
+                loadSupplierProduct($(this));
+            });
+            if ($('#productSelect').val()) {
+                $('#quickUnitPrice').val('');
+                calculateQuickTotal();
+                loadQuickSupplierProduct($('#productSelect').val());
+            }
+        });
+
+        $('#purchaseLines').on('input', '.line-quantity, .line-unit-price, .line-tax-percent', calculateTotals);
+
+        $('#purchaseLines').on('click', '.remove-line', function () {
+            $(this).closest('tr').remove();
+            reindexLines();
+            calculateTotals();
+        });
+
+        $('#purchaseLines').on('keydown', '.line-unit-price', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                $('#productSelect').select2('open');
+            }
+        });
+
+        $('#addSelectedProductButton').on('click', function () {
+            const selectedProductId = $('#productSelect').val();
+            if (!selectedProductId) {
+                alert('Please select a product from search results.');
+                $('#productSelect').select2('open');
+                return;
+            }
+            const quantity = Number($('#quickQuantity').val()) || 0;
+            if (quantity <= 0 || quantity % 1 !== 0) {
+                alert('Quantity must be a whole number greater than zero.');
+                $('#quickQuantity').trigger('focus').select();
+                return;
+            }
+            const unitPrice = Number($('#quickUnitPrice').val()) || 0;
+            if (unitPrice <= 0) {
+                alert('Unit price must be greater than zero.');
+                $('#quickUnitPrice').trigger('focus').select();
+                return;
+            }
+            const selectedOption = $('#productSelect').select2('data')[0];
+            addLine({
+                id: selectedProductId,
+                text: selectedOption ? selectedOption.text : 'Selected product'
+            });
+            $('#productSelect').val('').trigger('change');
+            $('#quickQuantity').val('1');
+            $('#quickUnitPrice').val('');
+            calculateQuickTotal();
+            $('#productSelect').select2('open');
+        });
+
+        $('#productSelect').on('select2:select', function () {
+            $('#quickUnitPrice').val('');
+            calculateQuickTotal();
+            loadQuickSupplierProduct($('#productSelect').val());
+            $('#quickQuantity').trigger('focus').select();
+        });
+
+        $('#quickQuantity, #quickUnitPrice').on('input', calculateQuickTotal);
+
+        $('#quickQuantity').on('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                $('#quickUnitPrice').trigger('focus').select();
+            }
+        });
+
+        $('#quickUnitPrice').on('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                $('#addSelectedProductButton').trigger('click');
+            }
+        });
+
+        $('#purchaseForm').on('submit', function (event) {
+            let validLines = 0;
+            $('#purchaseLines tr').each(function () {
+                if ($(this).find('.line-product-id').val()) {
+                    validLines++;
+                }
+            });
+            if (validLines === 0) {
+                event.preventDefault();
+                alert('Add at least one product.');
+                $('#productSelect').select2('open');
+            }
+        });
+
+        $('#supplierQuickForm').on('submit', function (event) {
+            event.preventDefault();
+            $('#supplierQuickError').addClass('d-none').empty();
+            $('#saveQuickSupplierButton').prop('disabled', true).text('Adding...');
+            $.ajax({
+                url: '/api/v1/suppliers',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    name: ($('#quickSupplierName').val() || '').trim(),
+                    contactPerson: ($('#quickSupplierContactPerson').val() || '').trim() || null,
+                    phone: ($('#quickSupplierPhone').val() || '').trim() || null,
+                    email: ($('#quickSupplierEmail').val() || '').trim() || null,
+                    trnNumber: ($('#quickSupplierTrn').val() || '').trim() || null,
+                    address: ($('#quickSupplierAddress').val() || '').trim() || null,
+                    active: $('#quickSupplierActive').is(':checked')
+                })
+            }).done(function (supplier) {
+                const option = $('<option>', {value: supplier.id, text: supplier.name});
+                $('#supplierId').append(option).val(supplier.id).trigger('change');
+                $('#quickSupplierName, #quickSupplierContactPerson, #quickSupplierPhone, #quickSupplierEmail, #quickSupplierTrn, #quickSupplierAddress').val('');
+                $('#quickSupplierActive').prop('checked', true);
+                supplierModal.hide();
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open').css('padding-right', '');
+                $('#invoiceId').trigger('focus');
+            }).fail(function (xhr) {
+                const message = xhr.responseJSON && (xhr.responseJSON.error || xhr.responseJSON.message)
+                    ? (xhr.responseJSON.error || xhr.responseJSON.message)
+                    : 'Could not add supplier.';
+                $('#supplierQuickError').text(message).removeClass('d-none');
+            }).always(function () {
+                $('#saveQuickSupplierButton').prop('disabled', false).text('Add Supplier');
+            });
+        });
+        $('#supplierQuickModal').on('hidden.bs.modal', function () {
+            $('.modal-backdrop').remove();
+            $('body').removeClass('modal-open').css('padding-right', '');
+        });
+
+        reindexLines();
+        calculateTotals();
+        calculateQuickTotal();
+    });
+</script>
+</body>
+</html>

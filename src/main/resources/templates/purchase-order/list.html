@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<div class="app-wrapper">
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h3 class="mb-1">Purchase Orders</h3>
+                        <div class="text-muted">Search invoices, review details, edit open POs, and return items.</div>
+                    </div>
+                    <a th:href="@{/purchase-orders/create}" class="btn btn-primary">
+                        <i class="bi bi-plus-circle me-1"></i> New Purchase Entry
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <form th:action="@{/purchase-orders}" method="get" class="row g-2 align-items-end">
+                            <div class="col-md-9">
+                                <label for="keyword" class="form-label">Search Purchase Orders</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="keyword" name="keyword" class="form-control"
+                                           th:value="${keyword}"
+                                           placeholder="Invoice, supplier, warehouse, product, brand, part number, supplier code...">
+                                </div>
+                            </div>
+                            <div class="col-md-3 d-flex gap-2">
+                                <button type="submit" class="btn btn-primary flex-fill">Search</button>
+                                <a th:href="@{/purchase-orders}" class="btn btn-outline-secondary">Reset</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <h3 class="card-title mb-0">PO List</h3>
+                        <span class="badge text-bg-light border" th:text="${purchaseOrderPage.totalElements} + ' purchase orders'">0 purchase orders</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Invoice</th>
+                                    <th>Date</th>
+                                    <th>Supplier</th>
+                                    <th>Warehouse</th>
+                                    <th class="text-end">Items</th>
+                                    <th class="text-end">Returned</th>
+                                    <th class="text-end">Total</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-3">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(purchaseOrders)}">
+                                    <td colspan="9" class="text-center text-muted py-5">No purchase order found.</td>
+                                </tr>
+                                <tr th:each="po : ${purchaseOrders}">
+                                    <td class="ps-3 fw-semibold" th:text="${po.invoiceId()}">INV-1</td>
+                                    <td th:text="${po.purchaseDate()}">2026-07-13</td>
+                                    <td th:text="${po.supplierName()}">Supplier</td>
+                                    <td th:text="${po.storeName()}">Warehouse</td>
+                                    <td class="text-end" th:text="${po.lineCount()}">0</td>
+                                    <td class="text-end">
+                                        <span th:if="${po.hasReturns()}" class="badge text-bg-warning"
+                                              th:text="${po.returnedQuantity().stripTrailingZeros().toPlainString()}">0</span>
+                                        <span th:unless="${po.hasReturns()}" class="text-muted">0</span>
+                                    </td>
+                                    <td class="text-end fw-semibold" th:text="${po.total()}">0.00</td>
+                                    <td>
+                                        <span th:if="${po.hasReturns()}" class="badge text-bg-warning">Partial Return</span>
+                                        <span th:unless="${po.hasReturns()}" class="badge text-bg-success">Open</span>
+                                    </td>
+                                    <td class="text-end pe-3">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-info js-po-details"
+                                                    data-bs-toggle="modal" data-bs-target="#poDetailsModal"
+                                                    th:attr="data-id=${po.id()}">
+                                                Details
+                                            </button>
+                                            <a class="btn btn-sm btn-warning"
+                                               th:classappend="${po.hasReturns()} ? ' disabled' : ''"
+                                               th:href="${po.hasReturns()} ? '#' : @{/purchase-orders/{id}/edit(id=${po.id()})}">
+                                                Edit
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger js-po-return"
+                                                    data-bs-toggle="modal" data-bs-target="#poReturnModal"
+                                                    th:attr="data-id=${po.id()}">
+                                                Return
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="small text-muted">
+                                Page <span th:text="${purchaseOrderPage.totalPages == 0 ? 0 : purchaseOrderPage.number + 1}">1</span>
+                                of <span th:text="${purchaseOrderPage.totalPages}">1</span>
+                                <span class="ms-2" th:text="${purchaseOrderPage.totalElements} + ' purchase orders'">0 purchase orders</span>
+                            </div>
+                            <div class="btn-group">
+                                <a class="btn btn-outline-secondary"
+                                   th:classappend="${!purchaseOrderPage.hasPrevious()} ? ' disabled' : ''"
+                                   th:href="${purchaseOrderPage.hasPrevious()} ? @{/purchase-orders(page=${purchaseOrderPage.number - 1}, keyword=${keyword})} : '#'">
+                                    <i class="bi bi-chevron-left me-1"></i> Previous
+                                </a>
+                                <a class="btn btn-outline-primary"
+                                   th:classappend="${!purchaseOrderPage.hasNext()} ? ' disabled' : ''"
+                                   th:href="${purchaseOrderPage.hasNext()} ? @{/purchase-orders(page=${purchaseOrderPage.number + 1}, keyword=${keyword})} : '#'">
+                                    Next <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <strong>Dacca POS</strong>
+        <span class="text-muted ms-2">Purchase order list</span>
+    </footer>
+</div>
+
+<div class="modal fade" id="poDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Purchase Order Details</h5>
+                    <div class="small text-muted" id="poDetailsHeader">Loading...</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="poDetailsError" class="alert alert-danger d-none"></div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light">
+                        <tr>
+                            <th>Product</th>
+                            <th>Supplier Code</th>
+                            <th class="text-end">Qty</th>
+                            <th class="text-end">Returned</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Tax</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                        </thead>
+                        <tbody id="poDetailsLines"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="poReturnModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" id="poReturnForm">
+                <div class="modal-header">
+                    <div>
+                        <h5 class="modal-title">Return Purchase Item</h5>
+                        <div class="small text-muted" id="poReturnHeader">Select item and quantity to return.</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="poReturnError" class="alert alert-danger d-none"></div>
+                    <div class="mb-3">
+                        <label for="returnLineId" class="form-label">Item <span class="text-danger">*</span></label>
+                        <select id="returnLineId" name="lineId" class="form-select" required></select>
+                        <div class="form-text" id="returnLineHelp">Only items with remaining return quantity are shown.</div>
+                    </div>
+                    <div>
+                        <label for="returnQuantity" class="form-label">Return Quantity <span class="text-danger">*</span></label>
+                        <input type="number" id="returnQuantity" name="quantity" class="form-control form-control-lg"
+                               min="1" step="1" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger" id="returnSubmitButton">Return & Update Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<script>
+    $(function () {
+        function money(value) {
+            return (Number(value) || 0).toFixed(2);
+        }
+
+        function quantity(value) {
+            const number = Number(value) || 0;
+            return Number.isInteger(number) ? String(number) : String(number);
+        }
+
+        function loadPo(id, onSuccess, onError) {
+            $.get('/purchase-orders/' + id + '/detail-json')
+                .done(onSuccess)
+                .fail(function () {
+                    if (onError) {
+                        onError();
+                    }
+                });
+        }
+
+        $('.js-po-details').on('click', function () {
+            const id = $(this).attr('data-id');
+            $('#poDetailsError').addClass('d-none').empty();
+            $('#poDetailsHeader').text('Loading...');
+            $('#poDetailsLines').empty();
+            loadPo(id, function (po) {
+                $('#poDetailsHeader').text('Invoice ' + po.invoiceId + ' | ' + po.supplierName + ' | ' + po.storeName + ' | Total ' + money(po.total));
+                $.each(po.lines || [], function (_, line) {
+                    $('<tr>' +
+                        '<td><div class="fw-semibold"></div><div class="small text-muted"></div></td>' +
+                        '<td></td>' +
+                        '<td class="text-end"></td>' +
+                        '<td class="text-end"></td>' +
+                        '<td class="text-end"></td>' +
+                        '<td class="text-end"></td>' +
+                        '<td class="text-end fw-semibold"></td>' +
+                        '</tr>')
+                        .find('td:eq(0) .fw-semibold').text(line.productName).end()
+                        .find('td:eq(0) .small').text('Brand: ' + line.brandName + ' | Part: ' + line.partNumber).end()
+                        .find('td:eq(1)').text(line.supplierProductCode || '-').end()
+                        .find('td:eq(2)').text(quantity(line.quantity)).end()
+                        .find('td:eq(3)').text(quantity(line.returnedQuantity)).end()
+                        .find('td:eq(4)').text(money(line.unitPrice)).end()
+                        .find('td:eq(5)').text(money(line.taxAmount)).end()
+                        .find('td:eq(6)').text(money(line.lineTotal)).end()
+                        .appendTo('#poDetailsLines');
+                });
+            }, function () {
+                $('#poDetailsHeader').text('Could not load purchase order.');
+                $('#poDetailsError').text('Could not load purchase order details.').removeClass('d-none');
+            });
+        });
+
+        $('.js-po-return').on('click', function () {
+            const id = $(this).attr('data-id');
+            $('#poReturnError').addClass('d-none').empty();
+            $('#poReturnHeader').text('Loading...');
+            $('#returnLineId').empty();
+            $('#returnQuantity').val('');
+            $('#poReturnForm').attr('action', '/purchase-orders/' + id + '/return');
+            $('#returnSubmitButton').prop('disabled', true);
+            loadPo(id, function (po) {
+                $('#poReturnHeader').text('Invoice ' + po.invoiceId + ' | ' + po.supplierName + ' | Warehouse: ' + po.storeName);
+                const returnableLines = (po.lines || []).filter(function (line) {
+                    return Number(line.returnableQuantity) > 0;
+                });
+                if (!returnableLines.length) {
+                    $('#returnLineId').append($('<option>', {value: '', text: 'No returnable item left'}));
+                    $('#poReturnError').text('All items in this PO are already fully returned.').removeClass('d-none');
+                    return;
+                }
+                $('#returnLineId').append($('<option>', {value: '', text: 'Select item'}));
+                $.each(returnableLines, function (_, line) {
+                    $('<option>', {
+                        value: line.id,
+                        text: line.productName + ' | Brand: ' + line.brandName + ' | Part: ' + line.partNumber + ' | Returnable: ' + quantity(line.returnableQuantity)
+                    }).attr('data-max', line.returnableQuantity).appendTo('#returnLineId');
+                });
+                $('#returnSubmitButton').prop('disabled', false);
+            }, function () {
+                $('#poReturnHeader').text('Could not load purchase order.');
+                $('#poReturnError').text('Could not load purchase order details.').removeClass('d-none');
+            });
+        });
+
+        $('#returnLineId').on('change', function () {
+            const max = Number($(this).find('option:selected').attr('data-max')) || 0;
+            $('#returnQuantity').attr('max', max || '').val(max ? 1 : '');
+        });
+
+        $('#poReturnForm').on('submit', function (event) {
+            const max = Number($('#returnLineId option:selected').attr('data-max')) || 0;
+            const quantityValue = Number($('#returnQuantity').val()) || 0;
+            if (!$('#returnLineId').val() || quantityValue <= 0 || quantityValue % 1 !== 0 || quantityValue > max) {
+                event.preventDefault();
+                $('#poReturnError')
+                    .text('Return quantity must be a whole number and cannot be more than returnable quantity.')
+                    .removeClass('d-none');
+            }
+        });
+    });
+</script>
+</body>
+</html>
