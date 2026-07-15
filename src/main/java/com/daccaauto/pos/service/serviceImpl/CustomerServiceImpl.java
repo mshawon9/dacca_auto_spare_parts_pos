@@ -35,6 +35,7 @@ public class CustomerServiceImpl implements CustomerService {
         entity.setAddress(trimToNull(request.getAddress()));
         entity.setTrnNumber(trimToNull(request.getTrnNumber()));
         entity.setActive(request.getActive() == null || request.getActive());
+        entity.setAlwaysCredit(Boolean.TRUE.equals(request.getAlwaysCredit()));
         return map(customerRepository.save(entity));
     }
 
@@ -54,6 +55,7 @@ public class CustomerServiceImpl implements CustomerService {
         entity.setAddress(trimToNull(request.getAddress()));
         entity.setTrnNumber(trimToNull(request.getTrnNumber()));
         entity.setActive(request.getActive() == null || request.getActive());
+        entity.setAlwaysCredit(Boolean.TRUE.equals(request.getAlwaysCredit()));
         return map(customerRepository.save(entity));
     }
 
@@ -79,7 +81,8 @@ public class CustomerServiceImpl implements CustomerService {
             entity.getEmail(),
             entity.getAddress(),
             entity.getTrnNumber(),
-            entity.isActive()
+            entity.isActive(),
+            entity.isAlwaysCredit()
         );
     }
 

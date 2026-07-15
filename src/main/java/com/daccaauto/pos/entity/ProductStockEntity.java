@@ -1,7 +1,6 @@
 package com.daccaauto.pos.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,7 +38,6 @@ public class ProductStockEntity extends BaseEntity {
     private ProductEntity product;
 
     @NotNull
-    @DecimalMin("0.000")
     @Column(nullable = false, precision = 19, scale = 3)
     private BigDecimal quantity = BigDecimal.ZERO;
 

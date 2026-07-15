@@ -4,6 +4,7 @@ import com.daccaauto.pos.entity.ProductSupplierEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductSupplierRepository extends JpaRepository<ProductSupplierEntity, Long> {
 
@@ -14,4 +15,6 @@ public interface ProductSupplierRepository extends JpaRepository<ProductSupplier
     List<ProductSupplierEntity> findByProductIdOrderBySupplierNameAsc(Long productId);
 
     List<ProductSupplierEntity> findBySupplierIdOrderByProductNameAsc(Long supplierId);
+
+    Optional<ProductSupplierEntity> findByProductIdAndSupplierId(Long productId, Long supplierId);
 }

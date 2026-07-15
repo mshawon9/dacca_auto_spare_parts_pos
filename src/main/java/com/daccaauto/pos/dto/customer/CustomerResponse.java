@@ -8,6 +8,7 @@ public record CustomerResponse(
     String email,
     String address,
     String trnNumber,
-    boolean active
+    boolean active,
+    boolean alwaysCredit
 ) {
 }

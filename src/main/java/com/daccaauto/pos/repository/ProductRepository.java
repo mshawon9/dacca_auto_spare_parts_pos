@@ -83,6 +83,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
         from ProductEntity p
         left join ProductApplicationEntity pa on pa.product.id = p.id
         left join pa.vehicleApplication va
+        left join va.vehicleMake vmake
+        left join va.vehicleModel vmodel
         left join ProductAlternativePartNumberEntity alt on alt.product.id = p.id
         where (:keywordPattern is null or
                lower(p.name) like :keywordPattern or
@@ -94,7 +96,14 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                lower(coalesce(p.alternativePartNumber, '')) like :keywordPattern or
                lower(coalesce(alt.partNumber, '')) like :keywordPattern or
                lower(coalesce(p.barcode, '')) like :keywordPattern or
-               lower(coalesce(va.displayName, '')) like :keywordPattern)
+               lower(coalesce(va.displayName, '')) like :keywordPattern or
+               (:applicationYear is not null
+                   and (:applicationKeywordPattern is null or
+                       lower(coalesce(va.displayName, '')) like :applicationKeywordPattern
+                       or lower(coalesce(vmake.name, '')) like :applicationKeywordPattern
+                       or lower(coalesce(vmodel.name, '')) like :applicationKeywordPattern)
+                   and (:applicationYear >= coalesce(va.yearFrom, :applicationYear))
+                   and (:applicationYear <= coalesce(va.yearTo, :applicationYear))))
           and (:categoryId is null or p.category.id = :categoryId)
           and (:brandId is null or p.brand.id = :brandId)
           and (:applicationId is null or va.id = :applicationId)
@@ -102,6 +111,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
         order by p.name asc, p.partNumber asc
         """)
     List<ProductEntity> search(@Param("keywordPattern") String keywordPattern,
+                               @Param("applicationKeywordPattern") String applicationKeywordPattern,
+                               @Param("applicationYear") Integer applicationYear,
                                @Param("categoryId") Long categoryId,
                                @Param("brandId") Long brandId,
                                @Param("applicationId") Long applicationId,
@@ -113,6 +124,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             from ProductEntity p
             left join ProductApplicationEntity pa on pa.product.id = p.id
             left join pa.vehicleApplication va
+            left join va.vehicleMake vmake
+            left join va.vehicleModel vmodel
             left join ProductAlternativePartNumberEntity alt on alt.product.id = p.id
             where (:keywordPattern is null or
                    lower(p.name) like :keywordPattern or
@@ -124,7 +137,14 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                    lower(coalesce(p.alternativePartNumber, '')) like :keywordPattern or
                    lower(coalesce(alt.partNumber, '')) like :keywordPattern or
                    lower(coalesce(p.barcode, '')) like :keywordPattern or
-                   lower(coalesce(va.displayName, '')) like :keywordPattern)
+                   lower(coalesce(va.displayName, '')) like :keywordPattern or
+                   (:applicationYear is not null
+                       and (:applicationKeywordPattern is null or
+                           lower(coalesce(va.displayName, '')) like :applicationKeywordPattern
+                           or lower(coalesce(vmake.name, '')) like :applicationKeywordPattern
+                           or lower(coalesce(vmodel.name, '')) like :applicationKeywordPattern)
+                       and (:applicationYear >= coalesce(va.yearFrom, :applicationYear))
+                       and (:applicationYear <= coalesce(va.yearTo, :applicationYear))))
               and (:categoryId is null or p.category.id = :categoryId)
               and (:brandId is null or p.brand.id = :brandId)
               and (:applicationId is null or va.id = :applicationId)
@@ -135,6 +155,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             from ProductEntity p
             left join ProductApplicationEntity pa on pa.product.id = p.id
             left join pa.vehicleApplication va
+            left join va.vehicleMake vmake
+            left join va.vehicleModel vmodel
             left join ProductAlternativePartNumberEntity alt on alt.product.id = p.id
             where (:keywordPattern is null or
                    lower(p.name) like :keywordPattern or
@@ -146,7 +168,14 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                    lower(coalesce(p.alternativePartNumber, '')) like :keywordPattern or
                    lower(coalesce(alt.partNumber, '')) like :keywordPattern or
                    lower(coalesce(p.barcode, '')) like :keywordPattern or
-                   lower(coalesce(va.displayName, '')) like :keywordPattern)
+                   lower(coalesce(va.displayName, '')) like :keywordPattern or
+                   (:applicationYear is not null
+                       and (:applicationKeywordPattern is null or
+                           lower(coalesce(va.displayName, '')) like :applicationKeywordPattern
+                           or lower(coalesce(vmake.name, '')) like :applicationKeywordPattern
+                           or lower(coalesce(vmodel.name, '')) like :applicationKeywordPattern)
+                       and (:applicationYear >= coalesce(va.yearFrom, :applicationYear))
+                       and (:applicationYear <= coalesce(va.yearTo, :applicationYear))))
               and (:categoryId is null or p.category.id = :categoryId)
               and (:brandId is null or p.brand.id = :brandId)
               and (:applicationId is null or va.id = :applicationId)
@@ -154,6 +183,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             """
     )
     Page<ProductEntity> searchPage(@Param("keywordPattern") String keywordPattern,
+                                   @Param("applicationKeywordPattern") String applicationKeywordPattern,
+                                   @Param("applicationYear") Integer applicationYear,
                                    @Param("categoryId") Long categoryId,
                                    @Param("brandId") Long brandId,
                                    @Param("applicationId") Long applicationId,

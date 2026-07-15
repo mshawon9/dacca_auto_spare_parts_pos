@@ -20,11 +20,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class VehicleApplicationServiceImpl implements VehicleApplicationService {
+
+    private static final Pattern YEAR_PATTERN = Pattern.compile("\\b(19\\d{2}|20\\d{2}|2100)\\b");
 
     private final VehicleApplicationRepository vehicleApplicationRepository;
     private final VehicleMakeRepository vehicleMakeRepository;
@@ -114,14 +118,10 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
             entities = vehicleApplicationRepository.findAllByOrderByDisplayNameAsc();
         }
 
-        String q = keyword == null ? null : keyword.trim().toLowerCase(Locale.ROOT);
+        ApplicationKeyword applicationKeyword = parseApplicationKeyword(keyword);
 
         return entities.stream()
-                .filter(e -> q == null || q.isBlank()
-                        || e.getDisplayName().toLowerCase(Locale.ROOT).contains(q)
-                        || e.getVehicleMake().getName().toLowerCase(Locale.ROOT).contains(q)
-                        || e.getVehicleModel().getName().toLowerCase(Locale.ROOT).contains(q)
-                        || (e.getVariantLabel() != null && e.getVariantLabel().toLowerCase(Locale.ROOT).contains(q)))
+                .filter(e -> matchesKeyword(e, applicationKeyword))
                 .map(this::map)
                 .toList();
     }
@@ -201,5 +201,53 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
 
     private String trimToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private boolean matchesKeyword(VehicleApplicationEntity application, ApplicationKeyword keyword) {
+        if (keyword.original() == null) {
+            return true;
+        }
+
+        boolean textMatches = contains(application.getDisplayName(), keyword.text())
+            || contains(application.getVehicleMake().getName(), keyword.text())
+            || contains(application.getVehicleModel().getName(), keyword.text())
+            || contains(application.getVariantLabel(), keyword.text());
+
+        if (keyword.year() == null) {
+            return textMatches;
+        }
+
+        return textMatches && matchesYear(application, keyword.year());
+    }
+
+    private boolean matchesYear(VehicleApplicationEntity application, Integer year) {
+        Integer yearFrom = application.getYearFrom();
+        Integer yearTo = application.getYearTo();
+        return (yearFrom == null || year >= yearFrom)
+            && (yearTo == null || year <= yearTo);
+    }
+
+    private boolean contains(String value, String keyword) {
+        return keyword == null || keyword.isBlank()
+            || (value != null && value.toLowerCase(Locale.ROOT).contains(keyword));
+    }
+
+    private ApplicationKeyword parseApplicationKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return new ApplicationKeyword(null, null, null);
+        }
+
+        String normalized = keyword.trim().toLowerCase(Locale.ROOT);
+        Matcher matcher = YEAR_PATTERN.matcher(normalized);
+        if (!matcher.find()) {
+            return new ApplicationKeyword(normalized, normalized, null);
+        }
+
+        Integer year = Integer.valueOf(matcher.group(1));
+        String text = matcher.replaceAll(" ").trim().replaceAll("\\s+", " ");
+        return new ApplicationKeyword(normalized, text, year);
+    }
+
+    private record ApplicationKeyword(String original, String text, Integer year) {
     }
 }

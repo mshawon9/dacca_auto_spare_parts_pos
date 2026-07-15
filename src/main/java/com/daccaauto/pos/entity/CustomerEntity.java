@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 @Getter
 @Setter
@@ -56,4 +57,8 @@ public class CustomerEntity extends BaseEntity {
 
     @Column(nullable = false)
     private boolean active = true;
+
+    @ColumnDefault("false")
+    @Column(name = "always_credit", nullable = false)
+    private boolean alwaysCredit = false;
 }

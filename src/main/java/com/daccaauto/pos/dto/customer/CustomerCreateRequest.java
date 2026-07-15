@@ -36,4 +36,6 @@ public class CustomerCreateRequest {
     private String address;
 
     private Boolean active = true;
+
+    private Boolean alwaysCredit = false;
 }

@@ -23,11 +23,15 @@ import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
 import java.math.BigDecimal;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class ProductServiceImpl implements ProductService {
+
+    private static final Pattern YEAR_PATTERN = Pattern.compile("\\b(19\\d{2}|20\\d{2}|2100)\\b");
 
     private final ProductApplicationRepository productApplicationRepository;
     private final ProductCategoryRepository categoryRepository;
@@ -241,9 +245,12 @@ public class ProductServiceImpl implements ProductService {
                                         Boolean active) {
 
         String keywordPattern = normalizeKeywordPattern(keyword);
+        ApplicationKeyword applicationKeyword = parseApplicationKeyword(keyword);
 
         List<ProductEntity> products = productRepository.search(
                 keywordPattern,
+                applicationKeyword.pattern(),
+                applicationKeyword.year(),
                 categoryId,
                 brandId,
                 applicationId,
@@ -267,9 +274,12 @@ public class ProductServiceImpl implements ProductService {
                                             Long applicationId,
                                             Boolean active,
                                             Pageable pageable) {
+        ApplicationKeyword applicationKeyword = parseApplicationKeyword(keyword);
 
         return productRepository.searchPage(
                 normalizeKeywordPattern(keyword),
+                applicationKeyword.pattern(),
+                applicationKeyword.year(),
                 categoryId,
                 brandId,
                 applicationId,
@@ -290,6 +300,25 @@ public class ProductServiceImpl implements ProductService {
             return null;
         }
         return keyword.trim();
+    }
+
+    private ApplicationKeyword parseApplicationKeyword(String keyword) {
+        if (keyword == null || keyword.isBlank()) {
+            return new ApplicationKeyword(null, null);
+        }
+
+        Matcher matcher = YEAR_PATTERN.matcher(keyword);
+        if (!matcher.find()) {
+            return new ApplicationKeyword(null, null);
+        }
+
+        Integer year = Integer.valueOf(matcher.group(1));
+        String text = matcher.replaceAll(" ").trim().replaceAll("\\s+", " ");
+        if (text.isBlank()) {
+            return new ApplicationKeyword(null, year);
+        }
+
+        return new ApplicationKeyword("%" + text.toLowerCase(Locale.ROOT) + "%", year);
     }
 
     @Override
@@ -678,5 +707,8 @@ public class ProductServiceImpl implements ProductService {
 
     private String trimToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private record ApplicationKeyword(String pattern, Integer year) {
     }
 }
