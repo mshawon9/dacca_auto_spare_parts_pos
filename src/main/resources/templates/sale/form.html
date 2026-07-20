@@ -26,6 +26,118 @@
         padding-top: .28rem;
         padding-bottom: .28rem;
     }
+
+    #saleToastContainer .toast {
+        min-width: 320px;
+        color: #212529;
+        background: #ffffff;
+        border: 1px solid rgba(0, 0, 0, .12);
+        box-shadow: 0 .5rem 1rem rgba(0, 0, 0, .2);
+    }
+
+    #saleToastContainer .toast-header {
+        color: #ffffff;
+        border-bottom: 0;
+    }
+
+    #saleToastContainer .toast-body {
+        color: #212529;
+        background: #ffffff;
+        font-weight: 500;
+    }
+
+    #saleToastContainer .toast-success .toast-header {
+        background: #198754;
+    }
+
+    #saleToastContainer .toast-danger .toast-header {
+        background: #dc3545;
+    }
+
+    #saleToastContainer .toast-info .toast-header {
+        background: #0d6efd;
+    }
+
+    #saleToastContainer .toast .btn-close {
+        filter: invert(1) grayscale(100%) brightness(200%);
+    }
+
+    .sale-payment-strip {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: end;
+        gap: .75rem;
+    }
+
+    .sale-payment-strip .sale-items-box {
+        min-width: 110px;
+    }
+
+    .sale-payment-strip .sale-pay-by {
+        width: 135px;
+    }
+
+    .sale-payment-strip .sale-paid {
+        width: 150px;
+    }
+
+    .sale-total-summary {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: end;
+        align-items: stretch;
+        gap: .5rem;
+    }
+
+    .sale-total-card {
+        min-width: 120px;
+        padding: .45rem .65rem;
+        border: 1px solid #dee2e6;
+        border-radius: .5rem;
+        background: #fff;
+        text-align: right;
+    }
+
+    .sale-total-card .label {
+        display: block;
+        color: #6c757d;
+        font-size: .78rem;
+        line-height: 1;
+    }
+
+    .sale-total-card .value {
+        display: block;
+        font-weight: 700;
+        font-size: 1.05rem;
+        white-space: nowrap;
+    }
+
+    .sale-grand-total {
+        min-width: 150px;
+        border-color: #198754;
+        background: #f0fff6;
+    }
+
+    .sale-grand-total .value {
+        font-size: 1.25rem;
+    }
+
+    @media (max-width: 991.98px) {
+        .sale-payment-strip,
+        .sale-total-summary {
+            justify-content: stretch;
+            width: 100%;
+        }
+
+        .sale-payment-strip .sale-items-box,
+        .sale-payment-strip .sale-pay-by,
+        .sale-payment-strip .sale-paid,
+        .sale-total-card,
+        #reviewSaleButton {
+            flex: 1 1 150px;
+            width: auto;
+        }
+    }
 </style>
 <div class="app-wrapper">
     <div th:replace="fragments/topmenu :: topmenu"></div>
@@ -44,7 +156,7 @@
                             <button class="btn btn-sm btn-warning" type="button"
                                     data-bs-toggle="modal" data-bs-target="#unfinishedSalesModal">
                                 <i class="bi bi-clock-history me-1"></i>
-                                Unfinished Sales <span class="badge text-bg-dark ms-1" th:text="${#lists.size(openDrafts)}">0</span>
+                                Unfinished Sales <span class="badge text-bg-dark ms-1 js-open-drafts-count" th:text="${#lists.size(openDrafts)}">0</span>
                             </button>
                         </div>
                         <a th:href="@{/sales/create}" class="btn btn-sm btn-outline-primary">
@@ -57,14 +169,6 @@
 
         <div class="app-content">
             <div class="container-fluid">
-                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
-                    <span th:text="${successMessage}"></span>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
-                    <span th:text="${errorMessage}"></span>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
                 <div id="saleError" class="alert alert-danger d-none"></div>
 
                 <form th:action="${draft != null ? '/sales/drafts/' + draft.id() + '/complete' : '#'}" method="post" id="completeSaleForm">
@@ -115,15 +219,12 @@
                                         <option th:each="mode : ${vatModes}"
                                                 th:value="${mode}"
                                                 th:text="${mode == T(com.daccaauto.pos.entity.VatMode).EXCLUSIVE ? 'Exclude VAT' : 'Include VAT'}"
-                                                th:selected="${draft != null && mode == draft.vatMode()}"></option>
+                                                th:selected="${(draft != null && mode == draft.vatMode()) || (draft == null && mode == T(com.daccaauto.pos.entity.VatMode).INCLUSIVE)}"></option>
                                     </select>
                                 </div>
                                 <input type="hidden" id="vatPercent"
                                        th:value="${draft != null ? draft.vatPercent() : defaultVatPercent}">
-                                <div class="col-lg-12 d-flex justify-content-between align-items-center">
-                                    <div class="small text-muted">
-                                        Balance: <strong id="balanceDue">0.00</strong>
-                                    </div>
+                                <div class="col-lg-12 d-flex justify-content-end align-items-center">
                                     <span class="badge text-bg-light border">
                                         Draft <span id="draftIdText" th:text="${draft != null ? '#' + draft.id() : 'not saved'}">not saved</span>
                                     </span>
@@ -168,28 +269,42 @@
                         <div class="card-body p-0">
                             <div class="table-responsive" style="min-height: 390px;">
                                 <table class="table table-hover align-middle mb-0">
+
+                                    <!-- Shared column widths -->
+                                    <colgroup>
+                                        <col>
+                                        <col style="width: 90px;">
+                                        <col style="width: 130px;">
+                                        <col style="width: 120px;">
+                                        <col style="width: 150px;">
+                                        <col style="width: 120px;">
+                                    </colgroup>
+
                                     <thead class="table-light">
                                     <tr>
                                         <th class="ps-3">Product</th>
-                                        <th class="text-end" style="width: 90px;">Qty</th>
-                                        <th class="text-end" style="width: 130px;">Unit Price</th>
-                                        <th class="text-end" style="width: 120px;">VAT</th>
-                                        <th class="text-end" style="width: 140px;">Total</th>
-                                        <th class="text-end pe-3" style="width: 90px;">Action</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Unit Price</th>
+                                        <th class="text-end">VAT</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-end pe-3">Action</th>
                                     </tr>
                                     </thead>
+
                                     <tbody id="saleLines"></tbody>
                                 </table>
                             </div>
                         </div>
-                        <div class="card-footer py-2">
-                            <div class="d-flex flex-wrap justify-content-between align-items-end gap-3">
-                                <div class="d-flex flex-wrap align-items-end gap-2 sale-compact">
-                                    <div class="small text-muted me-2">
-                                        Regular: pay now. Credit: collect partial payments. Monthly: statement after month.
+                        <div class="card-footer bg-light">
+                            <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 sale-compact">
+                                <div class="sale-payment-strip">
+                                    <div class="sale-items-box">
+                                        <label class="form-label mb-1">Total Items</label>
+                                        <div class="form-control form-control-sm bg-white fw-bold text-end" id="lineCount">0</div>
                                     </div>
-                                    <div>
-                                        <label for="paymentMethod" class="form-label">Pay By</label>
+
+                                    <div class="sale-pay-by">
+                                        <label for="paymentMethod" class="form-label mb-1">Pay By</label>
                                         <select id="paymentMethod" class="form-select form-select-sm">
                                             <option th:each="method : ${paymentMethods}"
                                                     th:if="${method.name() != 'CREDIT'}"
@@ -198,22 +313,41 @@
                                                     th:selected="${draft != null && method == draft.paymentMethod()}"></option>
                                         </select>
                                     </div>
-                                    <div style="width: 120px;">
-                                        <label for="paidAmount" class="form-label">Paid</label>
-                                        <input type="number" id="paidAmount" class="form-control form-control-sm"
-                                               min="0" step="0.01"
+
+                                    <div class="sale-paid">
+                                        <label for="paidAmount" class="form-label mb-1">Paid</label>
+                                        <input type="number"
+                                               id="paidAmount"
+                                               class="form-control form-control-sm text-end"
+                                               min="0"
+                                               step="0.01"
                                                th:value="${draft != null ? draft.paidAmount() : 0}">
                                     </div>
                                 </div>
-                                <div class="d-flex flex-wrap align-items-end justify-content-end gap-3 sale-compact text-end">
-                                    <div>Total Items: <strong id="lineCount">0</strong></div>
-                                    <div>Subtotal: <strong id="subTotal">0.00</strong></div>
-                                    <div>Balance: <strong id="balanceTotal">0.00</strong></div>
-                                    <div class="fs-5">Total: <strong id="grandTotal">0.00</strong></div>
-                                    <button type="button" id="reviewSaleButton" class="btn btn-success btn-lg">
-                                        <i class="bi bi-cart-check me-1"></i> Sale
+
+                                <div class="sale-total-summary">
+                                    <div class="sale-total-card">
+                                        <span class="label">Subtotal</span>
+                                        <span class="value" id="subTotal">0.00</span>
+                                    </div>
+                                    <div class="sale-total-card">
+                                        <span class="label">VAT Total</span>
+                                        <span class="value" id="vatTotal">0.00</span>
+                                    </div>
+                                    <div class="sale-total-card sale-grand-total">
+                                        <span class="label">Total Incl. VAT</span>
+                                        <span class="value" id="grandTotal">0.00</span>
+                                    </div>
+                                    <button type="button"
+                                            id="reviewSaleButton"
+                                            class="btn btn-success btn-lg text-nowrap">
+                                        <i class="bi bi-cart-check me-1"></i>
+                                        Sale
                                     </button>
                                 </div>
+                            </div>
+                            <div class="small text-muted mt-2">
+                                Regular: pay now. Credit: collect partial payments. Monthly: statement after month.
                             </div>
                         </div>
                     </div>
@@ -227,6 +361,8 @@
         <span class="text-muted ms-2">Sale entry</span>
     </footer>
 </div>
+
+<div id="saleToastContainer" class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100;"></div>
 
 <div class="modal fade" id="saleReviewModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -255,9 +391,9 @@
                 </div>
                 <div class="text-end">
                     <div>Subtotal: <strong id="reviewSubTotal">0.00</strong></div>
+                    <div>VAT Total: <strong id="reviewVatTotal">0.00</strong></div>
                     <div>Paid: <strong id="reviewPaidTotal">0.00</strong></div>
-                    <div>Balance: <strong id="reviewBalanceTotal">0.00</strong></div>
-                    <div class="fs-5">Total: <strong id="reviewTotal">0.00</strong></div>
+                    <div class="fs-5">Total Incl. VAT: <strong id="reviewTotal">0.00</strong></div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -279,16 +415,25 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-0">
-                <div class="list-group list-group-flush">
-                    <a th:each="item : ${openDrafts}"
-                       th:href="@{/sales/create(draftId=${item.id()})}"
-                       class="list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-3">
-                        <span>
-                            <span class="fw-semibold d-block" th:text="${item.customerName()}">Customer</span>
-                            <span class="small text-muted" th:text="${item.lineCount()} + ' items'">0 items</span>
-                        </span>
-                        <span class="fw-semibold" th:text="${item.total()}">0.00</span>
-                    </a>
+                <div class="list-group list-group-flush" id="unfinishedDraftList">
+                    <div th:each="item : ${openDrafts}"
+                         class="list-group-item d-flex justify-content-between align-items-center gap-2"
+                         th:attr="data-draft-id=${item.id()}">
+                        <a th:href="@{/sales/create(draftId=${item.id()})}"
+                           class="text-decoration-none text-reset flex-grow-1 d-flex justify-content-between align-items-center gap-3">
+                            <span>
+                                <span class="fw-semibold d-block" th:text="${item.customerName()}">Customer</span>
+                                <span class="small text-muted" th:text="${item.lineCount()} + ' items'">0 items</span>
+                            </span>
+                            <span class="fw-semibold" th:text="${item.total()}">0.00</span>
+                        </a>
+                        <button type="button"
+                                class="btn btn-sm btn-outline-danger js-delete-draft"
+                                title="Delete draft"
+                                th:attr="data-id=${item.id()}">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -304,6 +449,8 @@
         let currentDraft = /*[[${draft != null ? draft : null}]]*/ null;
         const defaultStoreId = /*[[${draft != null ? draft.storeId() : null}]]*/ null;
         const saleReviewModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('saleReviewModal'));
+        const flashSuccess = /*[[${successMessage}]]*/ null;
+        const flashError = /*[[${errorMessage}]]*/ null;
         let hydratingDraft = false;
 
         function money(value) {
@@ -314,12 +461,58 @@
             return (Number(value) || 0).toString();
         }
 
+        function showToast(message, type, title) {
+            if (!message) {
+                return;
+            }
+            const toastType = type || 'info';
+            const toastTitle = title || (toastType === 'danger' ? 'Error' : (toastType === 'success' ? 'Success' : 'Notice'));
+            const iconClass = toastType === 'danger'
+                ? 'bi-exclamation-triangle-fill'
+                : (toastType === 'success' ? 'bi-check-circle-fill' : 'bi-info-circle-fill');
+            const $toast = $('<div class="toast" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="5000"></div>')
+                .addClass('toast-' + toastType);
+            const $header = $('<div class="toast-header"></div>');
+            $('<i class="bi me-2"></i>').addClass(iconClass).appendTo($header);
+            $('<strong class="me-auto"></strong>').text(toastTitle).appendTo($header);
+            $('<small>now</small>').appendTo($header);
+            $('<button type="button" class="btn-close ms-2 mb-1" data-bs-dismiss="toast" aria-label="Close"></button>').appendTo($header);
+            const $body = $('<div class="toast-body"></div>').text(message);
+            $toast.append($header).append($body).appendTo('#saleToastContainer');
+            const toast = bootstrap.Toast.getOrCreateInstance($toast[0], {
+                autohide: true,
+                delay: 5000
+            });
+            $toast.on('hidden.bs.toast', function () {
+                $toast.remove();
+            });
+            toast.show();
+        }
+
         function showError(message) {
-            $('#saleError').text(message || 'Something went wrong.').removeClass('d-none');
+            $('#saleError').addClass('d-none').empty();
+            showToast(message || 'Something went wrong.', 'danger', 'Sale Notification');
+        }
+
+        function showSuccess(message) {
+            showToast(message, 'success', 'Sale Notification');
         }
 
         function clearError() {
             $('#saleError').addClass('d-none').empty();
+        }
+
+        function closeUnfinishedDraftModal() {
+            const modalElement = document.getElementById('unfinishedSalesModal');
+            const modal = bootstrap.Modal.getInstance(modalElement) || bootstrap.Modal.getOrCreateInstance(modalElement);
+            modal.hide();
+            setTimeout(function () {
+                $('.modal-backdrop').remove();
+                $('body').removeClass('modal-open').css({
+                    overflow: '',
+                    paddingRight: ''
+                });
+            }, 200);
         }
 
         function headerPayload() {
@@ -512,8 +705,8 @@
         function renderDraft(draft) {
             currentDraft = draft;
             $('#subTotal').text(money(draft ? draft.subTotal : 0));
+            $('#vatTotal').text(money(draft ? draft.vatAmount : 0));
             $('#grandTotal').text(money(draft ? draft.total : 0));
-            $('#balanceTotal, #balanceDue').text(money(draft ? draft.balanceDue : 0));
             $('#lineCount').text(draft && draft.lines ? draft.lines.length : 0);
             const hasLines = draft && draft.lines && draft.lines.length > 0;
             $('#storeId').prop('disabled', hasLines);
@@ -572,6 +765,7 @@
                 }).done(function (draft) {
                     clearError();
                     renderDraft(draft);
+                    showSuccess('Product added to sale.');
                     $('#productSelect').val('').trigger('change').select2('open');
                     $('#quickQuantity').val('1');
                     $('#quickUnitPrice').val('');
@@ -592,8 +786,35 @@
                 method: 'DELETE'
             }).done(function (draft) {
                 renderDraft(draft);
+                showSuccess('Product removed from sale.');
             }).fail(function (xhr) {
                 showError(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Could not remove line.');
+            });
+        });
+
+        $('#unfinishedDraftList').on('click', '.js-delete-draft', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const id = $(this).data('id');
+            const $row = $(this).closest('[data-draft-id]');
+            if (!id || !confirm('Delete this unfinished sale draft?')) {
+                return;
+            }
+            $.ajax({
+                url: '/sales/drafts/' + id,
+                method: 'DELETE'
+            }).done(function () {
+                $row.remove();
+                const remaining = $('#unfinishedDraftList [data-draft-id]').length;
+                $('.js-open-drafts-count').text(remaining);
+                showSuccess('Unfinished sale draft deleted.');
+                if (draftId && Number(draftId) === Number(id)) {
+                    window.location.href = '/sales/create';
+                    return;
+                }
+                closeUnfinishedDraftModal();
+            }).fail(function (xhr) {
+                showError(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Could not delete draft.');
             });
         });
 
@@ -645,8 +866,8 @@
                         .appendTo('#reviewLines');
                 });
                 $('#reviewSubTotal').text(money(currentDraft.subTotal));
+                $('#reviewVatTotal').text(money(currentDraft.vatAmount));
                 $('#reviewPaidTotal').text(money(currentDraft.paidAmount));
-                $('#reviewBalanceTotal').text(money(currentDraft.balanceDue));
                 $('#reviewTotal').text(money(currentDraft.total));
                 saleReviewModal.show();
             });
@@ -664,6 +885,12 @@
 
         if (!$('#storeId').val() && defaultStoreId) {
             $('#storeId').val(defaultStoreId);
+        }
+        if (flashSuccess) {
+            showSuccess(flashSuccess);
+        }
+        if (flashError) {
+            showError(flashError);
         }
         if (draftId) {
             $.get('/sales/drafts/' + draftId)

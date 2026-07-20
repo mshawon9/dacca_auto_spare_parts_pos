@@ -42,7 +42,7 @@ public class SaleDraftEntity extends BaseEntity {
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(name = "vat_mode", nullable = false, length = 20)
-    private VatMode vatMode = VatMode.EXCLUSIVE;
+    private VatMode vatMode = VatMode.INCLUSIVE;
 
     @NotNull
     @Column(name = "vat_percent", nullable = false, precision = 7, scale = 2)

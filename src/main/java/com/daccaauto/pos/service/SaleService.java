@@ -18,6 +18,8 @@ public interface SaleService {
 
     SaleDraftResponse removeLine(Long id, Long lineId);
 
+    void deleteDraft(Long id);
+
     SaleResponse complete(Long id);
 
     List<SelectOption> searchCustomers(String keyword);

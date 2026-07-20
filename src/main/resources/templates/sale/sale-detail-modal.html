@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<div class="modal fade" id="saleDetailsModal" tabindex="-1" aria-hidden="true" th:fragment="saleDetailModal">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Sale Details</h5>
+                    <div class="small text-muted" id="saleDetailsHeader">Loading...</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="saleDetailsError" class="alert alert-danger d-none"></div>
+                <div class="row g-2 mb-3">
+                    <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted">Customer</div><strong id="saleDetailCustomer">-</strong></div></div>
+                    <div class="col-md-3"><div class="border rounded p-2"><div class="small text-muted">Warehouse</div><strong id="saleDetailStore">-</strong></div></div>
+                    <div class="col-md-2"><div class="border rounded p-2"><div class="small text-muted">Type</div><strong id="saleDetailType">-</strong></div></div>
+                    <div class="col-md-2"><div class="border rounded p-2"><div class="small text-muted">Pay By</div><strong id="saleDetailPayment">-</strong></div></div>
+                    <div class="col-md-2"><div class="border rounded p-2"><div class="small text-muted">Due Date</div><strong id="saleDetailDueDate">-</strong></div></div>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead class="table-light align-middle text-nowrap">
+                        <tr>
+                            <th>Product</th>
+                            <th>Brand</th>
+                            <th>Part Number</th>
+                            <th class="text-end">Qty</th>
+                            <th class="text-end">Unit Price</th>
+                            <th class="text-end">Total</th>
+                        </tr>
+                        </thead>
+                        <tbody id="saleDetailsLines"></tbody>
+                    </table>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <div class="text-end" style="min-width: 260px;">
+                        <div>Subtotal: <strong id="saleDetailSubTotal">0.00</strong></div>
+                        <div>VAT: <strong id="saleDetailVat">0.00</strong></div>
+                        <div>Total: <strong id="saleDetailTotal">0.00</strong></div>
+                        <div>Paid: <strong id="saleDetailPaid">0.00</strong></div>
+                        <div class="fs-5">Balance: <strong id="saleDetailBalance">0.00</strong></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-danger" disabled title="Single invoice PDF will be added later">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Invoice PDF
+                </button>
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script th:fragment="saleDetailScript">
+    $(function () {
+        function money(value) {
+            return (Number(value) || 0).toFixed(2);
+        }
+
+        function qty(value) {
+            return (Number(value) || 0).toString();
+        }
+
+        $('.js-sale-details').on('click', function () {
+            const id = $(this).data('id');
+            $('#saleDetailsError').addClass('d-none').empty();
+            $('#saleDetailsHeader').text('Loading...');
+            $('#saleDetailsLines').empty();
+
+            $.get('/sales/' + id + '/detail-json')
+                .done(function (sale) {
+                    $('#saleDetailsHeader').text(sale.invoiceNo + ' | ' + sale.saleDate + ' | VAT ' + sale.vatMode + ' ' + money(sale.vatPercent) + '%');
+                    $('#saleDetailCustomer').text(sale.customerName || 'Walk-in customer');
+                    $('#saleDetailStore').text(sale.storeName || '-');
+                    $('#saleDetailType').text(sale.saleType || '-');
+                    $('#saleDetailPayment').text(sale.paymentMethod || '-');
+                    $('#saleDetailDueDate').text(sale.dueDate || '-');
+                    $('#saleDetailSubTotal').text(money(sale.subTotal));
+                    $('#saleDetailVat').text(money(sale.vatAmount));
+                    $('#saleDetailTotal').text(money(sale.total));
+                    $('#saleDetailPaid').text(money(sale.paidAmount));
+                    $('#saleDetailBalance').text(money(sale.balanceDue));
+
+                    $.each(sale.lines || [], function (_, line) {
+                        $('<tr><td></td><td></td><td></td><td class="text-end"></td><td class="text-end"></td><td class="text-end fw-semibold"></td></tr>')
+                            .find('td:eq(0)').text([line.categoryName, line.productName].filter(Boolean).join(' | ')).end()
+                            .find('td:eq(1)').text(line.brandName || '-').end()
+                            .find('td:eq(2)').text(line.partNumber || '-').end()
+                            .find('td:eq(3)').text(qty(line.quantity)).end()
+                            .find('td:eq(4)').text(money(line.unitPrice)).end()
+                            .find('td:eq(5)').text(money(line.lineTotal)).end()
+                            .appendTo('#saleDetailsLines');
+                    });
+                })
+                .fail(function (xhr) {
+                    $('#saleDetailsHeader').text('Could not load sale.');
+                    $('#saleDetailsError')
+                        .text(xhr.responseJSON && xhr.responseJSON.message ? xhr.responseJSON.message : 'Could not load sale details.')
+                        .removeClass('d-none');
+                });
+        });
+    });
+</script>
+</html>

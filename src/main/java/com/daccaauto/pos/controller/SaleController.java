@@ -73,6 +73,12 @@ public class SaleController {
         return saleService.removeLine(id, lineId);
     }
 
+    @DeleteMapping("/drafts/{id}")
+    @ResponseBody
+    public void deleteDraft(@PathVariable Long id) {
+        saleService.deleteDraft(id);
+    }
+
     @PostMapping("/drafts/{id}/complete")
     public String complete(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {

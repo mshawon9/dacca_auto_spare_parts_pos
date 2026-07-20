@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<div class="app-wrapper">
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h3 class="mb-1">Sale History</h3>
+                        <div class="text-muted">Search invoices, customers, products, brands, part numbers and credit sales.</div>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a th:href="@{/sales/statements}" class="btn btn-outline-primary">
+                            <i class="bi bi-file-earmark-text me-1"></i> Statements
+                        </a>
+                        <a th:href="@{/sales/create}" class="btn btn-primary">
+                            <i class="bi bi-cart-check me-1"></i> New Sale
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-2">
+                        <div class="small-box text-bg-primary mb-0">
+                            <div class="inner">
+                                <h4 th:text="${summary.total()}">0.00</h4>
+                                <p>Total Sale</p>
+                            </div>
+                            <i class="small-box-icon bi bi-cash-stack"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="small-box text-bg-success mb-0">
+                            <div class="inner">
+                                <h4 th:text="${summary.paidAmount()}">0.00</h4>
+                                <p>Paid</p>
+                            </div>
+                            <i class="small-box-icon bi bi-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="small-box text-bg-warning mb-0">
+                            <div class="inner">
+                                <h4 th:text="${summary.balanceDue()}">0.00</h4>
+                                <p>Credit Due</p>
+                            </div>
+                            <i class="small-box-icon bi bi-exclamation-circle"></i>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="small-box text-bg-info mb-0">
+                            <div class="inner">
+                                <h4 th:text="${summary.invoiceCount()}">0</h4>
+                                <p>Invoices</p>
+                            </div>
+                            <i class="small-box-icon bi bi-receipt"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <form th:action="@{/sales/history}" method="get" class="row g-2 align-items-end">
+                            <div class="col-lg-4">
+                                <label for="keyword" class="form-label">Search Sale</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                                    <input type="text" id="keyword" name="keyword" class="form-control"
+                                           th:value="${keyword}"
+                                           placeholder="Invoice, customer, product, brand, part number...">
+                                </div>
+                            </div>
+                            <div class="col-lg-2">
+                                <label for="fromDate" class="form-label">From</label>
+                                <input type="date" id="fromDate" name="fromDate" class="form-control" th:value="${fromDate}">
+                            </div>
+                            <div class="col-lg-2">
+                                <label for="toDate" class="form-label">To</label>
+                                <input type="date" id="toDate" name="toDate" class="form-control" th:value="${toDate}">
+                            </div>
+                            <div class="col-lg-2">
+                                <label for="customerId" class="form-label">Customer</label>
+                                <select id="customerId" name="customerId" class="form-select">
+                                    <option value="">All customers</option>
+                                    <option th:each="customer : ${customers}"
+                                            th:value="${customer.id}"
+                                            th:text="${customer.name}"
+                                            th:selected="${customerId != null && customer.id == customerId}"></option>
+                                </select>
+                            </div>
+                            <div class="col-lg-2 d-flex flex-wrap gap-2">
+                                <input type="hidden" name="creditOnly" value="false">
+                                <div class="form-check align-self-center me-2">
+                                    <input class="form-check-input" type="checkbox" id="creditOnly" name="creditOnly" value="true"
+                                           th:checked="${creditOnly}">
+                                    <label class="form-check-label" for="creditOnly">Credit only</label>
+                                </div>
+                                <button type="submit" class="btn btn-primary flex-fill">Search</button>
+                                <a th:href="@{/sales/history}" class="btn btn-outline-secondary">Reset</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="row align-items-center g-2">
+
+                            <!-- Left: title and date -->
+                            <div class="col-4">
+                                <h3 class="card-title mb-0 float-none">
+                                    Statement Details
+                                </h3>
+
+                                <div class="small text-muted">
+                                    <span th:if="${fromDate != null}"
+                                          th:text="${fromDate}">
+                                        2026-07-01
+                                    </span>
+                                    <span th:if="${fromDate != null && toDate != null}">to</span>
+                                    <span th:if="${toDate != null}"
+                                          th:text="${toDate}">
+                                        2026-07-31
+                                    </span>
+
+                                    <span th:if="${fromDate == null && toDate == null}">
+                                        All dates
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Middle: sales count -->
+                            <div class="col-4 text-center">
+                                <span class="badge text-bg-light border"
+                                      th:text="${salePage.totalElements} + ' sales'">
+                                    0 sales
+                                </span>
+                            </div>
+
+                            <!-- Right: buttons -->
+                            <div class="col-4">
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a class="btn btn-sm btn-success"
+                                       th:href="@{/sales/history/export.xlsx(keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate}, customerId=${customerId}, creditOnly=${creditOnly})}">
+                                        <i class="bi bi-file-earmark-excel me-1"></i> Excel
+                                    </a>
+
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger"
+                                            disabled
+                                            title="PDF export will be added later">
+                                        <i class="bi bi-file-earmark-pdf me-1"></i>
+                                        PDF
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light align-middle text-nowrap">
+                                <tr>
+                                    <th class="ps-3">Invoice</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Warehouse</th>
+                                    <th>Type</th>
+                                    <th>Pay By</th>
+                                    <th class="text-end">Items</th>
+                                    <th class="text-end">Total</th>
+                                    <th class="text-end">Paid</th>
+                                    <th class="text-end">Due</th>
+                                    <th class="text-center pe-3">Action</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(sales)}">
+                                    <td colspan="11" class="text-center text-muted py-5">No sale found.</td>
+                                </tr>
+                                <tr th:each="sale : ${sales}">
+                                    <td class="ps-3 fw-semibold" th:text="${sale.invoiceNo()}">SALE-1</td>
+                                    <td th:text="${sale.saleDate()}">2026-07-15</td>
+                                    <td th:text="${sale.customerName()}">Customer</td>
+                                    <td th:text="${sale.storeName()}">Store</td>
+                                    <td>
+                                        <span class="badge text-bg-light border" th:text="${sale.saleType()}">REGULAR</span>
+                                    </td>
+                                    <td th:text="${sale.paymentMethod()}">CASH</td>
+                                    <td class="text-end" th:text="${sale.lineCount()}">0</td>
+                                    <td class="text-end fw-semibold" th:text="${sale.total()}">0.00</td>
+                                    <td class="text-end text-success" th:text="${sale.paidAmount()}">0.00</td>
+                                    <td class="text-end">
+                                        <span th:class="${sale.balanceDue().signum() > 0 ? 'badge text-bg-warning' : 'text-muted'}"
+                                              th:text="${sale.balanceDue()}">0.00</span>
+                                    </td>
+                                    <td class="text-center pe-3">
+                                        <div class="btn-group btn-group-sm">
+                                            <button type="button" class="btn btn-outline-info js-sale-details"
+                                                    data-bs-toggle="modal" data-bs-target="#saleDetailsModal"
+                                                    th:attr="data-id=${sale.id()}">
+                                                Details
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger" disabled title="Single invoice PDF will be added later">
+                                                PDF
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="small text-muted">
+                                Page <span th:text="${salePage.totalPages == 0 ? 0 : salePage.number + 1}">1</span>
+                                of <span th:text="${salePage.totalPages}">1</span>
+                                <span class="ms-2" th:text="${salePage.totalElements} + ' sales'">0 sales</span>
+                            </div>
+                            <div class="btn-group">
+                                <a class="btn btn-outline-secondary"
+                                   th:classappend="${!salePage.hasPrevious()} ? ' disabled' : ''"
+                                   th:href="${salePage.hasPrevious()} ? @{/sales/history(page=${salePage.number - 1}, keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate}, customerId=${customerId}, creditOnly=${creditOnly})} : '#'">
+                                    <i class="bi bi-chevron-left me-1"></i> Previous
+                                </a>
+                                <a class="btn btn-outline-primary"
+                                   th:classappend="${!salePage.hasNext()} ? ' disabled' : ''"
+                                   th:href="${salePage.hasNext()} ? @{/sales/history(page=${salePage.number + 1}, keyword=${keyword}, fromDate=${fromDate}, toDate=${toDate}, customerId=${customerId}, creditOnly=${creditOnly})} : '#'">
+                                    Next <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <strong>Dacca POS</strong>
+        <span class="text-muted ms-2">Sale history</span>
+    </footer>
+</div>
+
+<div th:replace="sale/sale-detail-modal :: saleDetailModal"></div>
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<div th:replace="sale/sale-detail-modal :: saleDetailScript"></div>
+</body>
+</html>

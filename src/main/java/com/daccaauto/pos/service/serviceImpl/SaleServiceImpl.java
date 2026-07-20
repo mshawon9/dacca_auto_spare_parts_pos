@@ -63,7 +63,7 @@ public class SaleServiceImpl implements SaleService {
         draft.setStore(store);
         draft.setSaleDate(LocalDate.now());
         draft.setSaleType(SaleType.REGULAR);
-        draft.setVatMode(VatMode.EXCLUSIVE);
+        draft.setVatMode(VatMode.INCLUSIVE);
         draft.setVatPercent(defaultVatPercent.setScale(PRICE_SCALE, RoundingMode.HALF_UP));
         draft.setPaymentMethod(PaymentMethod.CASH);
         draft.setPaidAmount(BigDecimal.ZERO.setScale(PRICE_SCALE));
@@ -134,6 +134,7 @@ public class SaleServiceImpl implements SaleService {
         ProductEntity product = requireActiveProduct(request.getProductId());
         BigDecimal quantity = normalizeQuantity(request.getQuantity());
         BigDecimal unitPrice = normalizePrice(request.getUnitPrice());
+        BigDecimal previousTotal = calculateDraftTotal(draft);
         ProductStockEntity stock = productStockRepository.findForUpdate(draft.getStore().getId(), product.getId())
             .orElse(null);
 
@@ -156,6 +157,7 @@ public class SaleServiceImpl implements SaleService {
             line.setCostPrice(stock == null ? line.getCostPrice() : stock.getCostPrice());
             line.setActionNote("Quantity updated from sale screen");
         }
+        syncPaidAmountAfterLineChange(draft, previousTotal);
         SaleDraftEntity saved = saleDraftRepository.save(draft);
         recordAction(saved, "ADD_LINE", "Product " + product.getId() + ", qty " + quantity + ", price " + unitPrice);
         return mapDraft(saved);
@@ -164,13 +166,21 @@ public class SaleServiceImpl implements SaleService {
     @Override
     public SaleDraftResponse removeLine(Long id, Long lineId) {
         SaleDraftEntity draft = requireDraft(id);
+        BigDecimal previousTotal = calculateDraftTotal(draft);
         boolean removed = draft.getLines().removeIf(line -> line.getId().equals(lineId));
         if (!removed) {
             throw new ResourceNotFoundException("Sale draft line not found: " + lineId);
         }
+        syncPaidAmountAfterLineChange(draft, previousTotal);
         recordAction(draft, "REMOVE_LINE", "Line " + lineId + " removed");
         saleDraftLineRepository.deleteById(lineId);
         return mapDraft(saleDraftRepository.save(draft));
+    }
+
+    @Override
+    public void deleteDraft(Long id) {
+        SaleDraftEntity draft = requireDraft(id);
+        saleDraftRepository.delete(draft);
     }
 
     @Override
@@ -185,7 +195,7 @@ public class SaleServiceImpl implements SaleService {
 
         SaleDraftResponse totals = mapDraft(draft);
         SaleEntity sale = new SaleEntity();
-        sale.setInvoiceNo("SALE-" + System.currentTimeMillis());
+        sale.setInvoiceNo(nextInvoiceNo());
         sale.setCustomer(draft.getCustomer());
         sale.setStore(draft.getStore());
         sale.setSaleDate(draft.getSaleDate());
@@ -445,6 +455,33 @@ public class SaleServiceImpl implements SaleService {
         return new LineAmounts(gross, vatAmount, gross.add(vatAmount));
     }
 
+    private BigDecimal calculateDraftTotal(SaleDraftEntity draft) {
+        return draft.getLines().stream()
+            .map(line -> calculateLineTotal(line.getQuantity(), line.getUnitPrice(), draft.getVatMode(), draft.getVatPercent()).total())
+            .reduce(BigDecimal.ZERO.setScale(PRICE_SCALE), BigDecimal::add)
+            .setScale(PRICE_SCALE, RoundingMode.HALF_UP);
+    }
+
+    private void syncPaidAmountAfterLineChange(SaleDraftEntity draft, BigDecimal previousTotal) {
+        BigDecimal newTotal = calculateDraftTotal(draft);
+        if (draft.getSaleType() != SaleType.REGULAR) {
+            draft.setPaidAmount(BigDecimal.ZERO.setScale(PRICE_SCALE));
+            return;
+        }
+        if (draft.getLines().isEmpty()) {
+            draft.setPaidAmount(BigDecimal.ZERO.setScale(PRICE_SCALE));
+            return;
+        }
+        BigDecimal currentPaid = draft.getPaidAmount() == null
+            ? BigDecimal.ZERO.setScale(PRICE_SCALE)
+            : draft.getPaidAmount();
+        if (currentPaid.compareTo(BigDecimal.ZERO) == 0
+            || currentPaid.compareTo(previousTotal) == 0
+            || currentPaid.compareTo(newTotal) > 0) {
+            draft.setPaidAmount(newTotal);
+        }
+    }
+
     private BigDecimal normalizeQuantity(BigDecimal quantity) {
         if (quantity == null) {
             throw new DuplicateResourceException("Quantity is required");
@@ -477,7 +514,6 @@ public class SaleServiceImpl implements SaleService {
 
     private String buildProductDisplayName(ProductEntity product) {
         return java.util.stream.Stream.of(
-                product.getCategory() == null ? null : product.getCategory().getName(),
                 product.getName(),
                 product.getBrand() == null ? null : "Brand: " + product.getBrand().getName(),
                 "Part: " + product.getPartNumber()
@@ -492,6 +528,11 @@ public class SaleServiceImpl implements SaleService {
 
     private String trimToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String nextInvoiceNo() {
+        long nextNumber = saleRepository.findMaxIdForInvoice() + 1000;
+        return "SALE-" + nextNumber;
     }
 
     private ApplicationKeyword parseApplicationKeyword(String keyword) {
