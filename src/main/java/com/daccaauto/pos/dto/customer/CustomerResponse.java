@@ -9,6 +9,7 @@ public record CustomerResponse(
     String address,
     String trnNumber,
     boolean active,
-    boolean alwaysCredit
+    boolean alwaysCredit,
+    Integer defaultCreditDays
 ) {
 }

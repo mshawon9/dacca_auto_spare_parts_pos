@@ -212,13 +212,14 @@ public class SaleServiceImpl implements SaleService {
             sale.setPaymentMethod(draft.getPaymentMethod() == PaymentMethod.CREDIT ? PaymentMethod.CASH : draft.getPaymentMethod());
             sale.setPaidAmount(paidAmount);
             sale.setBalanceDue(totals.total().subtract(paidAmount).setScale(PRICE_SCALE, RoundingMode.HALF_UP));
+            if (sale.getBalanceDue().compareTo(BigDecimal.ZERO) > 0) {
+                sale.setDueDate(resolveDueDate(draft));
+            }
         } else {
             sale.setPaymentMethod(PaymentMethod.CREDIT);
             sale.setPaidAmount(BigDecimal.ZERO.setScale(PRICE_SCALE));
             sale.setBalanceDue(totals.total());
-            if (draft.getSaleType() == SaleType.MONTHLY_STATEMENT) {
-                sale.setDueDate(draft.getSaleDate().plusMonths(1));
-            }
+            sale.setDueDate(resolveDueDate(draft));
         }
         sale.setNote(draft.getNote());
 
@@ -533,6 +534,17 @@ public class SaleServiceImpl implements SaleService {
     private String nextInvoiceNo() {
         long nextNumber = saleRepository.findMaxIdForInvoice() + 1000;
         return "SALE-" + nextNumber;
+    }
+
+    private LocalDate resolveDueDate(SaleDraftEntity draft) {
+        Integer creditDays = draft.getCustomer() == null ? null : draft.getCustomer().getDefaultCreditDays();
+        if (creditDays != null) {
+            return draft.getSaleDate().plusDays(creditDays);
+        }
+        if (draft.getSaleType() == SaleType.MONTHLY_STATEMENT) {
+            return draft.getSaleDate().plusMonths(1);
+        }
+        return null;
     }
 
     private ApplicationKeyword parseApplicationKeyword(String keyword) {

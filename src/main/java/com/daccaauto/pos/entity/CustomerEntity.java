@@ -61,4 +61,7 @@ public class CustomerEntity extends BaseEntity {
     @ColumnDefault("false")
     @Column(name = "always_credit", nullable = false)
     private boolean alwaysCredit = false;
+
+    @Column(name = "default_credit_days")
+    private Integer defaultCreditDays;
 }

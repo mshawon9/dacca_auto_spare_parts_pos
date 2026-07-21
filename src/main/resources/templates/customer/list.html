@@ -50,13 +50,14 @@
                                     <th>Email</th>
                                     <th>Address</th>
                                     <th>Credit</th>
+                                    <th>Credit Days</th>
                                     <th>Status</th>
                                     <th class="text-end pe-3">Actions</th>
                                 </tr>
                                 </thead>
                                 <tbody>
                                 <tr th:if="${#lists.isEmpty(customers)}">
-                                    <td colspan="9" class="text-center text-muted py-5">No customers found.</td>
+                                    <td colspan="10" class="text-center text-muted py-5">No customers found.</td>
                                 </tr>
                                 <tr th:each="item : ${customers}">
                                     <td class="ps-3 fw-semibold" th:text="${item.name()}">Customer</td>
@@ -69,6 +70,7 @@
                                         <span th:if="${item.alwaysCredit()}" class="badge text-bg-warning">Always Credit</span>
                                         <span th:unless="${item.alwaysCredit()}" class="text-muted">-</span>
                                     </td>
+                                    <td th:text="${item.defaultCreditDays() != null ? item.defaultCreditDays() + ' days' : '-'}">-</td>
                                     <td>
                                         <span th:if="${item.active()}" class="badge text-bg-success">Active</span>
                                         <span th:unless="${item.active()}" class="badge text-bg-secondary">Inactive</span>
@@ -77,12 +79,12 @@
                                         <div class="btn-group">
                                             <button type="button" class="btn btn-sm btn-outline-info btn-customer-details"
                                                     data-bs-toggle="modal" data-bs-target="#customerDetailsModal"
-                                                    th:attr="data-name=${item.name()},data-contact-person=${item.contactPerson()},data-phone=${item.phone()},data-email=${item.email()},data-trn-number=${item.trnNumber()},data-address=${item.address()},data-active=${item.active()},data-always-credit=${item.alwaysCredit()}">
+                                                    th:attr="data-name=${item.name()},data-contact-person=${item.contactPerson()},data-phone=${item.phone()},data-email=${item.email()},data-trn-number=${item.trnNumber()},data-address=${item.address()},data-active=${item.active()},data-always-credit=${item.alwaysCredit()},data-default-credit-days=${item.defaultCreditDays()}">
                                                 Details
                                             </button>
                                             <button type="button" class="btn btn-sm btn-warning btn-customer-edit"
                                                     data-bs-toggle="modal" data-bs-target="#customerModal"
-                                                    th:attr="data-id=${item.id()},data-name=${item.name()},data-contact-person=${item.contactPerson()},data-phone=${item.phone()},data-email=${item.email()},data-trn-number=${item.trnNumber()},data-address=${item.address()},data-active=${item.active()},data-always-credit=${item.alwaysCredit()}">
+                                                    th:attr="data-id=${item.id()},data-name=${item.name()},data-contact-person=${item.contactPerson()},data-phone=${item.phone()},data-email=${item.email()},data-trn-number=${item.trnNumber()},data-address=${item.address()},data-active=${item.active()},data-always-credit=${item.alwaysCredit()},data-default-credit-days=${item.defaultCreditDays()}">
                                                 Edit
                                             </button>
                                             <form th:action="@{/customers/{id}/delete(id=${item.id()})}" method="post"
@@ -175,6 +177,14 @@
                         <input type="checkbox" id="alwaysCredit" th:field="*{alwaysCredit}" class="form-check-input">
                         <label class="form-check-label" for="alwaysCredit">Always sell on credit</label>
                     </div>
+                    <div class="mt-3">
+                        <label for="defaultCreditDays" class="form-label">Default Credit Days</label>
+                        <input type="number" id="defaultCreditDays" th:field="*{defaultCreditDays}" class="form-control"
+                               min="0" placeholder="Example: 30"
+                               th:classappend="${#fields.hasErrors('defaultCreditDays')} ? ' is-invalid' : ''">
+                        <div class="form-text">Used to auto-fill invoice due date. Leave empty to set due date manually.</div>
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('defaultCreditDays')}" th:errors="*{defaultCreditDays}"></div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -201,6 +211,7 @@
                     <dt class="col-sm-4">Email</dt><dd class="col-sm-8" id="customerDetailEmail">-</dd>
                     <dt class="col-sm-4">Address</dt><dd class="col-sm-8" id="customerDetailAddress">-</dd>
                     <dt class="col-sm-4">Credit</dt><dd class="col-sm-8" id="customerDetailCredit">-</dd>
+                    <dt class="col-sm-4">Credit Days</dt><dd class="col-sm-8" id="customerDetailCreditDays">-</dd>
                     <dt class="col-sm-4">Status</dt><dd class="col-sm-8" id="customerDetailStatus">-</dd>
                 </dl>
             </div>
@@ -226,6 +237,7 @@
             $('#customerSubmitButton').text('Add Customer');
             $('#name, #contactPerson, #trnNumber, #phone, #email').val('');
             $('#address').val('');
+            $('#defaultCreditDays').val('');
             $('#active').prop('checked', true);
             $('#alwaysCredit').prop('checked', false);
         });
@@ -241,6 +253,7 @@
             $('#phone').val($btn.data('phone') || '');
             $('#email').val($btn.data('email') || '');
             $('#address').val($btn.data('address') || '');
+            $('#defaultCreditDays').val($btn.data('default-credit-days') || '');
             $('#active').prop('checked', String($btn.data('active')) === 'true');
             $('#alwaysCredit').prop('checked', String($btn.data('always-credit')) === 'true');
         });
@@ -254,6 +267,7 @@
             $('#customerDetailEmail').text(valueOrDash($btn.data('email')));
             $('#customerDetailAddress').text(valueOrDash($btn.data('address')));
             $('#customerDetailCredit').text(String($btn.data('always-credit')) === 'true' ? 'Always Credit' : 'Normal');
+            $('#customerDetailCreditDays').text($btn.data('default-credit-days') ? $btn.data('default-credit-days') + ' days' : '-');
             $('#customerDetailStatus').text(String($btn.data('active')) === 'true' ? 'Active' : 'Inactive');
         });
     });

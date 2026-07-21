@@ -1,6 +1,7 @@
 package com.daccaauto.pos.dto.customer;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -38,4 +39,7 @@ public class CustomerCreateRequest {
     private Boolean active = true;
 
     private Boolean alwaysCredit = false;
+
+    @Min(value = 0, message = "Default credit days cannot be negative")
+    private Integer defaultCreditDays;
 }
