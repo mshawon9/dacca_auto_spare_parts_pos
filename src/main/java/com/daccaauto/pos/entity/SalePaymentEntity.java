@@ -47,6 +47,9 @@ public class SalePaymentEntity extends BaseEntity {
     @Column(name = "cheque_number", length = 80)
     private String chequeNumber;
 
+    @Column(name = "collection_reference", length = 80)
+    private String collectionReference;
+
     @Column(length = 250)
     private String note;
 }

@@ -404,6 +404,29 @@
     </div>
 </div>
 
+<div class="modal fade" id="invoicePdfPromptModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Invoice PDF</h5>
+                    <div class="small text-muted" id="invoicePdfPromptSubtitle">Sale completed successfully.</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Do you want to open the invoice PDF now?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">No</button>
+                <a href="#" target="_blank" class="btn btn-danger" id="openInvoicePdfButton">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> Open PDF
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="unfinishedSalesModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -451,6 +474,8 @@
         const saleReviewModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('saleReviewModal'));
         const flashSuccess = /*[[${successMessage}]]*/ null;
         const flashError = /*[[${errorMessage}]]*/ null;
+        const completedInvoiceNo = /*[[${completedInvoiceNo}]]*/ null;
+        const completedInvoicePdfUrl = /*[[${completedInvoicePdfUrl}]]*/ null;
         let hydratingDraft = false;
 
         function money(value) {
@@ -880,7 +905,10 @@
         $('#completeSaleForm').on('submit', function (event) {
             if (!validateBeforeReview()) {
                 event.preventDefault();
+                $('#confirmSaleButton').prop('disabled', false).text('Confirm Sale');
+                return;
             }
+            $('#confirmSaleButton').prop('disabled', true).text('Completing...');
         });
 
         if (!$('#storeId').val() && defaultStoreId) {
@@ -888,6 +916,11 @@
         }
         if (flashSuccess) {
             showSuccess(flashSuccess);
+        }
+        if (completedInvoicePdfUrl) {
+            $('#openInvoicePdfButton').attr('href', completedInvoicePdfUrl);
+            $('#invoicePdfPromptSubtitle').text('Invoice ' + (completedInvoiceNo || '') + ' completed successfully.');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('invoicePdfPromptModal')).show();
         }
         if (flashError) {
             showError(flashError);

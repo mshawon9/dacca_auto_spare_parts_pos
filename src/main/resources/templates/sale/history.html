@@ -213,9 +213,10 @@
                                                     th:attr="data-id=${sale.id()}">
                                                 Details
                                             </button>
-                                            <button type="button" class="btn btn-outline-danger" disabled title="Single invoice PDF will be added later">
+                                            <a class="btn btn-outline-danger" target="_blank"
+                                               th:href="@{/sales/{id}/invoice.pdf(id=${sale.id()})}">
                                                 PDF
-                                            </button>
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>

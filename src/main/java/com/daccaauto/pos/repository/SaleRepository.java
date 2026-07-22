@@ -165,6 +165,38 @@ public interface SaleRepository extends JpaRepository<SaleEntity, Long> {
                                                           @Param("fromDate") LocalDate fromDate,
                                                           @Param("toDate") LocalDate toDate);
 
+    @EntityGraph(attributePaths = {"customer", "store"})
+    @Query("""
+        select s from SaleEntity s
+        join s.customer c
+        where c.id = :customerId
+          and s.saleDate >= :fromDate
+          and s.saleDate <= :toDate
+        order by s.saleDate asc, s.id asc
+        """)
+    List<SaleEntity> findCustomerSales(@Param("customerId") Long customerId,
+                                       @Param("fromDate") LocalDate fromDate,
+                                       @Param("toDate") LocalDate toDate);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+        select s from SaleEntity s
+        join fetch s.customer c
+        join fetch s.store st
+        where c.id = :customerId
+          and s.balanceDue > 0
+          and s.saleDate >= :fromDate
+          and s.saleDate <= :toDate
+          and (:monthlyOnly = false or s.saleType = com.daccaauto.pos.entity.SaleType.MONTHLY_STATEMENT)
+          and (:regularOnly = false or s.saleType <> com.daccaauto.pos.entity.SaleType.MONTHLY_STATEMENT)
+        order by s.saleDate asc, s.id asc
+        """)
+    List<SaleEntity> findCustomerCreditsForUpdate(@Param("customerId") Long customerId,
+                                                  @Param("fromDate") LocalDate fromDate,
+                                                  @Param("toDate") LocalDate toDate,
+                                                  @Param("monthlyOnly") boolean monthlyOnly,
+                                                  @Param("regularOnly") boolean regularOnly);
+
     @Query("""
         select coalesce(sum(s.subTotal), 0),
                coalesce(sum(s.vatAmount), 0),

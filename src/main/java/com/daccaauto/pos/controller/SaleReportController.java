@@ -4,6 +4,7 @@ import com.daccaauto.pos.dto.sale.SaleHistoryRow;
 import com.daccaauto.pos.dto.sale.SaleStatementSummary;
 import com.daccaauto.pos.entity.CustomerEntity;
 import com.daccaauto.pos.repository.CustomerRepository;
+import com.daccaauto.pos.service.SaleInvoicePdfService;
 import com.daccaauto.pos.service.SaleReportService;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.Cell;
@@ -44,6 +45,7 @@ public class SaleReportController {
     private static final int STATEMENT_PAGE_SIZE = 25;
 
     private final SaleReportService saleReportService;
+    private final SaleInvoicePdfService saleInvoicePdfService;
     private final CustomerRepository customerRepository;
 
     @GetMapping("/history")
@@ -106,6 +108,16 @@ public class SaleReportController {
     @ResponseBody
     public Object detailJson(@PathVariable Long id) {
         return saleReportService.getDetail(id);
+    }
+
+    @GetMapping("/{id}/invoice.pdf")
+    public ResponseEntity<byte[]> invoicePdf(@PathVariable Long id) {
+        String invoiceNo = saleReportService.getDetail(id).invoiceNo();
+        byte[] bytes = saleInvoicePdfService.generate(id);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"invoice-" + invoiceNo + ".pdf\"")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(bytes);
     }
 
     @GetMapping("/statements/export.xlsx")

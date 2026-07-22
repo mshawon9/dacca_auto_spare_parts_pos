@@ -87,6 +87,9 @@ public class SaleController {
                 "successMessage",
                 "Sale completed. Invoice " + response.invoiceNo() + ", total " + response.total()
             );
+            redirectAttributes.addFlashAttribute("completedSaleId", response.id());
+            redirectAttributes.addFlashAttribute("completedInvoiceNo", response.invoiceNo());
+            redirectAttributes.addFlashAttribute("completedInvoicePdfUrl", "/sales/" + response.id() + "/invoice.pdf");
             return "redirect:/sales/create";
         } catch (DuplicateResourceException | ResourceNotFoundException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());

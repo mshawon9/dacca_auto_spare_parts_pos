@@ -27,6 +27,7 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -104,7 +105,7 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
             throw new DuplicateResourceException("Cheque number is required for cheque payment.");
         }
 
-        savePayment(sale, amount, receiveDate, paymentMethod, request.getChequeDate(), request.getChequeNumber(), request.getNote());
+        savePayment(sale, amount, receiveDate, paymentMethod, request.getChequeDate(), request.getChequeNumber(), collectionReference(), request.getNote());
 
         sale.setPaidAmount(money(sale.getPaidAmount()).add(amount).setScale(PRICE_SCALE, RoundingMode.HALF_UP));
         sale.setBalanceDue(balanceDue.subtract(amount).max(BigDecimal.ZERO).setScale(PRICE_SCALE, RoundingMode.HALF_UP));
@@ -169,6 +170,7 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
         }
 
         BigDecimal remaining = amount;
+        String collectionReference = collectionReference();
         String statementNote = "Monthly statement " + month + (trimToNull(request.getNote()) == null ? "" : " - " + trimToNull(request.getNote()));
         for (SaleEntity sale : monthlySales) {
             if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
@@ -176,7 +178,7 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
             }
             BigDecimal saleDue = money(sale.getBalanceDue());
             BigDecimal applied = remaining.min(saleDue);
-            savePayment(sale, applied, receiveDate, paymentMethod, request.getChequeDate(), request.getChequeNumber(), statementNote);
+            savePayment(sale, applied, receiveDate, paymentMethod, request.getChequeDate(), request.getChequeNumber(), collectionReference, statementNote);
             sale.setPaidAmount(money(sale.getPaidAmount()).add(applied).setScale(PRICE_SCALE, RoundingMode.HALF_UP));
             sale.setBalanceDue(saleDue.subtract(applied).max(BigDecimal.ZERO).setScale(PRICE_SCALE, RoundingMode.HALF_UP));
             if (request.getDueDate() != null) {
@@ -218,6 +220,7 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
                              PaymentMethod paymentMethod,
                              LocalDate chequeDate,
                              String chequeNumber,
+                             String collectionReference,
                              String note) {
         SalePaymentEntity payment = new SalePaymentEntity();
         payment.setSale(sale);
@@ -226,6 +229,7 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
         payment.setPaymentMethod(paymentMethod);
         payment.setChequeDate(chequeDate);
         payment.setChequeNumber(trimToNull(chequeNumber));
+        payment.setCollectionReference(collectionReference);
         payment.setNote(trimToNull(note));
         salePaymentRepository.save(payment);
     }
@@ -300,6 +304,10 @@ public class CreditCollectionServiceImpl implements CreditCollectionService {
 
     private String trimToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String collectionReference() {
+        return "COL-" + LocalDate.now() + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase(Locale.ROOT);
     }
 
     private record SearchFilter(String keyword,
