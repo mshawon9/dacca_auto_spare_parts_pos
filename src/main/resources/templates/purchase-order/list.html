@@ -111,6 +111,10 @@
                                                     th:attr="data-id=${po.id()}">
                                                 Return
                                             </button>
+                                            <a class="btn btn-sm btn-outline-danger" target="_blank"
+                                               th:href="@{/purchase-orders/{id}/purchase-order.pdf(id=${po.id()})}">
+                                                PDF
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>

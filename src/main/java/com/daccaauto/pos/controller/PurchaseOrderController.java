@@ -1,6 +1,7 @@
 package com.daccaauto.pos.controller;
 
 import com.daccaauto.pos.dto.purchase.PurchaseOrderRequest;
+import com.daccaauto.pos.dto.purchase.PurchaseOrderDetail;
 import com.daccaauto.pos.dto.purchase.PurchaseReturnRequest;
 import com.daccaauto.pos.exception.DuplicateResourceException;
 import com.daccaauto.pos.exception.ResourceNotFoundException;
@@ -8,6 +9,7 @@ import com.daccaauto.pos.repository.ProductSupplierRepository;
 import com.daccaauto.pos.service.InventoryService;
 import com.daccaauto.pos.service.ProductService;
 import com.daccaauto.pos.service.PurchaseOrderService;
+import com.daccaauto.pos.service.ReportPdfService;
 import com.daccaauto.pos.service.SupplierService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +19,17 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/purchase-orders")
@@ -34,6 +43,7 @@ public class PurchaseOrderController {
     private final InventoryService inventoryService;
     private final ProductService productService;
     private final ProductSupplierRepository productSupplierRepository;
+    private final ReportPdfService reportPdfService;
 
     @Value("${app.purchase.default-tax-percent:5.00}")
     private java.math.BigDecimal defaultTaxPercent;
@@ -155,6 +165,16 @@ public class PurchaseOrderController {
         return purchaseOrderService.getDetail(id);
     }
 
+    @GetMapping("/{id}/purchase-order.pdf")
+    public ResponseEntity<byte[]> purchaseOrderPdf(@PathVariable Long id) {
+        PurchaseOrderDetail detail = purchaseOrderService.getDetail(id);
+        byte[] bytes = reportPdfService.generate("purchase-order", purchaseOrderParameters(detail), purchaseOrderRows(detail));
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"purchase-order-" + detail.invoiceId() + ".pdf\"")
+            .contentType(MediaType.APPLICATION_PDF)
+            .body(bytes);
+    }
+
     @PostMapping("/{id}/return")
     public String returnItem(@PathVariable Long id,
                              @Valid @ModelAttribute PurchaseReturnRequest request,
@@ -215,5 +235,41 @@ public class PurchaseOrderController {
     }
 
     public record ProductOption(Long id, String text) {
+    }
+
+    private Map<String, Object> purchaseOrderParameters(PurchaseOrderDetail detail) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("REPORT_TITLE", "PURCHASE ORDER");
+        params.put("P_INVOICE_ID", detail.invoiceId());
+        params.put("P_PURCHASE_DATE", detail.purchaseDate() == null ? "" : detail.purchaseDate().toString());
+        params.put("P_SUPPLIER_NAME", detail.supplierName());
+        params.put("P_STORE_NAME", detail.storeName());
+        params.put("P_TOTAL", detail.total());
+        params.put("P_LINE_COUNT", detail.lines() == null ? 0 : detail.lines().size());
+        params.put("P_RETURNED_QUANTITY", detail.lines() == null ? BigDecimal.ZERO : detail.lines().stream()
+            .map(PurchaseOrderDetail.Line::returnedQuantity)
+            .reduce(BigDecimal.ZERO, BigDecimal::add));
+        return params;
+    }
+
+    private List<Map<String, ?>> purchaseOrderRows(PurchaseOrderDetail detail) {
+        List<PurchaseOrderDetail.Line> lines = detail.lines() == null ? List.of() : detail.lines();
+        List<Map<String, ?>> rows = new ArrayList<>();
+        for (int i = 0; i < lines.size(); i++) {
+            PurchaseOrderDetail.Line line = lines.get(i);
+            Map<String, Object> row = new HashMap<>();
+            row.put("sno", i + 1);
+            row.put("productName", line.productName());
+            row.put("partNumber", line.partNumber());
+            row.put("brandName", line.brandName());
+            row.put("supplierProductCode", line.supplierProductCode());
+            row.put("quantity", line.quantity());
+            row.put("returnedQuantity", line.returnedQuantity());
+            row.put("unitPrice", line.unitPrice());
+            row.put("taxAmount", line.taxAmount());
+            row.put("lineTotal", line.lineTotal());
+            rows.add(row);
+        }
+        return rows;
     }
 }

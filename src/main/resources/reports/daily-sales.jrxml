@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="daily_sales" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802"
+              leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail">
+    <parameter name="REPORT_TITLE" class="java.lang.String"/>
+    <parameter name="P_DATE_RANGE" class="java.lang.String"/>
+    <parameter name="P_CUSTOMER_NAME" class="java.lang.String"/>
+    <parameter name="P_INVOICE_COUNT" class="java.lang.Long"/>
+    <parameter name="P_SUB_TOTAL" class="java.math.BigDecimal"/>
+    <parameter name="P_VAT_AMOUNT" class="java.math.BigDecimal"/>
+    <parameter name="P_TOTAL" class="java.math.BigDecimal"/>
+    <parameter name="P_PAID_AMOUNT" class="java.math.BigDecimal"/>
+    <parameter name="P_BALANCE_DUE" class="java.math.BigDecimal"/>
+    <field name="invoiceNo" class="java.lang.String"/>
+    <field name="saleDate" class="java.lang.String"/>
+    <field name="customerName" class="java.lang.String"/>
+    <field name="paymentMethod" class="java.lang.String"/>
+    <field name="subTotal" class="java.math.BigDecimal"/>
+    <field name="vatAmount" class="java.math.BigDecimal"/>
+    <field name="total" class="java.math.BigDecimal"/>
+    <field name="paidAmount" class="java.math.BigDecimal"/>
+    <field name="balanceDue" class="java.math.BigDecimal"/>
+    <title>
+        <band height="92">
+            <staticText><reportElement x="0" y="0" width="802" height="22"/><textElement textAlignment="Center"><font size="16" isBold="true"/></textElement><text><![CDATA[DACCA AUTO SPARE PARTS LLC]]></text></staticText>
+            <textField><reportElement x="0" y="28" width="802" height="22"/><textElement textAlignment="Center"><font size="13" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{REPORT_TITLE}]]></textFieldExpression></textField>
+            <textField><reportElement x="0" y="56" width="380" height="16"/><textFieldExpression><![CDATA["Date: " + $P{P_DATE_RANGE}]]></textFieldExpression></textField>
+            <textField><reportElement x="390" y="56" width="412" height="16"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Customer: " + $P{P_CUSTOMER_NAME}]]></textFieldExpression></textField>
+            <textField><reportElement x="0" y="74" width="802" height="16"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Invoices: " + $P{P_INVOICE_COUNT} + "    Total: " + $P{P_TOTAL} + "    Paid: " + $P{P_PAID_AMOUNT} + "    Due: " + $P{P_BALANCE_DUE}]]></textFieldExpression></textField>
+        </band>
+    </title>
+    <columnHeader>
+        <band height="24">
+            <staticText><reportElement x="0" y="0" width="90" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Invoice]]></text></staticText>
+            <staticText><reportElement x="90" y="0" width="80" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+            <staticText><reportElement x="170" y="0" width="190" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Customer]]></text></staticText>
+            <staticText><reportElement x="360" y="0" width="80" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Pay By]]></text></staticText>
+            <staticText><reportElement x="440" y="0" width="80" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Subtotal]]></text></staticText>
+            <staticText><reportElement x="520" y="0" width="70" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[VAT]]></text></staticText>
+            <staticText><reportElement x="590" y="0" width="75" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Total]]></text></staticText>
+            <staticText><reportElement x="665" y="0" width="65" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Paid]]></text></staticText>
+            <staticText><reportElement x="730" y="0" width="72" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Due]]></text></staticText>
+        </band>
+    </columnHeader>
+    <detail>
+        <band height="22">
+            <textField><reportElement x="0" y="0" width="90" height="22"/><box><pen lineWidth="1"/></box><textElement verticalAlignment="Middle"><font size="8"/><paragraph leftIndent="3"/></textElement><textFieldExpression><![CDATA[$F{invoiceNo}]]></textFieldExpression></textField>
+            <textField><reportElement x="90" y="0" width="80" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{saleDate}]]></textFieldExpression></textField>
+            <textField><reportElement x="170" y="0" width="190" height="22"/><box><pen lineWidth="1"/></box><textElement verticalAlignment="Middle"><font size="8"/><paragraph leftIndent="3"/></textElement><textFieldExpression><![CDATA[$F{customerName}]]></textFieldExpression></textField>
+            <textField><reportElement x="360" y="0" width="80" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{paymentMethod}]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="440" y="0" width="80" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{subTotal}]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="520" y="0" width="70" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{vatAmount}]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="590" y="0" width="75" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{total}]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="665" y="0" width="65" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{paidAmount}]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="730" y="0" width="72" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{balanceDue}]]></textFieldExpression></textField>
+        </band>
+    </detail>
+    <pageFooter><band height="18"><textField><reportElement x="700" y="2" width="102" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField></band></pageFooter>
+    <summary>
+        <band height="40">
+            <textField><reportElement x="360" y="10" width="80" height="20"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA["Summary"]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="440" y="10" width="80" height="20"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA[$P{P_SUB_TOTAL}]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="520" y="10" width="70" height="20"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA[$P{P_VAT_AMOUNT}]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="590" y="10" width="75" height="20"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA[$P{P_TOTAL}]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="665" y="10" width="65" height="20"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA[$P{P_PAID_AMOUNT}]]></textFieldExpression></textField>
+            <textField pattern="#,##0.00"><reportElement x="730" y="10" width="72" height="20"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA[$P{P_BALANCE_DUE}]]></textFieldExpression></textField>
+        </band>
+    </summary>
+</jasperReport>

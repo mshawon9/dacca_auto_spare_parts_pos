@@ -4,6 +4,7 @@ import com.daccaauto.pos.dto.sale.SaleHistoryRow;
 import com.daccaauto.pos.dto.sale.SaleStatementSummary;
 import com.daccaauto.pos.entity.CustomerEntity;
 import com.daccaauto.pos.repository.CustomerRepository;
+import com.daccaauto.pos.service.ReportPdfService;
 import com.daccaauto.pos.service.SaleInvoicePdfService;
 import com.daccaauto.pos.service.SaleReportService;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/sales")
@@ -46,6 +49,7 @@ public class SaleReportController {
 
     private final SaleReportService saleReportService;
     private final SaleInvoicePdfService saleInvoicePdfService;
+    private final ReportPdfService reportPdfService;
     private final CustomerRepository customerRepository;
 
     @GetMapping("/history")
@@ -145,6 +149,36 @@ public class SaleReportController {
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
             .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+            .body(bytes);
+    }
+
+    @GetMapping("/statements/export.pdf")
+    public ResponseEntity<byte[]> exportStatementPdf(@RequestParam(defaultValue = "daily") String statementType,
+                                                     @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+                                                     @RequestParam(required = false) String month,
+                                                     @RequestParam(required = false) Long customerId) {
+        StatementRange range = resolveRange(statementType, date, month, LocalDate.now());
+        boolean creditOnly = "credit".equalsIgnoreCase(statementType);
+        List<SaleHistoryRow> sales = saleReportService.search(
+                null,
+                range.fromDate(),
+                range.toDate(),
+                customerId,
+                creditOnly,
+                PageRequest.of(0, 10000, Sort.by(Sort.Direction.ASC, "saleDate", "id"))
+            )
+            .getContent();
+        SaleStatementSummary summary = saleReportService.summarize(range.fromDate(), range.toDate(), customerId, creditOnly);
+        String customerName = customerId == null ? "All customers" : customerRepository.findById(customerId)
+            .map(CustomerEntity::getName)
+            .orElse("Customer #" + customerId);
+        String reportName = "daily".equalsIgnoreCase(statementType) ? "daily-sales" : "monthly-statement";
+        String title = "daily".equalsIgnoreCase(statementType) ? "Daily Sales Report" : "Monthly Statement";
+        byte[] bytes = reportPdfService.generate(reportName, saleReportParameters(title, statementType, range, customerName, summary), saleReportRows(sales));
+        String filename = reportName + "-" + LocalDate.now() + ".pdf";
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+            .contentType(MediaType.APPLICATION_PDF)
             .body(bytes);
     }
 
@@ -297,5 +331,42 @@ public class SaleReportController {
 
     private double toDouble(BigDecimal value) {
         return value == null ? 0D : value.doubleValue();
+    }
+
+    private Map<String, Object> saleReportParameters(String title,
+                                                     String statementType,
+                                                     StatementRange range,
+                                                     String customerName,
+                                                     SaleStatementSummary summary) {
+        Map<String, Object> params = new HashMap<>();
+        params.put("REPORT_TITLE", title);
+        params.put("P_STATEMENT_TYPE", statementType);
+        params.put("P_DATE_RANGE", displayRange(range));
+        params.put("P_CUSTOMER_NAME", customerName);
+        params.put("P_INVOICE_COUNT", summary.invoiceCount());
+        params.put("P_SUB_TOTAL", summary.subTotal());
+        params.put("P_VAT_AMOUNT", summary.vatAmount());
+        params.put("P_TOTAL", summary.total());
+        params.put("P_PAID_AMOUNT", summary.paidAmount());
+        params.put("P_BALANCE_DUE", summary.balanceDue());
+        return params;
+    }
+
+    private List<Map<String, Object>> saleReportRows(List<SaleHistoryRow> sales) {
+        return sales.stream()
+            .map(sale -> {
+                Map<String, Object> row = new HashMap<>();
+                row.put("invoiceNo", sale.invoiceNo());
+                row.put("saleDate", sale.saleDate() == null ? "" : sale.saleDate().toString());
+                row.put("customerName", sale.customerName());
+                row.put("paymentMethod", sale.paymentMethod() == null ? "" : sale.paymentMethod().name());
+                row.put("subTotal", sale.subTotal());
+                row.put("vatAmount", sale.vatAmount());
+                row.put("total", sale.total());
+                row.put("paidAmount", sale.paidAmount());
+                row.put("balanceDue", sale.balanceDue());
+                return row;
+            })
+            .toList();
     }
 }

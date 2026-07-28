@@ -20,6 +20,11 @@
                             th:disabled="${customerId == null}">
                         <i class="bi bi-cash-coin me-1"></i> Receive Payment
                     </button>
+                    <a class="btn btn-outline-danger" target="_blank"
+                       th:classappend="${customerId == null} ? ' disabled' : ''"
+                       th:href="${customerId != null} ? @{/customer-ledgers/export.pdf(customerId=${customerId}, fromDate=${fromDate}, toDate=${toDate}, ledgerType=${ledgerType}, statementMonth=${statementMonth})} : '#'">
+                        <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                    </a>
                 </div>
             </div>
         </div>

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="purchase_order" pageWidth="595" pageHeight="842" columnWidth="555"
+              leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail">
+    <parameter name="REPORT_TITLE" class="java.lang.String"/>
+    <parameter name="P_INVOICE_ID" class="java.lang.String"/>
+    <parameter name="P_PURCHASE_DATE" class="java.lang.String"/>
+    <parameter name="P_SUPPLIER_NAME" class="java.lang.String"/>
+    <parameter name="P_STORE_NAME" class="java.lang.String"/>
+    <parameter name="P_TOTAL" class="java.math.BigDecimal"/>
+    <parameter name="P_LINE_COUNT" class="java.lang.Integer"/>
+    <parameter name="P_RETURNED_QUANTITY" class="java.math.BigDecimal"/>
+    <field name="sno" class="java.lang.Integer"/>
+    <field name="productName" class="java.lang.String"/>
+    <field name="partNumber" class="java.lang.String"/>
+    <field name="brandName" class="java.lang.String"/>
+    <field name="supplierProductCode" class="java.lang.String"/>
+    <field name="quantity" class="java.math.BigDecimal"/>
+    <field name="returnedQuantity" class="java.math.BigDecimal"/>
+    <field name="unitPrice" class="java.math.BigDecimal"/>
+    <field name="taxAmount" class="java.math.BigDecimal"/>
+    <field name="lineTotal" class="java.math.BigDecimal"/>
+    <title><band height="116">
+        <staticText><reportElement x="0" y="0" width="555" height="22"/><textElement textAlignment="Center"><font size="16" isBold="true"/></textElement><text><![CDATA[DACCA AUTO SPARE PARTS LLC]]></text></staticText>
+        <textField><reportElement x="0" y="28" width="555" height="22"/><textElement textAlignment="Center"><font size="13" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{REPORT_TITLE}]]></textFieldExpression></textField>
+        <textField><reportElement x="0" y="60" width="270" height="18"/><textFieldExpression><![CDATA["Supplier: " + $P{P_SUPPLIER_NAME}]]></textFieldExpression></textField>
+        <textField><reportElement x="285" y="60" width="270" height="18"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Invoice: " + $P{P_INVOICE_ID}]]></textFieldExpression></textField>
+        <textField><reportElement x="0" y="80" width="270" height="18"/><textFieldExpression><![CDATA["Warehouse: " + $P{P_STORE_NAME}]]></textFieldExpression></textField>
+        <textField><reportElement x="285" y="80" width="270" height="18"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Date: " + $P{P_PURCHASE_DATE}]]></textFieldExpression></textField>
+        <textField><reportElement x="0" y="100" width="555" height="16"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Items: " + $P{P_LINE_COUNT} + "    Returned Qty: " + $P{P_RETURNED_QUANTITY} + "    Total: " + $P{P_TOTAL}]]></textFieldExpression></textField>
+    </band></title>
+    <columnHeader><band height="28">
+        <staticText><reportElement x="0" y="0" width="28" height="28"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true" size="8"/></textElement><text><![CDATA[SL]]></text></staticText>
+        <staticText><reportElement x="28" y="0" width="150" height="28"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true" size="8"/></textElement><text><![CDATA[Product]]></text></staticText>
+        <staticText><reportElement x="178" y="0" width="72" height="28"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true" size="8"/></textElement><text><![CDATA[Part]]></text></staticText>
+        <staticText><reportElement x="250" y="0" width="70" height="28"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true" size="8"/></textElement><text><![CDATA[Supplier Code]]></text></staticText>
+        <staticText><reportElement x="320" y="0" width="45" height="28"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true" size="8"/></textElement><text><![CDATA[Qty]]></text></staticText>
+        <staticText><reportElement x="365" y="0" width="45" height="28"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true" size="8"/></textElement><text><![CDATA[Ret.]]></text></staticText>
+        <staticText><reportElement x="410" y="0" width="50" height="28"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true" size="8"/></textElement><text><![CDATA[Price]]></text></staticText>
+        <staticText><reportElement x="460" y="0" width="45" height="28"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true" size="8"/></textElement><text><![CDATA[Tax]]></text></staticText>
+        <staticText><reportElement x="505" y="0" width="50" height="28"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true" size="8"/></textElement><text><![CDATA[Total]]></text></staticText>
+    </band></columnHeader>
+    <detail><band height="26">
+        <textField><reportElement x="0" y="0" width="28" height="26"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{sno}]]></textFieldExpression></textField>
+        <textField><reportElement x="28" y="0" width="150" height="26"/><box><pen lineWidth="1"/></box><textElement verticalAlignment="Middle"><font size="8"/><paragraph leftIndent="3"/></textElement><textFieldExpression><![CDATA[$F{productName} + " | " + $F{brandName}]]></textFieldExpression></textField>
+        <textField><reportElement x="178" y="0" width="72" height="26"/><box><pen lineWidth="1"/></box><textElement verticalAlignment="Middle"><font size="8"/><paragraph leftIndent="3"/></textElement><textFieldExpression><![CDATA[$F{partNumber}]]></textFieldExpression></textField>
+        <textField><reportElement x="250" y="0" width="70" height="26"/><box><pen lineWidth="1"/></box><textElement verticalAlignment="Middle"><font size="8"/><paragraph leftIndent="3"/></textElement><textFieldExpression><![CDATA[$F{supplierProductCode}]]></textFieldExpression></textField>
+        <textField><reportElement x="320" y="0" width="45" height="26"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{quantity}.stripTrailingZeros().toPlainString()]]></textFieldExpression></textField>
+        <textField><reportElement x="365" y="0" width="45" height="26"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{returnedQuantity}.stripTrailingZeros().toPlainString()]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00"><reportElement x="410" y="0" width="50" height="26"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{unitPrice}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00"><reportElement x="460" y="0" width="45" height="26"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{taxAmount}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00"><reportElement x="505" y="0" width="50" height="26"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{lineTotal}]]></textFieldExpression></textField>
+    </band></detail>
+    <pageFooter><band height="60"><staticText><reportElement x="0" y="8" width="160" height="42"/><textElement><font isBold="true"/></textElement><text><![CDATA[Receiver Signature
+
+----------------------------------------]]></text></staticText><staticText><reportElement x="395" y="8" width="160" height="42"/><textElement><font isBold="true"/></textElement><text><![CDATA[Authorized Signature
+
+----------------------------------------]]></text></staticText><textField><reportElement x="485" y="44" width="70" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField></band></pageFooter>
+    <summary><band height="50"><staticText><reportElement x="405" y="10" width="80" height="20"/><textElement textAlignment="Right"><font isBold="true"/></textElement><text><![CDATA[PO Total]]></text></staticText><textField pattern="#,##0.00"><reportElement x="485" y="10" width="70" height="20"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA[$P{P_TOTAL}]]></textFieldExpression></textField></band></summary>
+</jasperReport>

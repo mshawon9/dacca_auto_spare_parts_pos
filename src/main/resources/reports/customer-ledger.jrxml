@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="customer_ledger" pageWidth="842" pageHeight="595" orientation="Landscape" columnWidth="802"
+              leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20" whenNoDataType="AllSectionsNoDetail">
+    <parameter name="REPORT_TITLE" class="java.lang.String"/>
+    <parameter name="P_CUSTOMER_NAME" class="java.lang.String"/>
+    <parameter name="P_LEDGER_TYPE" class="java.lang.String"/>
+    <parameter name="P_DATE_RANGE" class="java.lang.String"/>
+    <parameter name="P_TOTAL_SALE" class="java.math.BigDecimal"/>
+    <parameter name="P_TOTAL_COLLECTION" class="java.math.BigDecimal"/>
+    <parameter name="P_BALANCE_DUE" class="java.math.BigDecimal"/>
+    <field name="entryDate" class="java.lang.String"/>
+    <field name="entryType" class="java.lang.String"/>
+    <field name="reference" class="java.lang.String"/>
+    <field name="description" class="java.lang.String"/>
+    <field name="paymentMethod" class="java.lang.String"/>
+    <field name="cheque" class="java.lang.String"/>
+    <field name="debit" class="java.math.BigDecimal"/>
+    <field name="credit" class="java.math.BigDecimal"/>
+    <field name="balance" class="java.math.BigDecimal"/>
+    <title><band height="94">
+        <staticText><reportElement x="0" y="0" width="802" height="22"/><textElement textAlignment="Center"><font size="16" isBold="true"/></textElement><text><![CDATA[DACCA AUTO SPARE PARTS LLC]]></text></staticText>
+        <textField><reportElement x="0" y="28" width="802" height="22"/><textElement textAlignment="Center"><font size="13" isBold="true"/></textElement><textFieldExpression><![CDATA[$P{REPORT_TITLE}]]></textFieldExpression></textField>
+        <textField><reportElement x="0" y="56" width="400" height="16"/><textFieldExpression><![CDATA["Customer: " + $P{P_CUSTOMER_NAME}]]></textFieldExpression></textField>
+        <textField><reportElement x="410" y="56" width="392" height="16"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Period: " + $P{P_DATE_RANGE}]]></textFieldExpression></textField>
+        <textField><reportElement x="0" y="76" width="802" height="16"/><textElement textAlignment="Right"/><textFieldExpression><![CDATA["Sales: " + $P{P_TOTAL_SALE} + "    Collections: " + $P{P_TOTAL_COLLECTION} + "    Balance: " + $P{P_BALANCE_DUE}]]></textFieldExpression></textField>
+    </band></title>
+    <columnHeader><band height="24">
+        <staticText><reportElement x="0" y="0" width="75" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Date]]></text></staticText>
+        <staticText><reportElement x="75" y="0" width="85" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Type]]></text></staticText>
+        <staticText><reportElement x="160" y="0" width="112" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Reference]]></text></staticText>
+        <staticText><reportElement x="272" y="0" width="205" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Description]]></text></staticText>
+        <staticText><reportElement x="477" y="0" width="75" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Pay By]]></text></staticText>
+        <staticText><reportElement x="552" y="0" width="90" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Cheque]]></text></staticText>
+        <staticText><reportElement x="642" y="0" width="55" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Debit]]></text></staticText>
+        <staticText><reportElement x="697" y="0" width="55" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Credit]]></text></staticText>
+        <staticText><reportElement x="752" y="0" width="50" height="24"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font isBold="true"/></textElement><text><![CDATA[Bal.]]></text></staticText>
+    </band></columnHeader>
+    <detail><band height="22">
+        <textField><reportElement x="0" y="0" width="75" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{entryDate}]]></textFieldExpression></textField>
+        <textField><reportElement x="75" y="0" width="85" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{entryType}]]></textFieldExpression></textField>
+        <textField><reportElement x="160" y="0" width="112" height="22"/><box><pen lineWidth="1"/></box><textElement verticalAlignment="Middle"><font size="8"/><paragraph leftIndent="3"/></textElement><textFieldExpression><![CDATA[$F{reference}]]></textFieldExpression></textField>
+        <textField><reportElement x="272" y="0" width="205" height="22"/><box><pen lineWidth="1"/></box><textElement verticalAlignment="Middle"><font size="8"/><paragraph leftIndent="3"/></textElement><textFieldExpression><![CDATA[$F{description}]]></textFieldExpression></textField>
+        <textField><reportElement x="477" y="0" width="75" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Center" verticalAlignment="Middle"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{paymentMethod}]]></textFieldExpression></textField>
+        <textField><reportElement x="552" y="0" width="90" height="22"/><box><pen lineWidth="1"/></box><textElement verticalAlignment="Middle"><font size="8"/><paragraph leftIndent="3"/></textElement><textFieldExpression><![CDATA[$F{cheque}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00"><reportElement x="642" y="0" width="55" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{debit}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00"><reportElement x="697" y="0" width="55" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{credit}]]></textFieldExpression></textField>
+        <textField pattern="#,##0.00"><reportElement x="752" y="0" width="50" height="22"/><box><pen lineWidth="1"/></box><textElement textAlignment="Right" verticalAlignment="Middle"><font size="8"/><paragraph rightIndent="3"/></textElement><textFieldExpression><![CDATA[$F{balance}]]></textFieldExpression></textField>
+    </band></detail>
+    <pageFooter><band height="18"><textField><reportElement x="700" y="2" width="102" height="14"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA["Page " + $V{PAGE_NUMBER}]]></textFieldExpression></textField></band></pageFooter>
+    <summary><band height="34"><textField><reportElement x="477" y="8" width="165" height="18"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA["Summary"]]></textFieldExpression></textField><textField pattern="#,##0.00"><reportElement x="642" y="8" width="55" height="18"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA[$P{P_TOTAL_SALE}]]></textFieldExpression></textField><textField pattern="#,##0.00"><reportElement x="697" y="8" width="55" height="18"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA[$P{P_TOTAL_COLLECTION}]]></textFieldExpression></textField><textField pattern="#,##0.00"><reportElement x="752" y="8" width="50" height="18"/><textElement textAlignment="Right"><font isBold="true"/></textElement><textFieldExpression><![CDATA[$P{P_BALANCE_DUE}]]></textFieldExpression></textField></band></summary>
+</jasperReport>

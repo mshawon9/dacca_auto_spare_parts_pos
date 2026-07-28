@@ -176,8 +176,8 @@
 
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger"
-                                            disabled
-                                            title="PDF export will be added later">
+                                            onclick="window.open(this.getAttribute('data-url'), '_blank')"
+                                            th:attr="data-url=@{/sales/statements/export.pdf(statementType=${statementType}, date=${date}, month=${month}, customerId=${customerId})}">
                                         <i class="bi bi-file-earmark-pdf me-1"></i>
                                         PDF
                                     </button>
