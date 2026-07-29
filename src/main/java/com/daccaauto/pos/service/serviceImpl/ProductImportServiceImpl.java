@@ -4,19 +4,27 @@ import com.daccaauto.pos.dto.product.ProductImportResult;
 import com.daccaauto.pos.entity.BrandCategoryEntity;
 import com.daccaauto.pos.entity.BrandEntity;
 import com.daccaauto.pos.entity.ProductAlternativePartNumberEntity;
+import com.daccaauto.pos.entity.ProductApplicationEntity;
 import com.daccaauto.pos.entity.ProductCategoryEntity;
 import com.daccaauto.pos.entity.ProductEntity;
 import com.daccaauto.pos.entity.ProductGroupEntity;
 import com.daccaauto.pos.entity.ProductStockEntity;
 import com.daccaauto.pos.entity.StoreEntity;
+import com.daccaauto.pos.entity.VehicleApplicationEntity;
+import com.daccaauto.pos.entity.VehicleMakeEntity;
+import com.daccaauto.pos.entity.VehicleModelEntity;
 import com.daccaauto.pos.repository.BrandCategoryRepository;
 import com.daccaauto.pos.repository.BrandRepository;
 import com.daccaauto.pos.repository.ProductAlternativePartNumberRepository;
+import com.daccaauto.pos.repository.ProductApplicationRepository;
 import com.daccaauto.pos.repository.ProductCategoryRepository;
 import com.daccaauto.pos.repository.ProductGroupRepository;
 import com.daccaauto.pos.repository.ProductRepository;
 import com.daccaauto.pos.repository.ProductStockRepository;
 import com.daccaauto.pos.repository.StoreRepository;
+import com.daccaauto.pos.repository.VehicleApplicationRepository;
+import com.daccaauto.pos.repository.VehicleMakeRepository;
+import com.daccaauto.pos.repository.VehicleModelRepository;
 import com.daccaauto.pos.service.ProductImportService;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.DataFormatter;
@@ -33,9 +41,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -45,6 +56,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,19 +66,25 @@ import java.util.stream.Collectors;
 public class ProductImportServiceImpl implements ProductImportService {
 
     private static final int MAX_ROWS = 500;
+    private static final Pattern APPLICATION_MODEL_YEAR_PATTERN = Pattern.compile(
+        "^(.*?)(?:\\s+(\\d{4})(?:\\s*-\\s*(\\d{4}|up))?)$",
+        Pattern.CASE_INSENSITIVE
+    );
     private static final String[] SAMPLE_HEADERS = {
         "Category",
-        "Brand",
         "Product Name",
-        "Product Group",
         "Part Number",
         "Position",
+        "Brand",
+        "Current Stock",
+        "Cost Price",
+        "Application Make",
+        "Application Model",
+        "Product Group",
         "Dimension",
         "SKU",
         "Reorder Level",
         "Warehouse",
-        "Current Stock",
-        "Cost Price",
         "Barcode",
         "Alternative Part Number",
         "Description",
@@ -77,9 +96,13 @@ public class ProductImportServiceImpl implements ProductImportService {
     private final BrandRepository brandRepository;
     private final BrandCategoryRepository brandCategoryRepository;
     private final ProductAlternativePartNumberRepository alternativePartNumberRepository;
+    private final ProductApplicationRepository productApplicationRepository;
     private final ProductGroupRepository productGroupRepository;
     private final ProductStockRepository productStockRepository;
     private final StoreRepository storeRepository;
+    private final VehicleMakeRepository vehicleMakeRepository;
+    private final VehicleModelRepository vehicleModelRepository;
+    private final VehicleApplicationRepository vehicleApplicationRepository;
     private final CacheManager cacheManager;
 
     @Override
@@ -98,9 +121,9 @@ public class ProductImportServiceImpl implements ProductImportService {
                 header.getCell(i).setCellStyle(headerStyle);
             }
 
-            addSampleRow(sheet, 1, "Brake Pad", "Brembo", "Civic Front Pad", "Civic Front Pad", "BP1001", "Front", "38 X 25 X 9", "SKU-001", "2", "Main Store", "10", "35.50", "", "BP-ALT1, BP-ALT2", "Ceramic brake pad", "TRUE");
-            addSampleRow(sheet, 2, "Brake Pad", "Bosch", "Civic Front Pad", "Civic Front Pad", "BS2001", "Front", "38 X 25 X 9", "SKU-002", "2", "Main Store", "5", "28.00", "", "", "Same product, different brand", "TRUE");
-            addSampleRow(sheet, 3, "Bearing", "NSK", "Yaris Wheel Bearing", "Yaris Wheel Bearing", "WB3001", "Front", "", "", "2", "", "", "", "", "WB-ALT1", "", "TRUE");
+            addSampleRow(sheet, 1, "Brake Pad", "Civic Front Pad", "BP1001", "Front", "Brembo", "10", "35.50", "Honda", "Civic 2006 - 2011", "Civic Front Pad", "38 X 25 X 9", "SKU-001", "2", "Main Store", "", "BP-ALT1, BP-ALT2", "Ceramic brake pad", "TRUE");
+            addSampleRow(sheet, 2, "Brake Pad", "Civic Front Pad", "BS2001", "Front", "Bosch", "5", "28.00", "Honda", "Civic 2006 - 2011", "Civic Front Pad", "38 X 25 X 9", "SKU-002", "2", "Main Store", "", "", "Same product, different brand", "TRUE");
+            addSampleRow(sheet, 3, "Bearing", "Yaris Wheel Bearing", "WB3001", "Front", "NSK", "", "", "Toyota", "Yaris 2006 - 2013", "Yaris Wheel Bearing", "", "", "2", "", "", "WB-ALT1", "", "TRUE");
 
             for (int i = 0; i < SAMPLE_HEADERS.length; i++) {
                 sheet.autoSizeColumn(i);
@@ -116,18 +139,18 @@ public class ProductImportServiceImpl implements ProductImportService {
     @Override
     public ProductImportResult importProducts(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            return failWholeFile("Please choose an Excel file.");
+            return failWholeFile("Please choose an Excel or CSV file.");
         }
 
-        if (!isExcelFile(file.getOriginalFilename())) {
-            return failWholeFile("Only .xlsx files are supported.");
+        if (!isSupportedImportFile(file.getOriginalFilename())) {
+            return failWholeFile("Only .xlsx and .csv files are supported.");
         }
 
         List<ImportRow> rows;
         try {
             rows = readRows(file);
         } catch (IOException ex) {
-            return failWholeFile("Could not read Excel file.");
+            return failWholeFile("Could not read import file.");
         }
 
         if (rows.isEmpty()) {
@@ -140,6 +163,9 @@ public class ProductImportServiceImpl implements ProductImportService {
 
         validateRows(rows);
         if (rows.stream().anyMatch(row -> !row.errors.isEmpty())) {
+            rows.stream()
+                .filter(row -> row.errors.isEmpty())
+                .forEach(row -> row.message = "Ready, but not imported because other rows failed validation.");
             return toResult(rows);
         }
 
@@ -177,6 +203,7 @@ public class ProductImportServiceImpl implements ProductImportService {
 
             ProductEntity saved = productRepository.save(product);
             syncAlternativePartNumbers(saved, row.alternativePartNumber);
+            syncApplication(saved, row);
             syncInitialStock(saved, stores.get(key(row.warehouse)), row);
             row.success = true;
             row.message = "Inserted successfully";
@@ -189,17 +216,19 @@ public class ProductImportServiceImpl implements ProductImportService {
     private void addSampleRow(Sheet sheet,
                               int rowIndex,
                               String category,
-                              String brand,
                               String productName,
-                              String productGroup,
                               String partNumber,
                               String position,
+                              String brand,
+                              String currentStock,
+                              String costPrice,
+                              String applicationMake,
+                              String applicationModel,
+                              String productGroup,
                               String dimension,
                               String sku,
                               String reorderLevel,
                               String warehouse,
-                              String currentStock,
-                              String costPrice,
                               String barcode,
                               String alternativePartNumber,
                               String description,
@@ -207,17 +236,19 @@ public class ProductImportServiceImpl implements ProductImportService {
         Row row = sheet.createRow(rowIndex);
         String[] values = {
             category,
-            brand,
             productName,
-            productGroup,
             partNumber,
             position,
+            brand,
+            currentStock,
+            costPrice,
+            applicationMake,
+            applicationModel,
+            productGroup,
             dimension,
             sku,
             reorderLevel,
             warehouse,
-            currentStock,
-            costPrice,
             barcode,
             alternativePartNumber,
             description,
@@ -229,6 +260,13 @@ public class ProductImportServiceImpl implements ProductImportService {
     }
 
     private List<ImportRow> readRows(MultipartFile file) throws IOException {
+        if (isCsvFile(file.getOriginalFilename())) {
+            return readCsvRows(file);
+        }
+        return readExcelRows(file);
+    }
+
+    private List<ImportRow> readExcelRows(MultipartFile file) throws IOException {
         List<ImportRow> rows = new ArrayList<>();
         try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
@@ -244,17 +282,19 @@ public class ProductImportServiceImpl implements ProductImportService {
                 rows.add(new ImportRow(
                     i + 1,
                     readCell(sheetRow, headers, "category", formatter, evaluator),
-                    readCell(sheetRow, headers, "brand", formatter, evaluator),
                     readCell(sheetRow, headers, "name", formatter, evaluator),
-                    readCell(sheetRow, headers, "productgroup", formatter, evaluator),
                     readCell(sheetRow, headers, "partnumber", formatter, evaluator),
+                    readCell(sheetRow, headers, "brand", formatter, evaluator),
+                    readCell(sheetRow, headers, "currentstock", formatter, evaluator),
+                    readCell(sheetRow, headers, "costprice", formatter, evaluator),
+                    readCell(sheetRow, headers, "applicationmake", formatter, evaluator),
+                    readCell(sheetRow, headers, "applicationmodel", formatter, evaluator),
+                    readCell(sheetRow, headers, "productgroup", formatter, evaluator),
                     readCell(sheetRow, headers, "position", formatter, evaluator),
                     readCell(sheetRow, headers, "dimension", formatter, evaluator),
                     readCell(sheetRow, headers, "sku", formatter, evaluator),
                     readCell(sheetRow, headers, "reorderlevel", formatter, evaluator),
                     readCell(sheetRow, headers, "warehouse", formatter, evaluator),
-                    readCell(sheetRow, headers, "currentstock", formatter, evaluator),
-                    readCell(sheetRow, headers, "costprice", formatter, evaluator),
                     readCell(sheetRow, headers, "barcode", formatter, evaluator),
                     readCell(sheetRow, headers, "alternativepartnumber", formatter, evaluator),
                     readCell(sheetRow, headers, "description", formatter, evaluator),
@@ -263,6 +303,104 @@ public class ProductImportServiceImpl implements ProductImportService {
             }
         }
         return rows;
+    }
+
+    private List<ImportRow> readCsvRows(MultipartFile file) throws IOException {
+        List<ImportRow> rows = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
+            String line = reader.readLine();
+            if (line == null) {
+                return rows;
+            }
+
+            Map<String, Integer> headers = readCsvHeaders(parseCsvLine(removeUtf8Bom(line)));
+            int rowNumber = 1;
+            while ((line = reader.readLine()) != null) {
+                rowNumber++;
+                List<String> values = parseCsvLine(line);
+                if (isBlankCsvRow(values)) {
+                    continue;
+                }
+                rows.add(new ImportRow(
+                    rowNumber,
+                    readCsvCell(values, headers, "category"),
+                    readCsvCell(values, headers, "name"),
+                    readCsvCell(values, headers, "partnumber"),
+                    readCsvCell(values, headers, "brand"),
+                    readCsvCell(values, headers, "currentstock"),
+                    readCsvCell(values, headers, "costprice"),
+                    readCsvCell(values, headers, "applicationmake"),
+                    readCsvCell(values, headers, "applicationmodel"),
+                    readCsvCell(values, headers, "productgroup"),
+                    readCsvCell(values, headers, "position"),
+                    readCsvCell(values, headers, "dimension"),
+                    readCsvCell(values, headers, "sku"),
+                    readCsvCell(values, headers, "reorderlevel"),
+                    readCsvCell(values, headers, "warehouse"),
+                    readCsvCell(values, headers, "barcode"),
+                    readCsvCell(values, headers, "alternativepartnumber"),
+                    readCsvCell(values, headers, "description"),
+                    parseActive(readCsvCell(values, headers, "active"))
+                ));
+            }
+        }
+        return rows;
+    }
+
+    private Map<String, Integer> readCsvHeaders(List<String> headerValues) {
+        Map<String, Integer> headers = new HashMap<>();
+        for (int i = 0; i < headerValues.size(); i++) {
+            String header = normalizeHeader(headerValues.get(i));
+            if (!header.isBlank()) {
+                headers.put(header, i);
+            }
+        }
+        return headers;
+    }
+
+    private String readCsvCell(List<String> values, Map<String, Integer> headers, String column) {
+        Integer index = headers.get(column);
+        if (index == null || index >= values.size()) {
+            return "";
+        }
+        return values.get(index).trim();
+    }
+
+    private boolean isBlankCsvRow(List<String> values) {
+        return values.stream().allMatch(value -> value == null || value.trim().isBlank());
+    }
+
+    private List<String> parseCsvLine(String line) {
+        List<String> values = new ArrayList<>();
+        StringBuilder value = new StringBuilder();
+        boolean quoted = false;
+
+        for (int i = 0; i < line.length(); i++) {
+            char ch = line.charAt(i);
+            if (ch == '"') {
+                if (quoted && i + 1 < line.length() && line.charAt(i + 1) == '"') {
+                    value.append('"');
+                    i++;
+                } else {
+                    quoted = !quoted;
+                }
+            } else if (ch == ',' && !quoted) {
+                values.add(value.toString());
+                value.setLength(0);
+            } else {
+                value.append(ch);
+            }
+        }
+
+        values.add(value.toString());
+        return values;
+    }
+
+    private String removeUtf8Bom(String value) {
+        if (value != null && !value.isEmpty() && value.charAt(0) == '\uFEFF') {
+            return value.substring(1);
+        }
+        return value;
     }
 
     private Map<String, Integer> readHeaders(Row headerRow, DataFormatter formatter, FormulaEvaluator evaluator) {
@@ -321,10 +459,28 @@ public class ProductImportServiceImpl implements ProductImportService {
             if (row.hasStockInfo() && row.warehouse.isBlank()) {
                 row.errors.add("Warehouse is required when Current Stock or Cost Price is provided");
             }
+            if (row.hasApplicationInfo()) {
+                if (row.applicationMake.isBlank()) {
+                    row.errors.add("Application Make is required when Application Model is provided");
+                }
+                if (row.applicationModel.isBlank()) {
+                    row.errors.add("Application Model is required when Application Make is provided");
+                }
+                ParsedApplicationModel parsedApplicationModel = parseApplicationModel(row.applicationModel);
+                if (parsedApplicationModel.modelName().isBlank()) {
+                    row.errors.add("Application Model name is required");
+                }
+                if (parsedApplicationModel.yearFrom() != null && parsedApplicationModel.yearTo() != null
+                    && parsedApplicationModel.yearFrom() > parsedApplicationModel.yearTo()) {
+                    row.errors.add("Application Model year range is invalid");
+                }
+            }
             if (row.name.length() > 200) row.errors.add("Product Name must not exceed 200 characters");
             if (row.productGroup.length() > 200) row.errors.add("Product Group must not exceed 200 characters");
             if (row.category.length() > 100) row.errors.add("Category must not exceed 100 characters");
             if (row.brand.length() > 100) row.errors.add("Brand must not exceed 100 characters");
+            if (row.applicationMake.length() > 100) row.errors.add("Application Make must not exceed 100 characters");
+            if (row.applicationModel.length() > 150) row.errors.add("Application Model must not exceed 150 characters");
             if (row.warehouse.length() > 120) row.errors.add("Warehouse must not exceed 120 characters");
             if (row.position.length() > 80) row.errors.add("Position must not exceed 80 characters");
             if (row.dimension.length() > 120) row.errors.add("Dimension must not exceed 120 characters");
@@ -451,6 +607,51 @@ public class ProductImportServiceImpl implements ProductImportService {
         }
     }
 
+    private void syncApplication(ProductEntity product, ImportRow row) {
+        if (!row.hasApplicationInfo()) {
+            return;
+        }
+
+        VehicleApplicationEntity application = resolveVehicleApplication(row);
+        ProductApplicationEntity mapping = new ProductApplicationEntity();
+        mapping.setProduct(product);
+        mapping.setVehicleApplication(application);
+        productApplicationRepository.save(mapping);
+    }
+
+    private VehicleApplicationEntity resolveVehicleApplication(ImportRow row) {
+        VehicleMakeEntity make = vehicleMakeRepository.findByNameIgnoreCase(row.applicationMake.trim())
+            .orElseGet(() -> {
+                VehicleMakeEntity created = new VehicleMakeEntity();
+                created.setName(row.applicationMake.trim());
+                created.setActive(true);
+                return vehicleMakeRepository.save(created);
+            });
+
+        ParsedApplicationModel parsed = parseApplicationModel(row.applicationModel);
+        VehicleModelEntity model = vehicleModelRepository.findByMakeIdAndNameIgnoreCase(make.getId(), parsed.modelName())
+            .orElseGet(() -> {
+                VehicleModelEntity created = new VehicleModelEntity();
+                created.setMake(make);
+                created.setName(parsed.modelName());
+                created.setActive(true);
+                return vehicleModelRepository.save(created);
+            });
+
+        return vehicleApplicationRepository
+            .findExisting(make.getId(), model.getId(), null, parsed.yearFrom(), parsed.yearTo())
+            .orElseGet(() -> {
+                VehicleApplicationEntity created = new VehicleApplicationEntity();
+                created.setVehicleMake(make);
+                created.setVehicleModel(model);
+                created.setVariantLabel(null);
+                created.setYearFrom(parsed.yearFrom());
+                created.setYearTo(parsed.yearTo());
+                created.setActive(true);
+                return vehicleApplicationRepository.save(created);
+            });
+    }
+
     private void syncInitialStock(ProductEntity product, StoreEntity store, ImportRow row) {
         if (!row.hasStockInfo()) {
             return;
@@ -530,8 +731,16 @@ public class ProductImportServiceImpl implements ProductImportService {
         }
     }
 
+    private boolean isSupportedImportFile(String filename) {
+        return isExcelFile(filename) || isCsvFile(filename);
+    }
+
     private boolean isExcelFile(String filename) {
         return filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".xlsx");
+    }
+
+    private boolean isCsvFile(String filename) {
+        return filename != null && filename.toLowerCase(Locale.ROOT).endsWith(".csv");
     }
 
     private String normalizeHeader(String value) {
@@ -544,6 +753,8 @@ public class ProductImportServiceImpl implements ProductImportService {
             case "store", "storename", "warehouse", "warehousename" -> "warehouse";
             case "stock", "currentstock", "quantity", "currentquantity" -> "currentstock";
             case "cost", "costprice", "purchaseprice", "buyingprice" -> "costprice";
+            case "make", "vehiclemake", "applicationmake", "appmake" -> "applicationmake";
+            case "model", "vehiclemodel", "applicationmodel", "appmodel" -> "applicationmodel";
             default -> normalized;
         };
     }
@@ -611,6 +822,35 @@ public class ProductImportServiceImpl implements ProductImportService {
         }
     }
 
+    private ParsedApplicationModel parseApplicationModel(String value) {
+        String text = value == null ? "" : value.trim().replaceAll("\\s+", " ");
+        if (text.isBlank()) {
+            return new ParsedApplicationModel("", null, null);
+        }
+
+        Matcher matcher = APPLICATION_MODEL_YEAR_PATTERN.matcher(text);
+        if (!matcher.matches()) {
+            return new ParsedApplicationModel(text, null, null);
+        }
+
+        String modelName = matcher.group(1) == null ? "" : matcher.group(1).trim();
+        if (modelName.isBlank()) {
+            return new ParsedApplicationModel(text, null, null);
+        }
+
+        Integer yearFrom = parseYear(matcher.group(2));
+        String yearToText = matcher.group(3);
+        Integer yearTo = yearToText == null
+            ? yearFrom
+            : ("up".equalsIgnoreCase(yearToText.trim()) ? null : parseYear(yearToText));
+
+        return new ParsedApplicationModel(modelName, yearFrom, yearTo);
+    }
+
+    private Integer parseYear(String value) {
+        return value == null || value.isBlank() ? null : Integer.valueOf(value.trim());
+    }
+
     private String buildCategoryProductName(ProductCategoryEntity category, String productName) {
         String name = productName == null ? "" : productName.trim();
         String categoryName = category.getName().trim();
@@ -655,6 +895,9 @@ public class ProductImportServiceImpl implements ProductImportService {
         }
     }
 
+    private record ParsedApplicationModel(String modelName, Integer yearFrom, Integer yearTo) {
+    }
+
     private static class ImportRow {
         private final int rowNumber;
         private final String category;
@@ -662,6 +905,8 @@ public class ProductImportServiceImpl implements ProductImportService {
         private final String name;
         private final String productGroup;
         private String partNumber;
+        private final String applicationMake;
+        private final String applicationModel;
         private final String position;
         private final String dimension;
         private final String sku;
@@ -682,17 +927,19 @@ public class ProductImportServiceImpl implements ProductImportService {
 
         private ImportRow(int rowNumber,
                           String category,
-                          String brand,
                           String name,
-                          String productGroup,
                           String partNumber,
+                          String brand,
+                          String currentStockInput,
+                          String costPriceInput,
+                          String applicationMake,
+                          String applicationModel,
+                          String productGroup,
                           String position,
                           String dimension,
                           String sku,
                           String reorderLevelInput,
                           String warehouse,
-                          String currentStockInput,
-                          String costPriceInput,
                           String barcode,
                           String alternativePartNumber,
                           String description,
@@ -703,6 +950,8 @@ public class ProductImportServiceImpl implements ProductImportService {
             this.name = name;
             this.productGroup = productGroup;
             this.partNumber = partNumber;
+            this.applicationMake = applicationMake;
+            this.applicationModel = applicationModel;
             this.position = position;
             this.dimension = dimension;
             this.sku = sku;
@@ -719,6 +968,11 @@ public class ProductImportServiceImpl implements ProductImportService {
         private boolean hasStockInfo() {
             return (currentStockInput != null && !currentStockInput.isBlank())
                 || (costPriceInput != null && !costPriceInput.isBlank());
+        }
+
+        private boolean hasApplicationInfo() {
+            return (applicationMake != null && !applicationMake.isBlank())
+                || (applicationModel != null && !applicationModel.isBlank());
         }
     }
 }

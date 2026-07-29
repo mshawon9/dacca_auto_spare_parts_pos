@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface VehicleApplicationRepository extends JpaRepository<VehicleApplicationEntity, Long> {
 
@@ -14,6 +15,23 @@ public interface VehicleApplicationRepository extends JpaRepository<VehicleAppli
     List<VehicleApplicationEntity> findByVehicleMakeIdOrderByDisplayNameAsc(Long makeId);
 
     List<VehicleApplicationEntity> findByVehicleMakeIdAndVehicleModelIdOrderByDisplayNameAsc(Long makeId, Long modelId);
+
+    @Query("""
+        select v
+        from VehicleApplicationEntity v
+        where v.vehicleMake.id = :makeId
+          and v.vehicleModel.id = :modelId
+          and lower(coalesce(v.variantLabel, '')) = lower(coalesce(:variantLabel, ''))
+          and ((:yearFrom is null and v.yearFrom is null) or v.yearFrom = :yearFrom)
+          and ((:yearTo is null and v.yearTo is null) or v.yearTo = :yearTo)
+        """)
+    Optional<VehicleApplicationEntity> findExisting(
+            @Param("makeId") Long makeId,
+            @Param("modelId") Long modelId,
+            @Param("variantLabel") String variantLabel,
+            @Param("yearFrom") Integer yearFrom,
+            @Param("yearTo") Integer yearTo
+    );
 
     @Query("""
         select (count(v) > 0)

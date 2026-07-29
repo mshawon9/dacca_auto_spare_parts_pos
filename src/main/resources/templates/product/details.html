@@ -117,6 +117,8 @@
                                             <th class="ps-3">Product</th>
                                             <th>Brand</th>
                                             <th>Part Number</th>
+                                            <th>Alt. Numbers</th>
+                                            <th>Position</th>
                                             <th class="text-end">Total Stock</th>
                                             <th class="text-end pe-3">Action</th>
                                         </tr>
@@ -130,7 +132,20 @@
                                                 <span th:if="${variant.currentProduct()}" class="badge text-bg-success ms-2">Current</span>
                                             </td>
                                             <td th:text="${variant.brandName()}">Brand</td>
-                                            <td th:text="${variant.partNumber()}">Part</td>
+                                            <td>
+                                                <span class="badge text-bg-primary" th:text="${variant.partNumber()}">Part</span>
+                                            </td>
+                                            <td>
+                                                <span th:if="${#lists.isEmpty(variant.alternativePartNumbers())}" class="text-muted">-</span>
+                                                <span th:each="alt : ${variant.alternativePartNumbers()}"
+                                                      class="badge text-bg-light border text-dark me-1 mb-1"
+                                                      th:text="${alt}">ALT</span>
+                                            </td>
+                                            <td>
+                                                <span th:text="${variant.position() != null ? variant.position() : '-'}">Front</span>
+                                                <span th:if="${variant.dimension() != null}" class="small text-muted d-block"
+                                                      th:text="${variant.dimension()}">38 X 25 X 9</span>
+                                            </td>
                                             <td class="text-end">
                                                 <span class="badge"
                                                       th:classappend="${variant.totalStockQuantity().signum() > 0 ? ' text-bg-success' : ' text-bg-danger'}"

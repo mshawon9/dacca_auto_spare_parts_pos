@@ -483,6 +483,9 @@ public class ProductServiceImpl implements ProductService {
                 product.name(),
                 product.brandName(),
                 product.partNumber(),
+                product.alternativePartNumbers(),
+                product.position(),
+                product.dimension(),
                 productStockRepository.sumQuantityByProductId(product.id()),
                 true
             ));
@@ -495,6 +498,9 @@ public class ProductServiceImpl implements ProductService {
                 variant.getName(),
                 variant.getBrand().getName(),
                 variant.getPartNumber(),
+                getAlternativePartNumbers(variant),
+                variant.getPosition(),
+                variant.getDimension(),
                 productStockRepository.sumQuantityByProductId(variant.getId()),
                 variant.getId().equals(product.id())
             ))

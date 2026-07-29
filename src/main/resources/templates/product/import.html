@@ -13,7 +13,7 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>
                         <h3 class="mb-0">Import Products</h3>
-                        <div class="text-muted">Upload up to 500 products from one Excel file.</div>
+                        <div class="text-muted">Upload up to 500 products from one Excel or CSV file.</div>
                     </div>
                     <a th:href="@{/products}" class="btn btn-outline-secondary">
                         <i class="bi bi-arrow-left me-1"></i> Back to Products
@@ -28,7 +28,7 @@
                     <div class="col-lg-5">
                         <div class="card h-100">
                             <div class="card-header">
-                                <h3 class="card-title">Upload Excel</h3>
+                                <h3 class="card-title">Upload Products</h3>
                             </div>
                             <div class="card-body">
                                 <div class="alert alert-info d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -39,8 +39,8 @@
                                 </div>
                                 <form th:action="@{/products/import}" method="post" enctype="multipart/form-data">
                                     <div class="mb-3">
-                                        <label for="file" class="form-label">Excel File (.xlsx)</label>
-                                        <input type="file" id="file" name="file" class="form-control" accept=".xlsx" required>
+                                        <label for="file" class="form-label">Import File (.xlsx or .csv)</label>
+                                        <input type="file" id="file" name="file" class="form-control" accept=".xlsx,.csv,text/csv" required>
                                         <div class="form-text">Maximum 500 product rows. The first row must be the header row.</div>
                                     </div>
                                     <button type="submit" class="btn btn-primary">
@@ -71,17 +71,19 @@
                                         </thead>
                                         <tbody>
                                         <tr><td>Category</td><td><span class="badge text-bg-danger">Yes</span></td><td>Brake Pad</td></tr>
-                                        <tr><td>Brand</td><td><span class="badge text-bg-danger">Yes</span></td><td>Brembo</td></tr>
                                         <tr><td>Product Name</td><td><span class="badge text-bg-danger">Yes</span></td><td>Civic Front Pad</td></tr>
-                                        <tr><td>Product Group</td><td>No</td><td>Civic Front Pad</td></tr>
                                         <tr><td>Part Number</td><td><span class="badge text-bg-danger">Yes</span></td><td>BP1001</td></tr>
                                         <tr><td>Position</td><td>No</td><td>Front</td></tr>
+                                        <tr><td>Brand</td><td><span class="badge text-bg-danger">Yes</span></td><td>Brembo</td></tr>
+                                        <tr><td>Current Stock</td><td>No</td><td>10</td></tr>
+                                        <tr><td>Cost Price</td><td>No</td><td>35.50</td></tr>
+                                        <tr><td>Application Make</td><td>No</td><td>Nissan</td></tr>
+                                        <tr><td>Application Model</td><td>No</td><td>Altima 2003 - 2007</td></tr>
+                                        <tr><td>Product Group</td><td>No</td><td>Civic Front Pad</td></tr>
                                         <tr><td>Dimension</td><td>No</td><td>38 X 25 X 9</td></tr>
                                         <tr><td>SKU</td><td>No</td><td>SKU-001</td></tr>
                                         <tr><td>Reorder Level</td><td>No</td><td>2</td></tr>
                                         <tr><td>Warehouse</td><td>No*</td><td>Main Store</td></tr>
-                                        <tr><td>Current Stock</td><td>No</td><td>10</td></tr>
-                                        <tr><td>Cost Price</td><td>No</td><td>35.50</td></tr>
                                         <tr><td>Barcode</td><td>No</td><td>BP-000001</td></tr>
                                         <tr><td>Alternative Part Number</td><td>No</td><td>BP-ALT1, BP-ALT2</td></tr>
                                         <tr><td>Description</td><td>No</td><td>Ceramic pad</td></tr>
@@ -89,7 +91,7 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <div class="form-text">Use Product Group to join same products with different brands/part numbers. *Warehouse is required only when Current Stock or Cost Price is provided. Current Stock must be a whole number.</div>
+                                <div class="form-text">Use Product Group to join same products with different brands/part numbers. Application Model can be like "Altima 2003 - 2007", "Altima 2008 Up", "Altima 2005", or just "Altima". *Warehouse is required only when Current Stock or Cost Price is provided. Current Stock must be a whole number.</div>
                             </div>
                         </div>
                     </div>

@@ -45,6 +45,9 @@ public record ProductDetailsResponse(
         String productName,
         String brandName,
         String partNumber,
+        List<String> alternativePartNumbers,
+        String position,
+        String dimension,
         BigDecimal totalStockQuantity,
         boolean currentProduct
     ) {
