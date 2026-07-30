@@ -154,6 +154,7 @@
                                             <i class="bi bi-pencil-square"></i></button>
                                         <form th:action="@{/categories/{id}/delete(id=${item.id()})}" method="post"
                                               class="d-inline" onsubmit="return confirm('Delete this category?');">
+                                            <input type="hidden" name="brandId" th:value="${selectedBrandId}">
                                             <button type="submit" class="btn btn-sm btn-danger"><i
                                                     class="bi bi-trash"></i></button>
                                         </form>
@@ -183,6 +184,7 @@
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
                     <form id="categoryForm" method="post" th:object="${form}" th:attr="action=${modalAction}">
+                        <input type="hidden" name="brandId" th:value="${selectedBrandId}">
                         <div class="modal-header"><h5 class="modal-title" id="categoryModalLabel"
                                                       th:text="${modalTitle}">Create Category</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

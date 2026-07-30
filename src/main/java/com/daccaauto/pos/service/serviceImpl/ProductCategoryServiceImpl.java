@@ -15,6 +15,7 @@ import  com.daccaauto.pos.service.ProductCategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,11 +46,17 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
         entity.setDescription(trimToNull(request.getDescription()));
         entity.setActive(request.getActive() == null || request.getActive());
 
-        ProductCategoryEntity saved = categoryRepository.save(entity);
+        try {
+            ProductCategoryEntity saved = categoryRepository.save(entity);
 
-        syncCategoryBrands(saved, request.getBrandIds());
+            syncCategoryBrands(saved, request.getBrandIds());
 
-        return map(saved);
+            return map(saved);
+        } catch (DataIntegrityViolationException ex) {
+            throw new DuplicateResourceException(
+                    "Cannot update this category because it is already linked with existing products or product groups."
+            );
+        }
     }
 
     @Override
@@ -117,7 +124,16 @@ public class ProductCategoryServiceImpl implements ProductCategoryService {
                 .orElseThrow(() -> new ResourceNotFoundException("Category not found: " + id));
 
         brandCategoryRepository.deleteByCategory_Id(id);
-        categoryRepository.delete(entity);
+        try {
+            categoryRepository.delete(entity);
+            categoryRepository.flush();
+        } catch (DataIntegrityViolationException ex) {
+            throw new DuplicateResourceException(categoryInUseMessage());
+        }
+    }
+
+    private String categoryInUseMessage() {
+        return "Cannot delete this category because products or product groups are using it. Move those items to another category first.";
     }
 
     @Transactional

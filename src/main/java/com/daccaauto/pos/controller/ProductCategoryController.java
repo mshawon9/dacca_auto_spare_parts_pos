@@ -1,5 +1,6 @@
 package com.daccaauto.pos.controller;
 
+import com.daccaauto.pos.dto.brand.BrandResponse;
 import com.daccaauto.pos.dto.category.ProductCategoryCreateRequest;
 import com.daccaauto.pos.dto.category.ProductCategoryResponse;
 import com.daccaauto.pos.dto.category.ProductCategoryUpdateRequest;
@@ -54,13 +55,14 @@ public class ProductCategoryController {
     @PostMapping("/create")
     public String create(@Valid @ModelAttribute("form") ProductCategoryCreateRequest request,
                          BindingResult bindingResult,
+                         @RequestParam(required = false) Long brandId,
                          Model model,
                          RedirectAttributes redirectAttributes) {
 
         if (bindingResult.hasErrors()) {
             prepareListPage(
                     model,
-                    null,
+                    brandId,
                     request,
                     "Create Category",
                     "/categories/create",
@@ -73,12 +75,12 @@ public class ProductCategoryController {
         try {
             productCategoryService.create(request);
             redirectAttributes.addFlashAttribute("successMessage", "Category created successfully.");
-            return "redirect:/categories";
+            return redirectToList(brandId);
         } catch (DuplicateResourceException | ResourceNotFoundException ex) {
             model.addAttribute("errorMessage", ex.getMessage());
             prepareListPage(
                     model,
-                    null,
+                    brandId,
                     request,
                     "Create Category",
                     "/categories/create",
@@ -93,6 +95,7 @@ public class ProductCategoryController {
     public String update(@PathVariable Long id,
                          @Valid @ModelAttribute("form") ProductCategoryUpdateRequest request,
                          BindingResult bindingResult,
+                         @RequestParam(required = false) Long brandId,
                          Model model,
                          RedirectAttributes redirectAttributes) {
 
@@ -100,7 +103,7 @@ public class ProductCategoryController {
             model.addAttribute("editingCategoryId", id);
             prepareListPage(
                     model,
-                    null,
+                    brandId,
                     request,
                     "Edit Category",
                     "/categories/" + id + "/edit",
@@ -113,13 +116,13 @@ public class ProductCategoryController {
         try {
             productCategoryService.update(id, request);
             redirectAttributes.addFlashAttribute("successMessage", "Category updated successfully.");
-            return "redirect:/categories";
+            return redirectToList(brandId);
         } catch (DuplicateResourceException | ResourceNotFoundException ex) {
             model.addAttribute("editingCategoryId", id);
             model.addAttribute("errorMessage", ex.getMessage());
             prepareListPage(
                     model,
-                    null,
+                    brandId,
                     request,
                     "Edit Category",
                     "/categories/" + id + "/edit",
@@ -131,14 +134,16 @@ public class ProductCategoryController {
     }
 
     @PostMapping("/{id}/delete")
-    public String delete(@PathVariable Long id, RedirectAttributes redirectAttributes) {
+    public String delete(@PathVariable Long id,
+                         @RequestParam(required = false) Long brandId,
+                         RedirectAttributes redirectAttributes) {
         try {
             productCategoryService.delete(id);
             redirectAttributes.addFlashAttribute("successMessage", "Category deleted successfully.");
-        } catch (ResourceNotFoundException ex) {
+        } catch (DuplicateResourceException | ResourceNotFoundException ex) {
             redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         }
-        return "redirect:/categories";
+        return redirectToList(brandId);
     }
 
     @GetMapping("/{id}/edit-data")
@@ -153,7 +158,7 @@ public class ProductCategoryController {
         form.setBrandIds(new LinkedHashSet<>(
                 brandCategoryService.getBrandsByCategoryId(id)
                         .stream()
-                        .map(brand -> brand.id())
+                        .map(BrandResponse::id)
                         .toList()
         ));
 
@@ -177,5 +182,9 @@ public class ProductCategoryController {
         model.addAttribute("modalAction", modalAction);
         model.addAttribute("editMode", editMode);
         model.addAttribute("showCategoryModal", showModal);
+    }
+
+    private String redirectToList(Long brandId) {
+        return brandId == null ? "redirect:/categories" : "redirect:/categories?brandId=" + brandId;
     }
 }
