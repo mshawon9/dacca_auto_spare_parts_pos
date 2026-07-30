@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<div th:replace="fragments/head :: head"></div>
+<head/>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<div class="app-wrapper">
+    <div th:replace="fragments/topmenu :: topmenu"></div>
+    <div th:replace="fragments/menusidebar :: menusidebar"></div>
+
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <h3 class="mb-1">Stores / Shops</h3>
+                        <div class="text-muted">Manage warehouses, shops, and stock locations. User mapping can be added later.</div>
+                    </div>
+                    <button type="button" class="btn btn-primary" id="btnAddStore" data-bs-toggle="modal" data-bs-target="#storeModal">
+                        <i class="bi bi-plus-circle me-1"></i> Add Store
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-content">
+            <div class="container-fluid">
+                <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show">
+                    <span th:text="${successMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                    <span th:text="${errorMessage}"></span>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <form th:action="@{/stores}" method="get" class="row g-2 align-items-end">
+                            <div class="col-md-6 col-lg-5">
+                                <label for="keyword" class="form-label">Search Store / Shop</label>
+                                <input type="text" id="keyword" name="keyword" class="form-control"
+                                       th:value="${keyword}" placeholder="Name, code, address">
+                            </div>
+                            <div class="col-md-auto">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-search me-1"></i> Search
+                                </button>
+                                <a th:href="@{/stores}" class="btn btn-outline-secondary ms-1">Reset</a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h3 class="card-title mb-0">Store List</h3>
+                        <span class="badge text-bg-light border" th:text="${storePage.totalElements} + ' stores'">0 stores</span>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                <tr>
+                                    <th class="ps-3">Name</th>
+                                    <th>Code</th>
+                                    <th>Address</th>
+                                    <th>Status</th>
+                                    <th>Updated</th>
+                                    <th class="text-end pe-3">Actions</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr th:if="${#lists.isEmpty(stores)}">
+                                    <td colspan="6" class="text-center text-muted py-5">No stores found.</td>
+                                </tr>
+                                <tr th:each="item : ${stores}">
+                                    <td class="ps-3 fw-semibold" th:text="${item.name()}">Main Store</td>
+                                    <td>
+                                        <span th:if="${item.code() != null}" class="badge text-bg-light border" th:text="${item.code()}">MAIN</span>
+                                        <span th:unless="${item.code() != null}" class="text-muted">-</span>
+                                    </td>
+                                    <td th:text="${item.address() != null ? item.address() : '-'}">-</td>
+                                    <td>
+                                        <span th:if="${item.active()}" class="badge text-bg-success">Active</span>
+                                        <span th:unless="${item.active()}" class="badge text-bg-secondary">Inactive</span>
+                                    </td>
+                                    <td th:text="${item.updatedAt() != null ? #temporals.format(item.updatedAt(), 'dd MMM yyyy, hh:mm a') : '-'}">-</td>
+                                    <td class="text-end pe-3">
+                                        <div class="btn-group">
+                                            <button type="button" class="btn btn-sm btn-outline-info btn-store-details"
+                                                    data-bs-toggle="modal" data-bs-target="#storeDetailsModal"
+                                                    th:attr="data-name=${item.name()},data-code=${item.code()},data-address=${item.address()},data-active=${item.active()},data-created-at=${item.createdAt()},data-updated-at=${item.updatedAt()}">
+                                                Details
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-warning btn-store-edit"
+                                                    data-bs-toggle="modal" data-bs-target="#storeModal"
+                                                    th:attr="data-id=${item.id()},data-name=${item.name()},data-code=${item.code()},data-address=${item.address()},data-active=${item.active()}">
+                                                Edit
+                                            </button>
+                                            <form th:action="@{/stores/{id}/delete(id=${item.id()})}" method="post"
+                                                  onsubmit="return confirm('Delete this store? If it has transactions, deactivate it instead.');">
+                                                <input type="hidden" name="keyword" th:value="${keyword}">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                            <div class="small text-muted">
+                                Page <span th:text="${storePage.totalPages == 0 ? 0 : storePage.number + 1}">1</span>
+                                of <span th:text="${storePage.totalPages}">1</span>
+                                <span class="ms-2" th:text="${storePage.totalElements} + ' stores'">0 stores</span>
+                            </div>
+                            <div class="btn-group">
+                                <a class="btn btn-outline-secondary"
+                                   th:classappend="${!storePage.hasPrevious()} ? ' disabled' : ''"
+                                   th:href="${storePage.hasPrevious()} ? @{/stores(page=${storePage.number - 1},keyword=${keyword})} : '#'">
+                                    <i class="bi bi-chevron-left me-1"></i> Previous
+                                </a>
+                                <a class="btn btn-outline-primary"
+                                   th:classappend="${!storePage.hasNext()} ? ' disabled' : ''"
+                                   th:href="${storePage.hasNext()} ? @{/stores(page=${storePage.number + 1},keyword=${keyword})} : '#'">
+                                    Next <i class="bi bi-chevron-right ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <strong>Dacca POS</strong>
+        <span class="text-muted ms-2">Store and shop management</span>
+    </footer>
+</div>
+
+<div class="modal fade" id="storeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="storeForm" th:action="${modalAction}" method="post" th:object="${form}">
+                <input type="hidden" name="keyword" th:value="${keyword}">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="storeModalTitle" th:text="${modalTitle}">Add Store</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-light border small">
+                        Use this for any physical stock location: main warehouse, branch shop, or temporary store.
+                    </div>
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Store / Shop Name <span class="text-danger">*</span></label>
+                        <input type="text" id="name" th:field="*{name}" class="form-control" maxlength="120"
+                               placeholder="Example: Main Warehouse"
+                               th:classappend="${#fields.hasErrors('name')} ? ' is-invalid' : ''">
+                        <div class="invalid-feedback" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="code" class="form-label">Short Code</label>
+                        <input type="text" id="code" th:field="*{code}" class="form-control" maxlength="50"
+                               placeholder="Example: MAIN">
+                        <div class="form-text">Optional, useful for reports and quick selection.</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Address</label>
+                        <textarea id="address" th:field="*{address}" class="form-control" maxlength="250" rows="2"
+                                  placeholder="Store address or note"></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="active" th:field="*{active}" class="form-check-input">
+                        <label class="form-check-label" for="active">Active and available for stock/sale/purchase</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="storeSubmitButton" th:text="${submitLabel}">Add Store</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="storeDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Store Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt><dd class="col-sm-8" id="storeDetailName">-</dd>
+                    <dt class="col-sm-4">Code</dt><dd class="col-sm-8" id="storeDetailCode">-</dd>
+                    <dt class="col-sm-4">Address</dt><dd class="col-sm-8" id="storeDetailAddress">-</dd>
+                    <dt class="col-sm-4">Status</dt><dd class="col-sm-8" id="storeDetailStatus">-</dd>
+                    <dt class="col-sm-4">Created</dt><dd class="col-sm-8" id="storeDetailCreated">-</dd>
+                    <dt class="col-sm-4">Updated</dt><dd class="col-sm-8" id="storeDetailUpdated">-</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="fragments/commonscripts :: commonscripts"/>
+<script th:inline="javascript">
+    $(function () {
+        const openStoreModal = /*[[${openStoreModal}]]*/ false;
+        if (openStoreModal) {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('storeModal')).show();
+        }
+
+        function valueOrDash(value) {
+            return value ? value : '-';
+        }
+
+        $('#btnAddStore').on('click', function () {
+            $('#storeForm').attr('action', '/stores');
+            $('#storeModalTitle').text('Add Store / Shop');
+            $('#storeSubmitButton').text('Add Store');
+            $('#name, #code').val('');
+            $('#address').val('');
+            $('#active').prop('checked', true);
+        });
+
+        $('.btn-store-edit').on('click', function () {
+            const $btn = $(this);
+            $('#storeForm').attr('action', '/stores/' + $btn.data('id') + '/edit');
+            $('#storeModalTitle').text('Edit Store / Shop');
+            $('#storeSubmitButton').text('Update Store');
+            $('#name').val($btn.data('name') || '');
+            $('#code').val($btn.data('code') || '');
+            $('#address').val($btn.data('address') || '');
+            $('#active').prop('checked', String($btn.data('active')) === 'true');
+        });
+
+        $('.btn-store-details').on('click', function () {
+            const $btn = $(this);
+            $('#storeDetailName').text(valueOrDash($btn.data('name')));
+            $('#storeDetailCode').text(valueOrDash($btn.data('code')));
+            $('#storeDetailAddress').text(valueOrDash($btn.data('address')));
+            $('#storeDetailStatus').text(String($btn.data('active')) === 'true' ? 'Active' : 'Inactive');
+            $('#storeDetailCreated').text(valueOrDash($btn.data('created-at')));
+            $('#storeDetailUpdated').text(valueOrDash($btn.data('updated-at')));
+        });
+    });
+</script>
+</body>
+</html>
