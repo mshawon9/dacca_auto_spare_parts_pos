@@ -4,6 +4,8 @@ import java.util.List;
 
 public record ProductImportResult(
     int totalRows,
+    int insertedCount,
+    int updatedCount,
     int successCount,
     int failedCount,
     List<RowResult> rows

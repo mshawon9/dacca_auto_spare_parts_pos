@@ -8,6 +8,7 @@ import com.daccaauto.pos.entity.ProductApplicationEntity;
 import com.daccaauto.pos.entity.ProductCategoryEntity;
 import com.daccaauto.pos.entity.ProductEntity;
 import com.daccaauto.pos.entity.ProductGroupEntity;
+import com.daccaauto.pos.entity.ProductPriceHistoryEntity;
 import com.daccaauto.pos.entity.ProductStockEntity;
 import com.daccaauto.pos.entity.StoreEntity;
 import com.daccaauto.pos.entity.VehicleApplicationEntity;
@@ -19,6 +20,7 @@ import com.daccaauto.pos.repository.ProductAlternativePartNumberRepository;
 import com.daccaauto.pos.repository.ProductApplicationRepository;
 import com.daccaauto.pos.repository.ProductCategoryRepository;
 import com.daccaauto.pos.repository.ProductGroupRepository;
+import com.daccaauto.pos.repository.ProductPriceHistoryRepository;
 import com.daccaauto.pos.repository.ProductRepository;
 import com.daccaauto.pos.repository.ProductStockRepository;
 import com.daccaauto.pos.repository.StoreRepository;
@@ -98,6 +100,7 @@ public class ProductImportServiceImpl implements ProductImportService {
     private final ProductAlternativePartNumberRepository alternativePartNumberRepository;
     private final ProductApplicationRepository productApplicationRepository;
     private final ProductGroupRepository productGroupRepository;
+    private final ProductPriceHistoryRepository productPriceHistoryRepository;
     private final ProductStockRepository productStockRepository;
     private final StoreRepository storeRepository;
     private final VehicleMakeRepository vehicleMakeRepository;
@@ -121,7 +124,7 @@ public class ProductImportServiceImpl implements ProductImportService {
                 header.getCell(i).setCellStyle(headerStyle);
             }
 
-            addSampleRow(sheet, 1, "Brake Pad", "Civic Front Pad", "BP1001", "Front", "Brembo", "10", "35.50", "Honda", "Civic 2006 - 2011", "Civic Front Pad", "38 X 25 X 9", "SKU-001", "2", "Main Store", "", "BP-ALT1, BP-ALT2", "Ceramic brake pad", "TRUE");
+            addSampleRow(sheet, 1, "Brake Pad", "Civic Front Pad", "BP1001", "Front", "Brembo", "10", "35.50", "Honda", "Civic 2006 - 2011, Civic 2012 - 2015", "Civic Front Pad", "38 X 25 X 9", "SKU-001", "2", "Main Store", "", "BP-ALT1, BP-ALT2", "Ceramic brake pad", "TRUE");
             addSampleRow(sheet, 2, "Brake Pad", "Civic Front Pad", "BS2001", "Front", "Bosch", "5", "28.00", "Honda", "Civic 2006 - 2011", "Civic Front Pad", "38 X 25 X 9", "SKU-002", "2", "Main Store", "", "", "Same product, different brand", "TRUE");
             addSampleRow(sheet, 3, "Bearing", "Yaris Wheel Bearing", "WB3001", "Front", "NSK", "", "", "Toyota", "Yaris 2006 - 2013", "Yaris Wheel Bearing", "", "", "2", "", "", "WB-ALT1", "", "TRUE");
 
@@ -173,9 +176,16 @@ public class ProductImportServiceImpl implements ProductImportService {
         Map<String, BrandEntity> brands = resolveBrands(rows);
         Map<String, StoreEntity> stores = resolveStores(rows);
         validateDuplicates(rows, brands);
+        if (rows.stream().anyMatch(row -> !row.errors.isEmpty())) {
+            rows.stream()
+                .filter(row -> row.errors.isEmpty())
+                .forEach(row -> row.message = "Ready, but not imported because other rows failed validation.");
+            return toResult(rows);
+        }
 
         Set<String> reservedBarcodes = new HashSet<>();
         Map<Long, Long> nextBarcodeNumbersByCategory = new HashMap<>();
+        Map<String, ProductEntity> productsByImportKey = new HashMap<>();
 
         for (ImportRow row : rows) {
             if (!row.errors.isEmpty()) {
@@ -186,15 +196,24 @@ public class ProductImportServiceImpl implements ProductImportService {
             BrandEntity brand = brands.get(key(row.brand));
             ensureBrandCategoryMapping(category, brand);
 
-            ProductEntity product = new ProductEntity();
+            String importKey = productImportKey(brand, row.partNumber);
+            ProductEntity product = productsByImportKey.computeIfAbsent(importKey, ignored ->
+                productRepository.findByBrandIdAndNormalizedPartNumber(
+                    brand.getId(), normalizePartNumber(row.partNumber)
+                ).orElseGet(ProductEntity::new)
+            );
+            boolean updating = product.getId() != null;
+
             product.setName(buildCategoryProductName(category, row.name));
             product.setPosition(trimToNull(row.position));
             product.setDimension(trimToNull(row.dimension));
             product.setSku(trimToNull(row.sku));
             product.setReorderLevel(row.reorderLevel);
             product.setPartNumber(removeSpaces(row.partNumber));
-            product.setAlternativePartNumber(trimToNull(row.alternativePartNumber));
-            product.setBarcode(resolveBarcode(category, row.barcode, reservedBarcodes, nextBarcodeNumbersByCategory));
+            if (!updating || !row.alternativePartNumber.isBlank()) {
+                product.setAlternativePartNumber(trimToNull(row.alternativePartNumber));
+            }
+            product.setBarcode(resolveBarcode(category, product, row.barcode, reservedBarcodes, nextBarcodeNumbersByCategory));
             product.setDescription(trimToNull(row.description));
             product.setCategory(category);
             product.setBrand(brand);
@@ -202,11 +221,18 @@ public class ProductImportServiceImpl implements ProductImportService {
             product.setActive(row.active);
 
             ProductEntity saved = productRepository.save(product);
-            syncAlternativePartNumbers(saved, row.alternativePartNumber);
+            if (!updating || !row.alternativePartNumber.isBlank()) {
+                syncAlternativePartNumbers(saved, row.alternativePartNumber);
+            }
             syncApplication(saved, row);
-            syncInitialStock(saved, stores.get(key(row.warehouse)), row);
+            if (!updating) {
+                syncInitialStock(saved, stores.get(key(row.warehouse)), row);
+            }
             row.success = true;
-            row.message = "Inserted successfully";
+            row.updated = updating;
+            row.message = updating
+                ? "Updated successfully. Stock and cost price were not changed."
+                : "Inserted successfully";
         }
 
         evictLookupCaches();
@@ -439,7 +465,6 @@ public class ProductImportServiceImpl implements ProductImportService {
     }
 
     private void validateRows(List<ImportRow> rows) {
-        Set<String> duplicateKeys = new HashSet<>();
         for (ImportRow row : rows) {
             require(row, row.category, "Category is required");
             require(row, row.brand, "Brand is required");
@@ -466,13 +491,15 @@ public class ProductImportServiceImpl implements ProductImportService {
                 if (row.applicationModel.isBlank()) {
                     row.errors.add("Application Model is required when Application Make is provided");
                 }
-                ParsedApplicationModel parsedApplicationModel = parseApplicationModel(row.applicationModel);
-                if (parsedApplicationModel.modelName().isBlank()) {
-                    row.errors.add("Application Model name is required");
-                }
-                if (parsedApplicationModel.yearFrom() != null && parsedApplicationModel.yearTo() != null
-                    && parsedApplicationModel.yearFrom() > parsedApplicationModel.yearTo()) {
-                    row.errors.add("Application Model year range is invalid");
+                for (String applicationModel : parseApplicationModelInputs(row.applicationModel)) {
+                    ParsedApplicationModel parsedApplicationModel = parseApplicationModel(applicationModel);
+                    if (parsedApplicationModel.modelName().isBlank()) {
+                        row.errors.add("Application Model name is required");
+                    }
+                    if (parsedApplicationModel.yearFrom() != null && parsedApplicationModel.yearTo() != null
+                        && parsedApplicationModel.yearFrom() > parsedApplicationModel.yearTo()) {
+                        row.errors.add("Application Model year range is invalid: " + applicationModel);
+                    }
                 }
             }
             if (row.name.length() > 200) row.errors.add("Product Name must not exceed 200 characters");
@@ -488,24 +515,29 @@ public class ProductImportServiceImpl implements ProductImportService {
             if (row.alternativePartNumber.length() > 255) row.errors.add("Alternative Part Number must not exceed 255 characters");
             if (row.description.length() > 2000) row.errors.add("Description must not exceed 2000 characters");
 
-            String batchKey = key(row.brand) + "|" + normalizePartNumber(row.partNumber);
-            if (!duplicateKeys.add(batchKey)) {
-                row.errors.add("Duplicate Brand + Part Number inside this Excel file");
-            }
         }
     }
 
     private void validateDuplicates(List<ImportRow> rows, Map<String, BrandEntity> brands) {
-        Set<String> barcodes = new HashSet<>();
+        Map<String, String> barcodeOwners = new HashMap<>();
         for (ImportRow row : rows) {
             BrandEntity brand = brands.get(key(row.brand));
-            if (brand != null && productRepository.existsByBrandIdAndNormalizedPartNumber(
-                brand.getId(), normalizePartNumber(row.partNumber))) {
-                row.errors.add("Same brand already has this part number");
-            }
+            ProductEntity existingProduct = brand == null
+                ? null
+                : productRepository.findByBrandIdAndNormalizedPartNumber(
+                    brand.getId(), normalizePartNumber(row.partNumber)
+                ).orElse(null);
 
             if (!row.barcode.isBlank()) {
-                if (!barcodes.add(key(row.barcode)) || productRepository.existsByBarcode(row.barcode)) {
+                String ownerKey = brand == null ? key(row.brand) + "|" + normalizePartNumber(row.partNumber) : productImportKey(brand, row.partNumber);
+                String previousOwner = barcodeOwners.putIfAbsent(key(row.barcode), ownerKey);
+                if (previousOwner != null && !previousOwner.equals(ownerKey)) {
+                    row.errors.add("Barcode is used by another row in this file");
+                }
+                if (existingProduct == null && productRepository.existsByBarcode(row.barcode)) {
+                    row.errors.add("Barcode already exists");
+                }
+                if (existingProduct != null && productRepository.existsByBarcodeAndIdNot(row.barcode, existingProduct.getId())) {
                     row.errors.add("Barcode already exists");
                 }
             }
@@ -576,6 +608,7 @@ public class ProductImportServiceImpl implements ProductImportService {
     }
 
     private String resolveBarcode(ProductCategoryEntity category,
+                                  ProductEntity product,
                                   String requestedBarcode,
                                   Set<String> reservedBarcodes,
                                   Map<Long, Long> nextBarcodeNumbersByCategory) {
@@ -583,6 +616,10 @@ public class ProductImportServiceImpl implements ProductImportService {
         if (barcode != null) {
             reservedBarcodes.add(barcode);
             return barcode;
+        }
+        if (product.getId() != null && product.getBarcode() != null && !product.getBarcode().isBlank()) {
+            reservedBarcodes.add(product.getBarcode());
+            return product.getBarcode();
         }
 
         long next = nextBarcodeNumbersByCategory.computeIfAbsent(
@@ -599,6 +636,9 @@ public class ProductImportServiceImpl implements ProductImportService {
     }
 
     private void syncAlternativePartNumbers(ProductEntity product, String alternativePartNumbers) {
+        alternativePartNumberRepository.deleteByProductId(product.getId());
+        alternativePartNumberRepository.flush();
+
         for (String partNumber : parseAlternativePartNumbers(alternativePartNumbers)) {
             ProductAlternativePartNumberEntity alternative = new ProductAlternativePartNumberEntity();
             alternative.setProduct(product);
@@ -612,23 +652,28 @@ public class ProductImportServiceImpl implements ProductImportService {
             return;
         }
 
-        VehicleApplicationEntity application = resolveVehicleApplication(row);
-        ProductApplicationEntity mapping = new ProductApplicationEntity();
-        mapping.setProduct(product);
-        mapping.setVehicleApplication(application);
-        productApplicationRepository.save(mapping);
+        for (String applicationModel : parseApplicationModelInputs(row.applicationModel)) {
+            VehicleApplicationEntity application = resolveVehicleApplication(row.applicationMake, applicationModel);
+            if (productApplicationRepository.existsByProductIdAndVehicleApplicationId(product.getId(), application.getId())) {
+                continue;
+            }
+            ProductApplicationEntity mapping = new ProductApplicationEntity();
+            mapping.setProduct(product);
+            mapping.setVehicleApplication(application);
+            productApplicationRepository.save(mapping);
+        }
     }
 
-    private VehicleApplicationEntity resolveVehicleApplication(ImportRow row) {
-        VehicleMakeEntity make = vehicleMakeRepository.findByNameIgnoreCase(row.applicationMake.trim())
+    private VehicleApplicationEntity resolveVehicleApplication(String applicationMake, String applicationModel) {
+        VehicleMakeEntity make = vehicleMakeRepository.findByNameIgnoreCase(applicationMake.trim())
             .orElseGet(() -> {
                 VehicleMakeEntity created = new VehicleMakeEntity();
-                created.setName(row.applicationMake.trim());
+                created.setName(applicationMake.trim());
                 created.setActive(true);
                 return vehicleMakeRepository.save(created);
             });
 
-        ParsedApplicationModel parsed = parseApplicationModel(row.applicationModel);
+        ParsedApplicationModel parsed = parseApplicationModel(applicationModel);
         VehicleModelEntity model = vehicleModelRepository.findByMakeIdAndNameIgnoreCase(make.getId(), parsed.modelName())
             .orElseGet(() -> {
                 VehicleModelEntity created = new VehicleModelEntity();
@@ -657,12 +702,44 @@ public class ProductImportServiceImpl implements ProductImportService {
             return;
         }
 
-        ProductStockEntity stock = new ProductStockEntity();
-        stock.setProduct(product);
-        stock.setStore(store);
-        stock.setQuantity(row.currentStock == null ? BigDecimal.ZERO : row.currentStock);
-        stock.setCostPrice(row.costPrice);
+        ProductStockEntity stock = productStockRepository.findByStoreIdAndProductId(store.getId(), product.getId())
+            .orElseGet(() -> {
+                ProductStockEntity created = new ProductStockEntity();
+                created.setProduct(product);
+                created.setStore(store);
+                created.setQuantity(BigDecimal.ZERO);
+                return created;
+            });
+        if (row.currentStock != null) {
+            stock.setQuantity(row.currentStock);
+        }
+        BigDecimal oldCostPrice = stock.getCostPrice();
+        if (row.costPrice != null) {
+            stock.setCostPrice(row.costPrice);
+        }
         productStockRepository.save(stock);
+
+        if (row.costPrice != null && (oldCostPrice == null || oldCostPrice.compareTo(row.costPrice) != 0)) {
+            saveImportCostHistory(store, product, stock.getSellingPrice(), oldCostPrice, row.costPrice);
+        }
+    }
+
+    private void saveImportCostHistory(StoreEntity store,
+                                       ProductEntity product,
+                                       BigDecimal sellingPrice,
+                                       BigDecimal oldCostPrice,
+                                       BigDecimal newCostPrice) {
+        BigDecimal currentSellingPrice = sellingPrice == null ? BigDecimal.ZERO.setScale(2) : sellingPrice;
+
+        ProductPriceHistoryEntity history = new ProductPriceHistoryEntity();
+        history.setStore(store);
+        history.setProduct(product);
+        history.setOldPrice(currentSellingPrice);
+        history.setNewPrice(currentSellingPrice);
+        history.setOldCostPrice(oldCostPrice);
+        history.setNewCostPrice(newCostPrice);
+        history.setNote("Cost price updated by product import");
+        productPriceHistoryRepository.save(history);
     }
 
     private ProductGroupEntity resolveProductGroup(ProductCategoryEntity category, ImportRow row) {
@@ -699,6 +776,17 @@ public class ProductImportServiceImpl implements ProductImportService {
             .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
+    private List<String> parseApplicationModelInputs(String input) {
+        if (input == null || input.isBlank()) {
+            return List.of();
+        }
+        return java.util.Arrays.stream(input.split(","))
+            .map(String::trim)
+            .filter(value -> !value.isBlank())
+            .distinct()
+            .toList();
+    }
+
     private ProductImportResult toResult(List<ImportRow> rows) {
         List<ProductImportResult.RowResult> results = rows.stream()
             .map(row -> new ProductImportResult.RowResult(
@@ -713,11 +801,15 @@ public class ProductImportServiceImpl implements ProductImportService {
             .toList();
 
         int successCount = (int) rows.stream().filter(row -> row.success).count();
-        return new ProductImportResult(rows.size(), successCount, rows.size() - successCount, results);
+        int updatedCount = (int) rows.stream().filter(row -> row.success && row.updated).count();
+        int insertedCount = successCount - updatedCount;
+        return new ProductImportResult(rows.size(), insertedCount, updatedCount, successCount, rows.size() - successCount, results);
     }
 
     private ProductImportResult failWholeFile(String message) {
         return new ProductImportResult(
+            0,
+            0,
             0,
             0,
             1,
@@ -886,6 +978,10 @@ public class ProductImportServiceImpl implements ProductImportService {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
+    private String productImportKey(BrandEntity brand, String partNumber) {
+        return brand.getId() + "|" + normalizePartNumber(partNumber);
+    }
+
     private void evictLookupCaches() {
         for (String cacheName : List.of("productCategories", "brandsByCategory")) {
             Cache cache = cacheManager.getCache(cacheName);
@@ -922,6 +1018,7 @@ public class ProductImportServiceImpl implements ProductImportService {
         private final String description;
         private final boolean active;
         private boolean success;
+        private boolean updated;
         private String message = "";
         private final List<String> errors = new ArrayList<>();
 

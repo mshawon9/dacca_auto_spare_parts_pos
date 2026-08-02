@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface ProductApplicationRepository extends JpaRepository<ProductApplicationEntity, Long> {
 
+    boolean existsByProductIdAndVehicleApplicationId(Long productId, Long vehicleApplicationId);
+
     void deleteByProductId(Long productId);
 
     @Query("""

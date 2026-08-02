@@ -27,7 +27,9 @@ public record ProductDetailsResponse(
         Long storeId,
         String storeName,
         BigDecimal quantity,
-        BigDecimal sellingPrice
+        BigDecimal sellingPrice,
+        BigDecimal costPrice,
+        BigDecimal lastCostPrice
     ) {
     }
 

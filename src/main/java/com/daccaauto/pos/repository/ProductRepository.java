@@ -19,6 +19,8 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
 
     boolean existsByBrandIdAndNormalizedPartNumberAndIdNot(Long brandId, String normalizedPartNumber, Long id);
 
+    Optional<ProductEntity> findByBrandIdAndNormalizedPartNumber(Long brandId, String normalizedPartNumber);
+
     boolean existsByBarcode(String barcode);
 
     boolean existsByBarcodeAndIdNot(String barcode, Long id);

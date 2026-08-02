@@ -20,6 +20,118 @@
     .sortable-header:hover {
         color: var(--bs-primary);
     }
+
+    .product-table-wrap {
+        overflow-x: auto;
+    }
+
+    .product-list-table {
+        min-width: 1180px;
+    }
+
+    .product-actions {
+        display: inline-flex;
+        gap: .25rem;
+        white-space: nowrap;
+    }
+
+    .product-actions form {
+        display: inline-block;
+    }
+
+    @media (max-width: 767.98px) {
+        .product-list-top {
+            align-items: stretch !important;
+            flex-direction: column;
+        }
+
+        .product-list-top .btn {
+            width: 100%;
+        }
+
+        .product-list-table {
+            border-collapse: separate;
+            border-spacing: 0 .75rem;
+            min-width: 0;
+        }
+
+        .product-list-table thead {
+            display: none;
+        }
+
+        .product-list-table tbody,
+        .product-list-table tr,
+        .product-list-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .product-list-table tr {
+            background: var(--bs-body-bg);
+            border: 1px solid var(--bs-border-color);
+            border-radius: .85rem;
+            box-shadow: 0 .35rem 1rem rgba(0, 0, 0, .05);
+            margin: .75rem;
+            overflow: hidden;
+        }
+
+        .product-list-table tr.empty-row {
+            box-shadow: none;
+        }
+
+        .product-list-table tr.empty-row td {
+            display: block;
+            text-align: center !important;
+        }
+
+        .product-list-table tr.empty-row td::before {
+            content: none;
+        }
+
+        .product-list-table td {
+            align-items: flex-start;
+            border-bottom: 1px solid var(--bs-border-color);
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            padding: .7rem .9rem;
+            text-align: right !important;
+        }
+
+        .product-list-table td:last-child {
+            border-bottom: 0;
+        }
+
+        .product-list-table td::before {
+            color: var(--bs-secondary-color);
+            content: attr(data-label);
+            flex: 0 0 38%;
+            font-size: .78rem;
+            font-weight: 700;
+            letter-spacing: .02em;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .product-list-table td.product-main-cell {
+            align-items: stretch;
+            flex-direction: column;
+            text-align: left !important;
+        }
+
+        .product-list-table td.product-main-cell::before {
+            flex: none;
+        }
+
+        .product-list-table td.product-image-cell {
+            align-items: center;
+        }
+
+        .product-actions {
+            justify-content: flex-end;
+            width: 100%;
+        }
+    }
 </style>
 <head/>
 <!--end::Head-->
@@ -35,11 +147,11 @@
     <div th:replace="fragments/menusidebar :: menusidebar"></div>
     <!-- Left side column. contains the sidebar END -->
     <main class="app-main">
-        <div class="app-content-top-area">
+                <div class="app-content-top-area">
             <div class="container-fluid">
-                <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex justify-content-between align-items-center product-list-top gap-2">
                     <div class="fw-semibold">Product Management</div>
-                    <div class="d-flex gap-2">
+                    <div class="d-flex flex-wrap gap-2">
                         <a th:href="@{/products/import}" class="btn btn-outline-primary">
                             <i class="bi bi-file-earmark-spreadsheet me-1"></i> Import Excel
                         </a>
@@ -175,8 +287,8 @@
                         </div>
                     </div>
                     <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover align-middle mb-0">
+                        <div class="table-responsive product-table-wrap">
+                            <table class="table table-hover align-middle mb-0 product-list-table">
                                 <thead class="table-light">
                                 <tr>
                                     <th>
@@ -225,19 +337,19 @@
                                 </tr>
                                 </thead>
                                 <tbody>
-                                <tr th:if="${#lists.isEmpty(products)}">
+                                <tr th:if="${#lists.isEmpty(products)}" class="empty-row">
                                     <td colspan="13" class="text-center text-muted py-4">No products found.</td>
                                 </tr>
                                 <tr th:each="item : ${products}">
-                                    <td th:text="${item.id()}">1</td>
-                                    <td>
+                                    <td data-label="ID" th:text="${item.id()}">1</td>
+                                    <td data-label="Image" class="product-image-cell">
                                         <img class="product-list-image"
                                              th:src="${item.hasImage() ? '/products/' + item.id() + '/image' : '/img/placeholder-image.png'}"
                                              src="/img/placeholder-image.png"
                                              th:alt="${item.name()}">
                                     </td>
-                                    <td th:text="${item.categoryName()}">Brake Pad</td>
-                                    <td>
+                                    <td data-label="Category" th:text="${item.categoryName()}">Brake Pad</td>
+                                    <td data-label="Product" class="product-main-cell">
                                         <div class="fw-semibold d-flex flex-wrap align-items-center gap-2">
                                             <a th:href="@{/products/{id}(id=${item.id()})}"
                                                class="text-decoration-none"
@@ -257,10 +369,10 @@
                                         </div>
                                         <small class="text-muted" th:if="${item.sku() != null}" th:text="${item.sku()}">SKU</small>
                                     </td>
-                                    <td th:text="${item.partNumber()}">BP-1001</td>
-                                    <td th:text="${item.barcode() != null ? item.barcode() : '-'}">BRA-000001</td>
-                                    <td th:text="${item.brandName()}">Brembo</td>
-                                    <td>
+                                    <td data-label="Part No" th:text="${item.partNumber()}">BP-1001</td>
+                                    <td data-label="Barcode" th:text="${item.barcode() != null ? item.barcode() : '-'}">BRA-000001</td>
+                                    <td data-label="Brand" th:text="${item.brandName()}">Brembo</td>
+                                    <td data-label="Position">
                                         <span th:if="${item.position() != null}"
                                               class="badge"
                                               th:classappend="${
@@ -275,31 +387,32 @@
                                               th:text="${item.position()}">Front</span>
                                         <span th:unless="${item.position() != null}">-</span>
                                     </td>
-                                    <td th:text="${item.dimension() != null ? item.dimension() : '-'}">38 X 25 X 9</td>
-                                    <td class="text-end" th:text="${item.reorderLevel().stripTrailingZeros().toPlainString()}">2</td>
-                                    <td th:text="${item.applicationSummary()}">Civic 2006 Up + 2 more</td>
-                                    <td>
+                                    <td data-label="Dimension" th:text="${item.dimension() != null ? item.dimension() : '-'}">38 X 25 X 9</td>
+                                    <td data-label="Reorder" class="text-end" th:text="${item.reorderLevel().stripTrailingZeros().toPlainString()}">2</td>
+                                    <td data-label="Applications" th:text="${item.applicationSummary()}">Civic 2006 Up + 2 more</td>
+                                    <td data-label="Status">
                                         <span th:if="${item.active()}" class="badge text-bg-success">Active</span>
                                         <span th:unless="${item.active()}"
                                               class="badge text-bg-secondary">Inactive</span>
                                     </td>
-                                    <td class="text-end">
-                                        <a th:href="@{/products/{id}(id=${item.id()})}"
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="bi bi-eye"></i>
-                                        </a>
-                                        <a th:href="@{/products/{id}/edit(id=${item.id()})}"
-                                           class="btn btn-sm btn-warning">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
-                                        <form th:action="@{/products/{id}/delete(id=${item.id()})}"
-                                              method="post"
-                                              class="d-inline"
-                                              onsubmit="return confirm('Delete this product?');">
-                                            <button type="submit" class="btn btn-sm btn-danger">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
+                                    <td data-label="Actions" class="text-end">
+                                        <div class="product-actions">
+                                            <a th:href="@{/products/{id}(id=${item.id()})}"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <a th:href="@{/products/{id}/edit(id=${item.id()})}"
+                                               class="btn btn-sm btn-warning">
+                                                <i class="bi bi-pencil-square"></i>
+                                            </a>
+                                            <form th:action="@{/products/{id}/delete(id=${item.id()})}"
+                                                  method="post"
+                                                  onsubmit="return confirm('Delete this product?');">
+                                                <button type="submit" class="btn btn-sm btn-danger">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </form>
+                                        </div>
                                     </td>
                                 </tr>
                                 </tbody>

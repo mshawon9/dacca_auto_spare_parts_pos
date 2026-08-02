@@ -25,6 +25,26 @@
         <div class="app-content">
             <div class="container-fluid">
                 <div class="row g-3">
+                    <div class="col-12" th:if="${result != null}">
+                        <div class="alert"
+                             th:classappend="${result.failedCount() == 0 ? ' alert-success' : (result.successCount() > 0 ? ' alert-warning' : ' alert-danger')}">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div>
+                                    <strong th:if="${result.failedCount() == 0}">Import completed successfully.</strong>
+                                    <strong th:if="${result.failedCount() > 0 and result.successCount() > 0}">Import completed with some failed rows.</strong>
+                                    <strong th:if="${result.successCount() == 0}">Import failed.</strong>
+                                    <div class="small mt-1">
+                                        Inserted <strong th:text="${result.insertedCount()}">0</strong>,
+                                        updated <strong th:text="${result.updatedCount()}">0</strong>,
+                                        failed <strong th:text="${result.failedCount()}">0</strong>
+                                        out of <strong th:text="${result.totalRows()}">0</strong> row(s).
+                                    </div>
+                                </div>
+                                <a th:href="@{/products/import}" class="btn btn-sm btn-outline-secondary">Clear Result</a>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="col-lg-5">
                         <div class="card h-100">
                             <div class="card-header">
@@ -75,10 +95,10 @@
                                         <tr><td>Part Number</td><td><span class="badge text-bg-danger">Yes</span></td><td>BP1001</td></tr>
                                         <tr><td>Position</td><td>No</td><td>Front</td></tr>
                                         <tr><td>Brand</td><td><span class="badge text-bg-danger">Yes</span></td><td>Brembo</td></tr>
-                                        <tr><td>Current Stock</td><td>No</td><td>10</td></tr>
-                                        <tr><td>Cost Price</td><td>No</td><td>35.50</td></tr>
+                                        <tr><td>Current Stock</td><td>No</td><td>10 <span class="text-muted">(new products only)</span></td></tr>
+                                        <tr><td>Cost Price</td><td>No</td><td>35.50 <span class="text-muted">(new products only)</span></td></tr>
                                         <tr><td>Application Make</td><td>No</td><td>Nissan</td></tr>
-                                        <tr><td>Application Model</td><td>No</td><td>Altima 2003 - 2007</td></tr>
+                                        <tr><td>Application Model</td><td>No</td><td>Altima 2003 - 2007, Altima 2008 Up</td></tr>
                                         <tr><td>Product Group</td><td>No</td><td>Civic Front Pad</td></tr>
                                         <tr><td>Dimension</td><td>No</td><td>38 X 25 X 9</td></tr>
                                         <tr><td>SKU</td><td>No</td><td>SKU-001</td></tr>
@@ -91,7 +111,7 @@
                                         </tbody>
                                     </table>
                                 </div>
-                                <div class="form-text">Use Product Group to join same products with different brands/part numbers. Application Model can be like "Altima 2003 - 2007", "Altima 2008 Up", "Altima 2005", or just "Altima". *Warehouse is required only when Current Stock or Cost Price is provided. Current Stock must be a whole number.</div>
+                                <div class="form-text">Use Product Group to join same products with different brands/part numbers. If Brand + Part Number already exists, that product will be updated, but stock quantity and cost price will not be changed. Current Stock and Cost Price are used only for newly inserted products. Application Model can be one or many comma-separated values like "Altima 2003 - 2007, Altima 2008 Up, Altima 2005". *Warehouse is required only when Current Stock or Cost Price is provided. Current Stock must be a whole number.</div>
                             </div>
                         </div>
                     </div>
@@ -102,7 +122,8 @@
                                 <h3 class="card-title mb-0">Import Result</h3>
                                 <div class="d-flex flex-wrap gap-2">
                                     <span class="badge text-bg-light border" th:text="${'Total: ' + result.totalRows()}">Total: 0</span>
-                                    <span class="badge text-bg-success" th:text="${'Inserted: ' + result.successCount()}">Inserted: 0</span>
+                                    <span class="badge text-bg-success" th:text="${'Inserted: ' + result.insertedCount()}">Inserted: 0</span>
+                                    <span class="badge text-bg-primary" th:text="${'Updated: ' + result.updatedCount()}">Updated: 0</span>
                                     <span class="badge text-bg-danger" th:text="${'Failed: ' + result.failedCount()}">Failed: 0</span>
                                 </div>
                             </div>

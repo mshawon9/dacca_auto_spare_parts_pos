@@ -163,7 +163,9 @@ public class ProductServiceImpl implements ProductService {
                 stock.getStore().getId(),
                 stock.getStore().getName(),
                 stock.getQuantity(),
-                stock.getSellingPrice()
+                stock.getSellingPrice(),
+                stock.getCostPrice(),
+                lastCostPrice(stock.getStore().getId(), id, stock.getCostPrice())
             ))
             .toList();
 
@@ -622,6 +624,15 @@ public class ProductServiceImpl implements ProductService {
 
     private BigDecimal defaultReorderLevel(BigDecimal reorderLevel) {
         return reorderLevel == null ? BigDecimal.valueOf(2) : reorderLevel;
+    }
+
+    private BigDecimal lastCostPrice(Long storeId, Long productId, BigDecimal fallbackCostPrice) {
+        ProductPriceHistoryEntity latest = productPriceHistoryRepository
+            .findFirstByStoreIdAndProductIdOrderByCreatedAtDesc(storeId, productId);
+        if (latest != null && latest.getNewCostPrice() != null) {
+            return latest.getNewCostPrice();
+        }
+        return fallbackCostPrice;
     }
 
     private String removePartNumberSpaces(String input) {

@@ -10,6 +10,24 @@
         object-fit: contain;
         width: 100%;
     }
+
+    .info-highlight {
+        background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), .12), rgba(var(--bs-primary-rgb), .03));
+        border: 1px solid rgba(var(--bs-primary-rgb), .22);
+        border-radius: .85rem;
+        padding: 1rem;
+    }
+
+    .info-highlight.position-highlight {
+        background: linear-gradient(135deg, rgba(var(--bs-success-rgb), .14), rgba(var(--bs-success-rgb), .03));
+        border-color: rgba(var(--bs-success-rgb), .24);
+    }
+
+    .part-number-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .6rem;
+    }
 </style>
 <head/>
 <body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
@@ -66,6 +84,18 @@
                             </div>
                             <div class="card-body">
                                 <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <div class="info-highlight">
+                                            <div class="text-muted small">Brand</div>
+                                            <div class="fs-5 fw-bold text-primary" th:text="${product.brandName()}">Brand</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="info-highlight position-highlight">
+                                            <div class="text-muted small">Position</div>
+                                            <div class="fs-5 fw-bold text-success" th:text="${product.position() != null ? product.position() : '-'}">Front</div>
+                                        </div>
+                                    </div>
                                     <div class="col-md-4">
                                         <div class="text-muted small">Part Number</div>
                                         <div class="fw-semibold" th:text="${product.partNumber()}">BP-1001</div>
@@ -171,26 +201,16 @@
                                       th:text="${details.partNumberCount()}">1</span>
                             </div>
                             <div class="card-body">
-                                <div class="vstack gap-3">
+                                <div class="part-number-cloud">
                                     <div th:each="partGroup : ${details.partNumberGroups()}"
-                                         class="border rounded-3 p-3 bg-body-tertiary">
-                                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-                                            <a th:href="@{/products/{id}(id=${partGroup.productId()})}"
-                                               class="fw-semibold text-decoration-none"
-                                               th:text="${partGroup.productName()}">Product Name</a>
-                                            <span th:if="${partGroup.currentProduct()}" class="badge text-bg-success">Current product</span>
-                                            <span th:unless="${partGroup.currentProduct()}" class="badge text-bg-light border text-dark">Similar product</span>
-                                        </div>
-                                        <div class="d-flex flex-wrap gap-2">
-                                            <span class="badge text-bg-primary fs-6 px-3 py-2"
-                                                  th:text="${partGroup.partNumber()}">MAIN</span>
-                                            <span th:each="partNo : ${partGroup.alternativePartNumbers()}"
-                                                  class="badge text-bg-light border fs-6 px-3 py-2"
-                                                  th:text="${partNo}">ALT</span>
-                                        </div>
+                                         th:remove="tag">
+                                        <span class="badge text-bg-primary fs-6 px-3 py-2"
+                                              th:text="${partGroup.partNumber()}">MAIN</span>
+                                        <span th:each="partNo : ${partGroup.alternativePartNumbers()}"
+                                              class="badge text-bg-light border fs-6 px-3 py-2"
+                                              th:text="${partNo}">ALT</span>
                                     </div>
                                 </div>
-                                <div class="form-text mt-2">Primary part numbers are highlighted. Other numbers are alternatives.</div>
                             </div>
                         </div>
                     </div>
@@ -229,7 +249,7 @@
                                     <tr>
                                         <th>Store</th>
                                         <th class="text-end">Quantity</th>
-                                        <th class="text-end">Price</th>
+                                        <th class="text-end">Last Cost Price</th>
                                     </tr>
                                     </thead>
                                     <tbody>
@@ -239,7 +259,7 @@
                                     <tr th:each="stock : ${details.stockSummaries()}">
                                         <td th:text="${stock.storeName()}">Main Store</td>
                                         <td class="text-end fw-semibold" th:text="${stock.quantity()}">0</td>
-                                        <td class="text-end" th:text="${stock.sellingPrice() != null ? stock.sellingPrice() : '-'}">0.00</td>
+                                        <td class="text-end fw-semibold" th:text="${stock.lastCostPrice() != null ? stock.lastCostPrice() : '-'}">0.00</td>
                                     </tr>
                                     </tbody>
                                 </table>

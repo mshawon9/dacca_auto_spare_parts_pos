@@ -252,10 +252,6 @@
                                                     Not set
                                                 </span>
                                             </div>
-                                            <small class="text-muted previous-price d-block"
-                                                   th:text="${row.previousPrice() != null ? 'Last selling: ' + #numbers.formatDecimal(row.previousPrice(), 1, 2) : 'No last selling price'}">
-                                                No last selling price
-                                            </small>
                                             <div class="mt-1">
                                                 <span class="text-muted small">Cost:</span>
                                                 <span class="fw-semibold current-cost-price"
@@ -263,10 +259,6 @@
                                                     Not set
                                                 </span>
                                             </div>
-                                            <small class="text-muted previous-cost-price d-block"
-                                                   th:text="${row.previousCostPrice() != null ? 'Last cost: ' + #numbers.formatDecimal(row.previousCostPrice(), 1, 2) : 'No last cost price'}">
-                                                No last cost price
-                                            </small>
                                         </td>
                                         <td class="text-end pe-3">
                                             <div class="btn-group inventory-action-group me-1" role="group">
@@ -689,13 +681,7 @@
                 priceRow.attr('data-price', response.newPrice);
                 priceRow.attr('data-cost-price', response.newCostPrice);
                 priceRow.find('.current-price').text(formatPrice(response.newPrice));
-                priceRow.find('.previous-price').text(
-                    response.oldPrice === null ? 'No last selling price' : 'Last selling: ' + formatPrice(response.oldPrice)
-                );
                 priceRow.find('.current-cost-price').text(formatPrice(response.newCostPrice));
-                priceRow.find('.previous-cost-price').text(
-                    response.oldCostPrice === null ? 'No last cost price' : 'Last cost: ' + formatPrice(response.oldCostPrice)
-                );
                 priceModal.hide();
                 showAlert('Prices updated successfully.', 'success');
             }).fail(function (xhr) {
