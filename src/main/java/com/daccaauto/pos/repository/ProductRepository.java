@@ -91,7 +91,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
         where (:keywordPattern is null or
                lower(p.name) like :keywordPattern or
                lower(coalesce(p.specLabel, '')) like :keywordPattern or
-               lower(coalesce(p.position, '')) like :keywordPattern or
+               lower(cast(p.position as string)) like :keywordPattern or
                lower(coalesce(p.dimension, '')) like :keywordPattern or
                lower(coalesce(p.sku, '')) like :keywordPattern or
                lower(p.partNumber) like :keywordPattern or
@@ -132,7 +132,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             where (:keywordPattern is null or
                    lower(p.name) like :keywordPattern or
                    lower(coalesce(p.specLabel, '')) like :keywordPattern or
-                   lower(coalesce(p.position, '')) like :keywordPattern or
+                   lower(cast(p.position as string)) like :keywordPattern or
                    lower(coalesce(p.dimension, '')) like :keywordPattern or
                    lower(coalesce(p.sku, '')) like :keywordPattern or
                    lower(p.partNumber) like :keywordPattern or
@@ -163,7 +163,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             where (:keywordPattern is null or
                    lower(p.name) like :keywordPattern or
                    lower(coalesce(p.specLabel, '')) like :keywordPattern or
-                   lower(coalesce(p.position, '')) like :keywordPattern or
+                   lower(cast(p.position as string)) like :keywordPattern or
                    lower(coalesce(p.dimension, '')) like :keywordPattern or
                    lower(coalesce(p.sku, '')) like :keywordPattern or
                    lower(p.partNumber) like :keywordPattern or
@@ -203,7 +203,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             where (:keywordPattern is null or
                    lower(p.name) like :keywordPattern or
                    lower(coalesce(p.specLabel, '')) like :keywordPattern or
-                   lower(coalesce(p.position, '')) like :keywordPattern or
+                   lower(cast(p.position as string)) like :keywordPattern or
                    lower(coalesce(p.dimension, '')) like :keywordPattern or
                    lower(coalesce(p.sku, '')) like :keywordPattern or
                    lower(p.partNumber) like :keywordPattern or
@@ -223,7 +223,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
             where (:keywordPattern is null or
                    lower(p.name) like :keywordPattern or
                    lower(coalesce(p.specLabel, '')) like :keywordPattern or
-                   lower(coalesce(p.position, '')) like :keywordPattern or
+                   lower(cast(p.position as string)) like :keywordPattern or
                    lower(coalesce(p.dimension, '')) like :keywordPattern or
                    lower(coalesce(p.sku, '')) like :keywordPattern or
                    lower(p.partNumber) like :keywordPattern or

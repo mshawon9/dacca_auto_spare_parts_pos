@@ -5,6 +5,7 @@ import com.daccaauto.pos.dto.product.ProductDetailsResponse;
 import com.daccaauto.pos.dto.product.ProductImportResult;
 import com.daccaauto.pos.dto.product.ProductResponse;
 import com.daccaauto.pos.dto.product.ProductUpdateRequest;
+import com.daccaauto.pos.entity.ProductPosition;
 import com.daccaauto.pos.exception.DuplicateResourceException;
 import com.daccaauto.pos.exception.ResourceNotFoundException;
 import com.daccaauto.pos.exception.ProductImageException;
@@ -222,7 +223,7 @@ public class ProductController {
         ProductUpdateRequest form = new ProductUpdateRequest();
         form.setName(response.name());
         form.setSpecLabel(response.specLabel());
-        form.setPosition(response.position());
+        form.setPosition(ProductPosition.from(response.position()).orElse(null));
         form.setDimension(response.dimension());
         form.setSku(response.sku());
         form.setReorderLevel(response.reorderLevel());
@@ -348,7 +349,7 @@ public class ProductController {
                 product.id(),
                 product.name(),
                 product.specLabel(),
-                product.position(),
+                positionValue(product.position()),
                 product.dimension(),
                 product.reorderLevel(),
                 product.description(),
@@ -441,6 +442,7 @@ public class ProductController {
         model.addAttribute("brands", categoryId == null ? java.util.List.of() : brandCategoryService.getBrandsByCategoryId(categoryId));
         model.addAttribute("applications", vehicleApplicationService.getAll(null, null, null));
         model.addAttribute("vehicleMakes", vehicleMakeService.getAll());
+        model.addAttribute("productPositions", ProductPosition.values());
         model.addAttribute("selectedCategoryId", categoryId);
     }
 
@@ -453,5 +455,11 @@ public class ProductController {
         ProductResponse product = productService.getById(similarProductId);
         model.addAttribute("selectedSimilarProduct",
                 new ProductResponse.SimilarProductSummary(product.id(), buildCopySearchLabel(product)));
+    }
+
+    private String positionValue(String position) {
+        return ProductPosition.from(position)
+                .map(ProductPosition::name)
+                .orElse(null);
     }
 }

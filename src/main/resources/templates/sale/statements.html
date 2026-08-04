@@ -278,17 +278,6 @@
 <div th:replace="sale/sale-detail-modal :: saleDetailModal"></div>
 <div th:replace="fragments/commonscripts :: commonscripts"/>
 <div th:replace="sale/sale-detail-modal :: saleDetailScript"></div>
-<script>
-    $(function () {
-        function syncStatementFilters() {
-            const type = $('#statementType').val();
-            $('.js-date-filter').toggle(type === 'daily');
-            $('.js-month-filter').toggle(type === 'monthly');
-        }
-
-        $('#statementType').on('change', syncStatementFilters);
-        syncStatementFilters();
-    });
-</script>
+<script src="/resources/js/sale-statements.js"></script>
 </body>
 </html>

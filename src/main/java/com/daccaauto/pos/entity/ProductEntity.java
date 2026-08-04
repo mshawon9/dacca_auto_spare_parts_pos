@@ -44,9 +44,9 @@ public class ProductEntity extends BaseEntity {
     @Column(name = "spec_label", length = 120)
     private String specLabel;
 
-    @Size(max = 80)
+    @Convert(converter = ProductPositionConverter.class)
     @Column(name = "position", length = 80)
-    private String position;
+    private ProductPosition position;
 
     @Size(max = 120)
     @Column(name = "dimension", length = 120)

@@ -8,7 +8,7 @@ spring:
 
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: jdbc:postgresql://localhost:5432/dacca_pos_prod?createDatabaseIfNotExist=true
+    url: jdbc:postgresql://localhost:5432/dacca_pos?createDatabaseIfNotExist=true
     username: postgres
     password: admin
 

@@ -8,6 +8,7 @@ import com.daccaauto.pos.entity.ProductApplicationEntity;
 import com.daccaauto.pos.entity.ProductCategoryEntity;
 import com.daccaauto.pos.entity.ProductEntity;
 import com.daccaauto.pos.entity.ProductGroupEntity;
+import com.daccaauto.pos.entity.ProductPosition;
 import com.daccaauto.pos.entity.ProductPriceHistoryEntity;
 import com.daccaauto.pos.entity.ProductStockEntity;
 import com.daccaauto.pos.entity.StoreEntity;
@@ -205,7 +206,7 @@ public class ProductImportServiceImpl implements ProductImportService {
             boolean updating = product.getId() != null;
 
             product.setName(buildCategoryProductName(category, row.name));
-            product.setPosition(trimToNull(row.position));
+            product.setPosition(parsePosition(row.position));
             product.setDimension(trimToNull(row.dimension));
             product.setSku(trimToNull(row.sku));
             product.setReorderLevel(row.reorderLevel);
@@ -510,6 +511,9 @@ public class ProductImportServiceImpl implements ProductImportService {
             if (row.applicationModel.length() > 150) row.errors.add("Application Model must not exceed 150 characters");
             if (row.warehouse.length() > 120) row.errors.add("Warehouse must not exceed 120 characters");
             if (row.position.length() > 80) row.errors.add("Position must not exceed 80 characters");
+            if (!row.position.isBlank() && ProductPosition.from(row.position).isEmpty()) {
+                row.errors.add("Position is invalid. Use one of: " + allowedPositionNames());
+            }
             if (row.dimension.length() > 120) row.errors.add("Dimension must not exceed 120 characters");
             if (row.sku.length() > 100) row.errors.add("SKU must not exceed 100 characters");
             if (row.alternativePartNumber.length() > 255) row.errors.add("Alternative Part Number must not exceed 255 characters");
@@ -747,7 +751,7 @@ public class ProductImportServiceImpl implements ProductImportService {
             ? row.name
             : row.productGroup;
         String groupName = buildCategoryProductName(category, groupNameInput);
-        String normalizedKey = buildProductGroupKey(groupName, row.position, row.dimension);
+        String normalizedKey = buildProductGroupKey(groupName, positionDisplayName(parsePosition(row.position)), row.dimension);
 
         return productGroupRepository.findByCategoryIdAndNormalizedKey(category.getId(), normalizedKey)
             .orElseGet(() -> {
@@ -764,6 +768,20 @@ public class ProductImportServiceImpl implements ProductImportService {
             .filter(value -> value != null && !value.isBlank())
             .map(value -> value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]+", ""))
             .collect(Collectors.joining("|"));
+    }
+
+    private ProductPosition parsePosition(String position) {
+        return ProductPosition.from(position).orElse(null);
+    }
+
+    private String positionDisplayName(ProductPosition position) {
+        return position == null ? null : position.getDisplayName();
+    }
+
+    private String allowedPositionNames() {
+        return java.util.Arrays.stream(ProductPosition.values())
+            .map(ProductPosition::getDisplayName)
+            .collect(Collectors.joining(", "));
     }
 
     private Set<String> parseAlternativePartNumbers(String input) {

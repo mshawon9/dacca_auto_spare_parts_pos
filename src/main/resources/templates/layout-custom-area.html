@@ -164,28 +164,7 @@
 
     <!-- Scripts -->
     <script src="/resources/js/select2.min.js"></script>
-    <script>
-
-      $(function () {
-        const $brandIds = $('#multiple-select-field');
-
-        $brandIds.select2({
-          theme: 'bootstrap-5',
-          width: '100%',
-          placeholder: 'Select brands',
-          dropdownParent: $('#categoryModal'),
-          closeOnSelect: false
-        });
-
-        // Fix focus/cursor issue, especially with jQuery 3.6
-        $brandIds.on('select2:open', function () {
-          setTimeout(function () {
-            const $searchField = $('.select2-container--open .select2-search__field');
-            $searchField.trigger('focus');
-          }, 0);
-        });
-      });
-    </script>
+    <script src="/resources/js/layout-custom-area.js"></script>
   </body>
   <!--end::Body-->
 </html>

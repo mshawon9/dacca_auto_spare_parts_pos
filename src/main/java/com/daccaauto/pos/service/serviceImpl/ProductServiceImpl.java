@@ -67,7 +67,7 @@ public class ProductServiceImpl implements ProductService {
         ProductEntity entity = new ProductEntity();
         entity.setName(buildCategoryProductName(category, request.getName()));
         entity.setSpecLabel(trimToNull(request.getSpecLabel()));
-        entity.setPosition(trimToNull(request.getPosition()));
+        entity.setPosition(request.getPosition());
         entity.setDimension(trimToNull(request.getDimension()));
         entity.setSku(trimToNull(request.getSku()));
         entity.setReorderLevel(defaultReorderLevel(request.getReorderLevel()));
@@ -77,7 +77,7 @@ public class ProductServiceImpl implements ProductService {
         entity.setDescription(trimToNull(request.getDescription()));
         entity.setCategory(category);
         entity.setBrand(brand);
-        entity.setProductGroup(resolveProductGroup(category, entity.getName(), request.getPosition(), request.getDimension(), request.getSimilarProductId()));
+        entity.setProductGroup(resolveProductGroup(category, entity.getName(), positionDisplayName(request.getPosition()), request.getDimension(), request.getSimilarProductId()));
         entity.setActive(request.getActive() == null || request.getActive());
 
         ProductEntity saved = productRepository.save(entity);
@@ -112,7 +112,7 @@ public class ProductServiceImpl implements ProductService {
 
         entity.setName(buildCategoryProductName(category, request.getName()));
         entity.setSpecLabel(trimToNull(request.getSpecLabel()));
-        entity.setPosition(trimToNull(request.getPosition()));
+        entity.setPosition(request.getPosition());
         entity.setDimension(trimToNull(request.getDimension()));
         entity.setSku(trimToNull(request.getSku()));
         entity.setReorderLevel(defaultReorderLevel(request.getReorderLevel()));
@@ -122,7 +122,7 @@ public class ProductServiceImpl implements ProductService {
         entity.setDescription(trimToNull(request.getDescription()));
         entity.setCategory(category);
         entity.setBrand(brand);
-        entity.setProductGroup(resolveProductGroup(category, entity.getName(), request.getPosition(), request.getDimension(), request.getSimilarProductId()));
+        entity.setProductGroup(resolveProductGroup(category, entity.getName(), positionDisplayName(request.getPosition()), request.getDimension(), request.getSimilarProductId()));
         entity.setActive(request.getActive() == null || request.getActive());
 
         ProductEntity saved = productRepository.save(entity);
@@ -425,7 +425,7 @@ public class ProductServiceImpl implements ProductService {
             entity.getId(),
             entity.getName(),
             entity.getSpecLabel(),
-            entity.getPosition(),
+            positionDisplayName(entity.getPosition()),
             entity.getDimension(),
             entity.getSku(),
             defaultReorderLevel(entity.getReorderLevel()),
@@ -501,7 +501,7 @@ public class ProductServiceImpl implements ProductService {
                 variant.getBrand().getName(),
                 variant.getPartNumber(),
                 getAlternativePartNumbers(variant),
-                variant.getPosition(),
+                positionDisplayName(variant.getPosition()),
                 variant.getDimension(),
                 productStockRepository.sumQuantityByProductId(variant.getId()),
                 variant.getId().equals(product.id())
@@ -524,7 +524,7 @@ public class ProductServiceImpl implements ProductService {
             ProductGroupEntity group = findOrCreateProductGroup(
                 similarProduct.getCategory(),
                 similarProduct.getName(),
-                similarProduct.getPosition(),
+                positionDisplayName(similarProduct.getPosition()),
                 similarProduct.getDimension()
             );
             similarProduct.setProductGroup(group);
@@ -562,7 +562,7 @@ public class ProductServiceImpl implements ProductService {
                 product.getCategory().getName(),
                 product.getName(),
                 product.getPartNumber(),
-                product.getPosition(),
+                positionDisplayName(product.getPosition()),
                 product.getDimension()
             )
             .filter(value -> value != null && !value.isBlank())
@@ -724,6 +724,10 @@ public class ProductServiceImpl implements ProductService {
 
     private String trimToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String positionDisplayName(ProductPosition position) {
+        return position == null ? null : position.getDisplayName();
     }
 
     private record ApplicationKeyword(String pattern, Integer year) {

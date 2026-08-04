@@ -1,5 +1,6 @@
 package com.daccaauto.pos.dto.product;
 
+import com.daccaauto.pos.entity.ProductPosition;
 import jakarta.validation.constraints.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,8 +21,7 @@ public class ProductCreateRequest {
     @Size(max = 120)
     private String specLabel;
 
-    @Size(max = 80)
-    private String position;
+    private ProductPosition position;
 
     @Size(max = 120)
     private String dimension;
