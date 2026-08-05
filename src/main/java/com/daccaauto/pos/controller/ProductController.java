@@ -15,6 +15,7 @@ import com.daccaauto.pos.service.ProductImportService;
 import com.daccaauto.pos.service.ProductService;
 import com.daccaauto.pos.service.VehicleApplicationService;
 import com.daccaauto.pos.service.VehicleMakeService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -51,10 +52,12 @@ public class ProductController {
                        @RequestParam(required = false) Long categoryId,
                        @RequestParam(required = false) Long brandId,
                        @RequestParam(required = false) Long applicationId,
+                       @RequestParam(required = false) Long makeId,
                        @RequestParam(required = false) Boolean active,
                        @RequestParam(defaultValue = "name") String sortBy,
                        @RequestParam(defaultValue = "asc") String sortDir,
                        @RequestParam(defaultValue = "0") int page,
+                       HttpServletRequest servletRequest,
                        Model model) {
 
         int pageSize = 15;
@@ -67,6 +70,7 @@ public class ProductController {
                 categoryId,
                 brandId,
                 applicationId,
+                makeId,
                 active,
                 PageRequest.of(safePage, pageSize, buildProductSort(selectedSortBy, selectedSortDir))
         );
@@ -85,15 +89,16 @@ public class ProductController {
         model.addAttribute("pageSize", pageSize);
         model.addAttribute("categories", productCategoryService.getAll());
         model.addAttribute("brands", categoryId == null ? java.util.List.of() : brandCategoryService.getBrandsByCategoryId(categoryId));
-        model.addAttribute("applications", vehicleApplicationService.getAll(null, null, null));
+        model.addAttribute("vehicleMakes", vehicleMakeService.getAll());
 
         model.addAttribute("keyword", keyword);
         model.addAttribute("selectedCategoryId", categoryId);
         model.addAttribute("selectedBrandId", brandId);
-        model.addAttribute("selectedApplicationId", applicationId);
+        model.addAttribute("selectedMakeId", makeId);
         model.addAttribute("selectedActive", active);
         model.addAttribute("sortBy", selectedSortBy);
         model.addAttribute("sortDir", selectedSortDir);
+        model.addAttribute("currentListUrl", currentRelativeUrl(servletRequest));
 
         return "product/list";
     }
@@ -202,7 +207,9 @@ public class ProductController {
     }
 
     @GetMapping("/{id}/edit")
-    public String showEditForm(@PathVariable Long id, Model model) {
+    public String showEditForm(@PathVariable Long id,
+                               @RequestParam(required = false) String returnUrl,
+                               Model model) {
         ProductResponse response = productService.getById(id);
 
         ProductUpdateRequest form = getProductUpdateRequest(response);
@@ -215,6 +222,7 @@ public class ProductController {
         model.addAttribute("pageTitle", "Edit Product");
         model.addAttribute("submitUrl", "/products/" + id + "/edit");
         model.addAttribute("editMode", true);
+        model.addAttribute("returnUrl", safeReturnUrl(returnUrl));
 
         return "product/form";
     }
@@ -243,6 +251,7 @@ public class ProductController {
     public String update(@PathVariable Long id,
                          @Valid @ModelAttribute("form") ProductUpdateRequest request,
                          BindingResult bindingResult,
+                         @RequestParam(required = false) String returnUrl,
                          Model model,
                          RedirectAttributes redirectAttributes) {
 
@@ -254,13 +263,14 @@ public class ProductController {
             model.addAttribute("pageTitle", "Edit Product");
             model.addAttribute("submitUrl", "/products/" + id + "/edit");
             model.addAttribute("editMode", true);
+            model.addAttribute("returnUrl", safeReturnUrl(returnUrl));
             return "product/form";
         }
 
         try {
             productService.update(id, request);
             redirectAttributes.addFlashAttribute("successMessage", "Product updated successfully.");
-            return "redirect:/products";
+            return "redirect:" + safeReturnUrl(returnUrl);
         } catch (DuplicateResourceException | ResourceNotFoundException | ProductImageException ex) {
             model.addAttribute("productId", id);
             model.addAttribute("hasProductImage", productService.getById(id).hasImage());
@@ -270,6 +280,7 @@ public class ProductController {
             model.addAttribute("pageTitle", "Edit Product");
             model.addAttribute("submitUrl", "/products/" + id + "/edit");
             model.addAttribute("editMode", true);
+            model.addAttribute("returnUrl", safeReturnUrl(returnUrl));
             return "product/form";
         }
     }
@@ -283,7 +294,7 @@ public class ProductController {
             return List.of();
         }
 
-        return productService.search(keyword.trim(), categoryId, null, null, true)
+        return productService.search(keyword.trim(), categoryId, null, null, null, true)
                 .stream()
                 .filter(product -> !product.id().equals(excludeProductId))
                 .limit(15)
@@ -302,7 +313,7 @@ public class ProductController {
         }
 
         Set<String> seenGroups = new java.util.LinkedHashSet<>();
-        return productService.search(keyword.trim(), null, null, null, true)
+        return productService.search(keyword.trim(), null, null, null, null, true)
                 .stream()
                 .filter(product -> seenGroups.add(product.productGroupId() == null
                         ? "p:" + product.id()
@@ -461,5 +472,20 @@ public class ProductController {
         return ProductPosition.from(position)
                 .map(ProductPosition::name)
                 .orElse(null);
+    }
+
+    private String currentRelativeUrl(HttpServletRequest request) {
+        String query = request.getQueryString();
+        return request.getRequestURI() + (query == null || query.isBlank() ? "" : "?" + query);
+    }
+
+    private String safeReturnUrl(String returnUrl) {
+        if (returnUrl == null || returnUrl.isBlank()) {
+            return "/products";
+        }
+        if (returnUrl.startsWith("/products") && !returnUrl.startsWith("//")) {
+            return returnUrl;
+        }
+        return "/products";
     }
 }

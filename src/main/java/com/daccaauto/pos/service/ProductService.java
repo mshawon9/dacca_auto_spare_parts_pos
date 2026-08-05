@@ -32,12 +32,14 @@ public interface ProductService {
                                  Long categoryId,
                                  Long brandId,
                                  Long applicationId,
+                                 Long makeId,
                                  Boolean active);
 
     Page<ProductResponse> searchPage(String keyword,
                                      Long categoryId,
                                      Long brandId,
                                      Long applicationId,
+                                     Long makeId,
                                      Boolean active,
                                      Pageable pageable);
 

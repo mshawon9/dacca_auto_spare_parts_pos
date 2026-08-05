@@ -27,6 +27,9 @@ public record ProductResponse(
     Set<Long> applicationIds,
     List<String> applicationDisplayNames,
     String applicationSummary,
+    String applicationMakeSummary,
+    BigDecimal totalStockQuantity,
+    BigDecimal lastCostPrice,
     Long similarProductId,
     List<SimilarProductSummary> similarProducts,
     boolean active

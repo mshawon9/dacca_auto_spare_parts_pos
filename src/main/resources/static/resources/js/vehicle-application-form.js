@@ -9,6 +9,8 @@ $(function () {
         const $yearFrom = $('#yearFrom');
         const $yearTo = $('#yearTo');
         const $preview = $('#displayPreview');
+        const originalMakeId = $makeId.val();
+        const originalModelId = $modelId.val();
 
         function updatePreview() {
             const make = ($make.val() || '').trim();
@@ -49,6 +51,9 @@ $(function () {
             if (selectedId) {
                 $modelId.val(selectedId);
                 $modelHelp.text('Existing model selected.');
+            } else if (originalModelId && originalMakeId && $makeId.val() === originalMakeId && value) {
+                $modelId.val(originalModelId);
+                $modelHelp.text('Current model name will be updated.');
             } else {
                 $modelId.val('');
                 $modelHelp.text(value ? 'New model will be created when you save.' : 'Select a make first to search old models, or type a new model.');

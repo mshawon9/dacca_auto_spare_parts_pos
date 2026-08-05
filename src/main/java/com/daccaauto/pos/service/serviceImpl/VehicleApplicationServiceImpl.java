@@ -38,7 +38,7 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
     @CacheEvict(cacheNames = {"vehicleApplications", "vehicleMakes", "vehicleModels"}, allEntries = true)
     public VehicleApplicationResponse create(VehicleApplicationCreateRequest request) {
         VehicleMakeEntity make = resolveMake(request.getVehicleMakeId(), request.getVehicleMakeName());
-        VehicleModelEntity model = resolveModel(make, request.getVehicleModelId(), request.getVehicleModelName());
+        VehicleModelEntity model = resolveModel(make, request.getVehicleModelId(), request.getVehicleModelName(), false);
 
         String variantLabel = trimToNull(request.getVariantLabel());
 
@@ -70,7 +70,7 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
                 .orElseThrow(() -> new ResourceNotFoundException("Vehicle application not found: " + id));
 
         VehicleMakeEntity make = resolveMake(request.getVehicleMakeId(), request.getVehicleMakeName());
-        VehicleModelEntity model = resolveModel(make, request.getVehicleModelId(), request.getVehicleModelName());
+        VehicleModelEntity model = resolveModel(make, request.getVehicleModelId(), request.getVehicleModelName(), true);
 
         String variantLabel = trimToNull(request.getVariantLabel());
 
@@ -155,11 +155,19 @@ public class VehicleApplicationServiceImpl implements VehicleApplicationService 
                 });
     }
 
-    private VehicleModelEntity resolveModel(VehicleMakeEntity make, Long modelId, String modelName) {
+    private VehicleModelEntity resolveModel(VehicleMakeEntity make, Long modelId, String modelName, boolean allowRename) {
         if (modelId != null) {
             VehicleModelEntity model = vehicleModelRepository.findById(modelId)
                     .orElseThrow(() -> new ResourceNotFoundException("Vehicle model not found: " + modelId));
             validateMakeModel(make, model);
+            String name = trimToNull(modelName);
+            if (allowRename && name != null && !model.getName().equalsIgnoreCase(name)) {
+                if (vehicleModelRepository.existsByMakeIdAndNameIgnoreCaseAndIdNot(make.getId(), name, model.getId())) {
+                    throw new DuplicateResourceException("Vehicle model already exists under this make: " + name);
+                }
+                model.setName(name);
+                return vehicleModelRepository.save(model);
+            }
             return model;
         }
 

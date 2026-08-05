@@ -22,4 +22,6 @@ public interface ProductPriceHistoryRepository extends JpaRepository<ProductPric
         Long storeId,
         Long productId
     );
+
+    ProductPriceHistoryEntity findFirstByProductIdOrderByCreatedAtDesc(Long productId);
 }

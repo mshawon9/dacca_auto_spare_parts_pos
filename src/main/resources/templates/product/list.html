@@ -26,7 +26,7 @@
     }
 
     .product-list-table {
-        min-width: 1180px;
+        min-width: 980px;
     }
 
     .product-actions {
@@ -189,11 +189,11 @@
                     <div class="card-body">
                         <form th:action="@{/products}" method="get" id="productSearchForm">
                             <div class="row g-3">
-                                <div class="col-lg-3">
+                                <div class="col-lg-2">
                                     <label for="keyword" class="form-label">Keyword</label>
                                     <input type="text" id="keyword" name="keyword" class="form-control"
                                            th:value="${keyword}"
-                                           placeholder="Name, part no, alt part no, barcode, position...">
+                                           placeholder="Name, part no, alt part no...">
                                 </div>
 
                                 <div class="col-lg-2">
@@ -218,14 +218,14 @@
                                     </select>
                                 </div>
 
-                                <div class="col-lg-3">
-                                    <label for="applicationId" class="form-label">Application</label>
-                                    <select id="applicationId" name="applicationId" class="form-select">
-                                        <option value="">All Applications</option>
-                                        <option th:each="a : ${applications}"
-                                                th:value="${a.id()}"
-                                                th:text="${a.displayName()}"
-                                                th:selected="${selectedApplicationId != null and selectedApplicationId == a.id()}"></option>
+                                <div class="col-lg-2">
+                                    <label for="makeId" class="form-label">Make</label>
+                                    <select id="makeId" name="makeId" class="form-select">
+                                        <option value="">All Makes</option>
+                                        <option th:each="make : ${vehicleMakes}"
+                                                th:value="${make.id()}"
+                                                th:text="${make.name()}"
+                                                th:selected="${selectedMakeId != null and selectedMakeId == make.id()}"></option>
                                     </select>
                                 </div>
 
@@ -247,7 +247,6 @@
                                     <select id="sortBy" name="sortBy" class="form-select">
                                         <option value="name" th:selected="${sortBy == 'name'}">Product Name</option>
                                         <option value="partNumber" th:selected="${sortBy == 'partNumber'}">Part No</option>
-                                        <option value="barcode" th:selected="${sortBy == 'barcode'}">Barcode</option>
                                         <option value="position" th:selected="${sortBy == 'position'}">Position</option>
                                         <option value="dimension" th:selected="${sortBy == 'dimension'}">Dimension</option>
                                         <option value="sku" th:selected="${sortBy == 'sku'}">SKU</option>
@@ -291,46 +290,28 @@
                             <table class="table table-hover align-middle mb-0 product-list-table">
                                 <thead class="table-light">
                                 <tr>
-                                    <th>
-                                        <a class="sortable-header"
-                                           th:href="@{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, sortBy='id', sortDir=${sortBy == 'id' and sortDir == 'asc' ? 'desc' : 'asc'}, page=0)}">
-                                            ID <span th:if="${sortBy == 'id'}" class="small text-primary" th:text="${sortDir == 'asc' ? 'ASC' : 'DESC'}"></span>
-                                        </a>
-                                    </th>
                                     <th>Image</th>
-                                    <th>Category</th>
                                     <th>
                                         <a class="sortable-header"
-                                           th:href="@{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, sortBy='name', sortDir=${sortBy == 'name' and sortDir == 'asc' ? 'desc' : 'asc'}, page=0)}">
-                                            Name <span th:if="${sortBy == 'name'}" class="small text-primary" th:text="${sortDir == 'asc' ? 'ASC' : 'DESC'}"></span>
+                                           th:href="@{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, makeId=${selectedMakeId}, active=${selectedActive}, sortBy='name', sortDir=${sortBy == 'name' and sortDir == 'asc' ? 'desc' : 'asc'}, page=0)}">
+                                            ID / Name <span th:if="${sortBy == 'name'}" class="small text-primary" th:text="${sortDir == 'asc' ? 'ASC' : 'DESC'}"></span>
                                         </a>
                                     </th>
                                     <th>
                                         <a class="sortable-header"
-                                           th:href="@{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, sortBy='partNumber', sortDir=${sortBy == 'partNumber' and sortDir == 'asc' ? 'desc' : 'asc'}, page=0)}">
+                                           th:href="@{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, makeId=${selectedMakeId}, active=${selectedActive}, sortBy='partNumber', sortDir=${sortBy == 'partNumber' and sortDir == 'asc' ? 'desc' : 'asc'}, page=0)}">
                                             Part No <span th:if="${sortBy == 'partNumber'}" class="small text-primary" th:text="${sortDir == 'asc' ? 'ASC' : 'DESC'}"></span>
                                         </a>
                                     </th>
-                                    <th>
-                                        <a class="sortable-header"
-                                           th:href="@{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, sortBy='barcode', sortDir=${sortBy == 'barcode' and sortDir == 'asc' ? 'desc' : 'asc'}, page=0)}">
-                                            Barcode <span th:if="${sortBy == 'barcode'}" class="small text-primary" th:text="${sortDir == 'asc' ? 'ASC' : 'DESC'}"></span>
-                                        </a>
-                                    </th>
                                     <th>Brand</th>
-                                    <th>
+                                    <th class="text-nowrap" style="width: 90px;">
                                         <a class="sortable-header"
-                                           th:href="@{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, sortBy='position', sortDir=${sortBy == 'position' and sortDir == 'asc' ? 'desc' : 'asc'}, page=0)}">
-                                            Position <span th:if="${sortBy == 'position'}" class="small text-primary" th:text="${sortDir == 'asc' ? 'ASC' : 'DESC'}"></span>
-                                        </a>
-                                    </th>
-                                    <th>
-                                        <a class="sortable-header"
-                                           th:href="@{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, sortBy='dimension', sortDir=${sortBy == 'dimension' and sortDir == 'asc' ? 'desc' : 'asc'}, page=0)}">
+                                           th:href="@{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, makeId=${selectedMakeId}, active=${selectedActive}, sortBy='dimension', sortDir=${sortBy == 'dimension' and sortDir == 'asc' ? 'desc' : 'asc'}, page=0)}">
                                             Dimension <span th:if="${sortBy == 'dimension'}" class="small text-primary" th:text="${sortDir == 'asc' ? 'ASC' : 'DESC'}"></span>
                                         </a>
                                     </th>
-                                    <th class="text-end">Reorder</th>
+                                    <th class="text-end">Stock</th>
+                                    <th class="text-end">Cost</th>
                                     <th>Applications</th>
                                     <th>Status</th>
                                     <th class="text-end">Actions</th>
@@ -338,19 +319,18 @@
                                 </thead>
                                 <tbody>
                                 <tr th:if="${#lists.isEmpty(products)}" class="empty-row">
-                                    <td colspan="13" class="text-center text-muted py-4">No products found.</td>
+                                    <td colspan="10" class="text-center text-muted py-4">No products found.</td>
                                 </tr>
                                 <tr th:each="item : ${products}">
-                                    <td data-label="ID" th:text="${item.id()}">1</td>
                                     <td data-label="Image" class="product-image-cell">
                                         <img class="product-list-image"
                                              th:src="${item.hasImage() ? '/products/' + item.id() + '/image' : '/img/placeholder-image.png'}"
                                              src="/img/placeholder-image.png"
                                              th:alt="${item.name()}">
                                     </td>
-                                    <td data-label="Category" th:text="${item.categoryName()}">Brake Pad</td>
-                                    <td data-label="Product" class="product-main-cell">
-                                        <div class="fw-semibold d-flex flex-wrap align-items-center gap-2">
+                                    <td data-label="ID / Product" class="product-main-cell">
+                                        <div class="fw-semibold d-flex flex-nowrap align-items-center gap-2">
+                                            <span class="badge text-bg-light border" th:text="${'#' + item.id()}">#1</span>
                                             <a th:href="@{/products/{id}(id=${item.id()})}"
                                                class="text-decoration-none"
                                                th:text="${item.name()}">Brake Pad</a>
@@ -370,25 +350,10 @@
                                         <small class="text-muted" th:if="${item.sku() != null}" th:text="${item.sku()}">SKU</small>
                                     </td>
                                     <td data-label="Part No" th:text="${item.partNumber()}">BP-1001</td>
-                                    <td data-label="Barcode" th:text="${item.barcode() != null ? item.barcode() : '-'}">BRA-000001</td>
                                     <td data-label="Brand" th:text="${item.brandName()}">Brembo</td>
-                                    <td data-label="Position">
-                                        <span th:if="${item.position() != null}"
-                                              class="badge"
-                                              th:classappend="${
-                                                item.position() == 'Front' ? ' text-bg-primary' :
-                                                item.position() == 'Rear' ? ' text-bg-success' :
-                                                item.position() == 'Left' or item.position() == 'Front Left' or item.position() == 'Rear Left' ? ' text-bg-info' :
-                                                item.position() == 'Right' or item.position() == 'Front Right' or item.position() == 'Rear Right' ? ' text-bg-warning' :
-                                                item.position() == 'Inner' or item.position() == 'Upper' or item.position() == 'Lower' ? ' text-bg-secondary' :
-                                                item.position() == 'Outer' or item.position() == 'Center' ? ' text-bg-dark' :
-                                                ' text-bg-light border'
-                                              }"
-                                              th:text="${item.position()}">Front</span>
-                                        <span th:unless="${item.position() != null}">-</span>
-                                    </td>
-                                    <td data-label="Dimension" th:text="${item.dimension() != null ? item.dimension() : '-'}">38 X 25 X 9</td>
-                                    <td data-label="Reorder" class="text-end" th:text="${item.reorderLevel().stripTrailingZeros().toPlainString()}">2</td>
+                                    <td data-label="Dimension" class="small text-muted text-nowrap" th:text="${item.dimension() != null ? item.dimension() : '-'}">38 X 25 X 9</td>
+                                    <td data-label="Stock" class="text-end" th:text="${item.totalStockQuantity().stripTrailingZeros().toPlainString()}">10</td>
+                                    <td data-label="Cost" class="text-end" th:text="${item.lastCostPrice() != null ? #numbers.formatDecimal(item.lastCostPrice(), 1, 'COMMA', 2, 'POINT') : '-'}">35.50</td>
                                     <td data-label="Applications" th:text="${item.applicationSummary()}">Civic 2006 Up + 2 more</td>
                                     <td data-label="Status">
                                         <span th:if="${item.active()}" class="badge text-bg-success">Active</span>
@@ -401,7 +366,7 @@
                                                class="btn btn-sm btn-outline-primary">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-                                            <a th:href="@{/products/{id}/edit(id=${item.id()})}"
+                                            <a th:href="@{/products/{id}/edit(id=${item.id()}, returnUrl=${currentListUrl})}"
                                                class="btn btn-sm btn-warning">
                                                 <i class="bi bi-pencil-square"></i>
                                             </a>
@@ -428,12 +393,12 @@
                             <div class="btn-group">
                                 <a class="btn btn-outline-secondary"
                                    th:classappend="${!productPage.hasPrevious()} ? ' disabled' : ''"
-                                   th:href="${productPage.hasPrevious()} ? @{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, sortBy=${sortBy}, sortDir=${sortDir}, page=${currentPage - 1})} : '#'">
+                                   th:href="${productPage.hasPrevious()} ? @{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, makeId=${selectedMakeId}, active=${selectedActive}, sortBy=${sortBy}, sortDir=${sortDir}, page=${currentPage - 1})} : '#'">
                                     <i class="bi bi-chevron-left me-1"></i> Previous
                                 </a>
                                 <a class="btn btn-outline-primary"
                                    th:classappend="${!productPage.hasNext()} ? ' disabled' : ''"
-                                   th:href="${productPage.hasNext()} ? @{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, applicationId=${selectedApplicationId}, active=${selectedActive}, sortBy=${sortBy}, sortDir=${sortDir}, page=${currentPage + 1})} : '#'">
+                                   th:href="${productPage.hasNext()} ? @{/products(keyword=${keyword}, categoryId=${selectedCategoryId}, brandId=${selectedBrandId}, makeId=${selectedMakeId}, active=${selectedActive}, sortBy=${sortBy}, sortDir=${sortDir}, page=${currentPage + 1})} : '#'">
                                     Next <i class="bi bi-chevron-right ms-1"></i>
                                 </a>
                             </div>

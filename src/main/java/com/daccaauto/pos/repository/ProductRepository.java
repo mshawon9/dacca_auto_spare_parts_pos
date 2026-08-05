@@ -109,6 +109,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
           and (:categoryId is null or p.category.id = :categoryId)
           and (:brandId is null or p.brand.id = :brandId)
           and (:applicationId is null or va.id = :applicationId)
+          and (:makeId is null or vmake.id = :makeId)
           and (:active is null or p.active = :active)
         order by p.name asc, p.partNumber asc
         """)
@@ -118,6 +119,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                                @Param("categoryId") Long categoryId,
                                @Param("brandId") Long brandId,
                                @Param("applicationId") Long applicationId,
+                               @Param("makeId") Long makeId,
                                @Param("active") Boolean active);
 
     @Query(
@@ -150,6 +152,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
               and (:categoryId is null or p.category.id = :categoryId)
               and (:brandId is null or p.brand.id = :brandId)
               and (:applicationId is null or va.id = :applicationId)
+              and (:makeId is null or vmake.id = :makeId)
               and (:active is null or p.active = :active)
             """,
         countQuery = """
@@ -181,6 +184,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
               and (:categoryId is null or p.category.id = :categoryId)
               and (:brandId is null or p.brand.id = :brandId)
               and (:applicationId is null or va.id = :applicationId)
+              and (:makeId is null or vmake.id = :makeId)
               and (:active is null or p.active = :active)
             """
     )
@@ -190,6 +194,7 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
                                    @Param("categoryId") Long categoryId,
                                    @Param("brandId") Long brandId,
                                    @Param("applicationId") Long applicationId,
+                                   @Param("makeId") Long makeId,
                                    @Param("active") Boolean active,
                                    Pageable pageable);
 

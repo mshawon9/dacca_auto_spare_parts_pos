@@ -106,6 +106,7 @@
                 </div>
 
                 <form th:action="@{${submitUrl}}" th:object="${form}" method="post" enctype="multipart/form-data" id="productForm">
+                    <input type="hidden" name="returnUrl" th:if="${editMode}" th:value="${returnUrl}">
                     <div class="row">
                         <div class="col-lg-8">
                             <div class="card">
@@ -346,7 +347,7 @@
                                 <a th:if="${!editMode}" th:href="@{/products/create}" class="btn btn-outline-primary">
                                     <i class="bi bi-arrow-clockwise me-1"></i> Refresh Form
                                 </a>
-                                <a th:href="@{/products}" class="btn btn-outline-secondary">Cancel</a>
+                                <a th:href="${editMode && returnUrl != null ? returnUrl : '/products'}" class="btn btn-outline-secondary">Cancel</a>
                             </div>
                         </div>
                     </div>

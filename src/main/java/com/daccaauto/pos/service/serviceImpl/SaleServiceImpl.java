@@ -300,6 +300,7 @@ public class SaleServiceImpl implements SaleService {
                 null,
                 null,
                 null,
+                null,
                 true
             ).stream()
             .limit(20)

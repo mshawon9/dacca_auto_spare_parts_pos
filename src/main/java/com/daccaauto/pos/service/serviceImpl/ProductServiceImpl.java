@@ -244,6 +244,7 @@ public class ProductServiceImpl implements ProductService {
                                         Long categoryId,
                                         Long brandId,
                                         Long applicationId,
+                                        Long makeId,
                                         Boolean active) {
 
         String keywordPattern = normalizeKeywordPattern(keyword);
@@ -256,6 +257,7 @@ public class ProductServiceImpl implements ProductService {
                 categoryId,
                 brandId,
                 applicationId,
+                makeId,
                 active
         );
 
@@ -274,6 +276,7 @@ public class ProductServiceImpl implements ProductService {
                                             Long categoryId,
                                             Long brandId,
                                             Long applicationId,
+                                            Long makeId,
                                             Boolean active,
                                             Pageable pageable) {
         ApplicationKeyword applicationKeyword = parseApplicationKeyword(keyword);
@@ -285,6 +288,7 @@ public class ProductServiceImpl implements ProductService {
                 categoryId,
                 brandId,
                 applicationId,
+                makeId,
                 active,
                 pageable
         ).map(this::map);
@@ -414,12 +418,24 @@ public class ProductServiceImpl implements ProductService {
             .map(pa -> buildApplicationDisplayName(pa.getVehicleApplication()))
             .toList();
 
+        List<String> applicationMakeNames = applications.stream()
+            .map(pa -> pa.getVehicleApplication().getVehicleMake() == null
+                ? null
+                : pa.getVehicleApplication().getVehicleMake().getName())
+            .filter(value -> value != null && !value.isBlank())
+            .distinct()
+            .toList();
+
         Long selectedSimilarProductId = productSimilarityRepository.findSelectedSimilarity(entity.getId())
             .map(similarity -> similarity.getProductTwo().getId())
             .orElse(null);
 
         List<ProductResponse.SimilarProductSummary> similarProducts = mapSimilarityGroup(entity.getId());
         List<String> alternativePartNumbers = getAlternativePartNumbers(entity);
+        List<ProductStockEntity> stocks = productStockRepository.findByProductIdOrderByStoreNameAsc(entity.getId());
+        BigDecimal totalStockQuantity = stocks.stream()
+            .map(ProductStockEntity::getQuantity)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         return new ProductResponse(
             entity.getId(),
@@ -444,6 +460,9 @@ public class ProductServiceImpl implements ProductService {
             applicationIds,
             applicationNames,
             buildApplicationSummary(applicationNames),
+            buildApplicationMakeSummary(applicationMakeNames),
+            totalStockQuantity,
+            latestProductCostPrice(entity.getId(), stocks),
             selectedSimilarProductId,
             similarProducts,
             entity.isActive()
@@ -610,6 +629,13 @@ public class ProductServiceImpl implements ProductService {
         return applications.get(0) + " + " + (applications.size() - 1) + " more";
     }
 
+    private String buildApplicationMakeSummary(List<String> makes) {
+        if (makes == null || makes.isEmpty()) {
+            return "-";
+        }
+        return String.join(", ", makes);
+    }
+
     private String buildApplicationDisplayName(VehicleApplicationEntity application) {
         String makeName = application.getVehicleMake() != null ? application.getVehicleMake().getName() : null;
 
@@ -633,6 +659,19 @@ public class ProductServiceImpl implements ProductService {
             return latest.getNewCostPrice();
         }
         return fallbackCostPrice;
+    }
+
+    private BigDecimal latestProductCostPrice(Long productId, List<ProductStockEntity> stocks) {
+        ProductPriceHistoryEntity latest = productPriceHistoryRepository
+            .findFirstByProductIdOrderByCreatedAtDesc(productId);
+        if (latest != null && latest.getNewCostPrice() != null) {
+            return latest.getNewCostPrice();
+        }
+        return stocks.stream()
+            .map(ProductStockEntity::getCostPrice)
+            .filter(java.util.Objects::nonNull)
+            .findFirst()
+            .orElse(null);
     }
 
     private String removePartNumberSpaces(String input) {

@@ -207,7 +207,7 @@ public class PurchaseOrderController {
             return java.util.List.of();
         }
 
-        return productService.search(keyword.trim(), null, null, null, true)
+        return productService.search(keyword.trim(), null, null, null, null, true)
             .stream()
             .limit(20)
             .map(product -> new ProductOption(
