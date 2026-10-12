@@ -40,11 +40,11 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
 
     @Query(
         value = """
-            select p.id as "productId",
-                   p.name as "productName",
-                   p.part_number as "partNumber",
-                   coalesce(p.reorder_level, 2) as "reorderLevel",
-                   coalesce(sum(ps.quantity), 0) as "totalQuantity"
+            select p.id as productId,
+                   p.name as productName,
+                   p.part_number as partNumber,
+                   coalesce(p.reorder_level, 2) as reorderLevel,
+                   coalesce(sum(ps.quantity), 0) as totalQuantity
             from products p
             left join product_stocks ps on ps.product_id = p.id
             where p.active = true
