@@ -81,15 +81,14 @@ public class ProductImportServiceImpl implements ProductImportService {
         "Brand",
         "Current Stock",
         "Cost Price",
-        "Application Make",
-        "Application Model",
+        "Application",
+        "Alternative Part Number",
         "Product Group",
         "Dimension",
         "SKU",
         "Reorder Level",
         "Warehouse",
         "Barcode",
-        "Alternative Part Number",
         "Description",
         "Active"
     };
@@ -125,9 +124,9 @@ public class ProductImportServiceImpl implements ProductImportService {
                 header.getCell(i).setCellStyle(headerStyle);
             }
 
-            addSampleRow(sheet, 1, "Brake Pad", "Civic Front Pad", "BP1001", "Front", "Brembo", "10", "35.50", "Honda", "Civic 2006 - 2011, Civic 2012 - 2015", "Civic Front Pad", "38 X 25 X 9", "SKU-001", "2", "Main Store", "", "BP-ALT1, BP-ALT2", "Ceramic brake pad", "TRUE");
-            addSampleRow(sheet, 2, "Brake Pad", "Civic Front Pad", "BS2001", "Front", "Bosch", "5", "28.00", "Honda", "Civic 2006 - 2011", "Civic Front Pad", "38 X 25 X 9", "SKU-002", "2", "Main Store", "", "", "Same product, different brand", "TRUE");
-            addSampleRow(sheet, 3, "Bearing", "Yaris Wheel Bearing", "WB3001", "Front", "NSK", "", "", "Toyota", "Yaris 2006 - 2013", "Yaris Wheel Bearing", "", "", "2", "", "", "WB-ALT1", "", "TRUE");
+            addSampleRow(sheet, 1, "Brake Pad", "Civic Front Pad", "BP1001", "Front", "Brembo", "10", "35.50", "Honda Civic 2006 - 2011, Honda Civic 2012 - 2015", "BP-ALT1, BP-ALT2", "Civic Front Pad", "38 X 25 X 9", "SKU-001", "2", "Main Store", "", "Ceramic brake pad", "TRUE");
+            addSampleRow(sheet, 2, "Brake Pad", "Civic Front Pad", "BS2001", "Front", "Bosch", "5", "28.00", "Honda Civic 2006 - 2011", "", "Civic Front Pad", "38 X 25 X 9", "SKU-002", "2", "Main Store", "", "Same product, different brand", "TRUE");
+            addSampleRow(sheet, 3, "Bearing", "Yaris Wheel Bearing", "WB3001", "Front", "NSK", "", "", "Toyota Yaris 2006 - 2013", "WB-ALT1", "Yaris Wheel Bearing", "", "", "2", "", "", "", "TRUE");
 
             for (int i = 0; i < SAMPLE_HEADERS.length; i++) {
                 sheet.autoSizeColumn(i);
@@ -249,15 +248,14 @@ public class ProductImportServiceImpl implements ProductImportService {
                               String brand,
                               String currentStock,
                               String costPrice,
-                              String applicationMake,
-                              String applicationModel,
+                              String application,
+                              String alternativePartNumber,
                               String productGroup,
                               String dimension,
                               String sku,
                               String reorderLevel,
                               String warehouse,
                               String barcode,
-                              String alternativePartNumber,
                               String description,
                               String active) {
         Row row = sheet.createRow(rowIndex);
@@ -269,15 +267,14 @@ public class ProductImportServiceImpl implements ProductImportService {
             brand,
             currentStock,
             costPrice,
-            applicationMake,
-            applicationModel,
+            application,
+            alternativePartNumber,
             productGroup,
             dimension,
             sku,
             reorderLevel,
             warehouse,
             barcode,
-            alternativePartNumber,
             description,
             active
         };
@@ -314,8 +311,10 @@ public class ProductImportServiceImpl implements ProductImportService {
                     readCell(sheetRow, headers, "brand", formatter, evaluator),
                     readCell(sheetRow, headers, "currentstock", formatter, evaluator),
                     readCell(sheetRow, headers, "costprice", formatter, evaluator),
+                    readCell(sheetRow, headers, "application", formatter, evaluator),
                     readCell(sheetRow, headers, "applicationmake", formatter, evaluator),
                     readCell(sheetRow, headers, "applicationmodel", formatter, evaluator),
+                    readCell(sheetRow, headers, "alternativepartnumber", formatter, evaluator),
                     readCell(sheetRow, headers, "productgroup", formatter, evaluator),
                     readCell(sheetRow, headers, "position", formatter, evaluator),
                     readCell(sheetRow, headers, "dimension", formatter, evaluator),
@@ -323,7 +322,6 @@ public class ProductImportServiceImpl implements ProductImportService {
                     readCell(sheetRow, headers, "reorderlevel", formatter, evaluator),
                     readCell(sheetRow, headers, "warehouse", formatter, evaluator),
                     readCell(sheetRow, headers, "barcode", formatter, evaluator),
-                    readCell(sheetRow, headers, "alternativepartnumber", formatter, evaluator),
                     readCell(sheetRow, headers, "description", formatter, evaluator),
                     parseActive(readCell(sheetRow, headers, "active", formatter, evaluator))
                 ));
@@ -356,8 +354,10 @@ public class ProductImportServiceImpl implements ProductImportService {
                     readCsvCell(values, headers, "brand"),
                     readCsvCell(values, headers, "currentstock"),
                     readCsvCell(values, headers, "costprice"),
+                    readCsvCell(values, headers, "application"),
                     readCsvCell(values, headers, "applicationmake"),
                     readCsvCell(values, headers, "applicationmodel"),
+                    readCsvCell(values, headers, "alternativepartnumber"),
                     readCsvCell(values, headers, "productgroup"),
                     readCsvCell(values, headers, "position"),
                     readCsvCell(values, headers, "dimension"),
@@ -365,7 +365,6 @@ public class ProductImportServiceImpl implements ProductImportService {
                     readCsvCell(values, headers, "reorderlevel"),
                     readCsvCell(values, headers, "warehouse"),
                     readCsvCell(values, headers, "barcode"),
-                    readCsvCell(values, headers, "alternativepartnumber"),
                     readCsvCell(values, headers, "description"),
                     parseActive(readCsvCell(values, headers, "active"))
                 ));
@@ -474,7 +473,11 @@ public class ProductImportServiceImpl implements ProductImportService {
 
             row.partNumber = removeSpaces(row.partNumber);
             if (!row.partNumber.matches("^[A-Za-z0-9._/\\-]+$")) {
-                row.errors.add("Part Number has unsupported characters");
+                if (row.partNumber.contains(",")) {
+                    row.errors.add("Part Number cannot contain comma. Put extra numbers in Alternative Part Number.");
+                } else {
+                    row.errors.add("Part Number has unsupported characters. Allowed: letters, numbers, dot, underscore, slash, and hyphen.");
+                }
             }
             if (!row.barcode.isBlank() && !row.barcode.matches("^[A-Za-z0-9\\-]+$")) {
                 row.errors.add("Barcode must be alphanumeric or hyphen");
@@ -486,20 +489,21 @@ public class ProductImportServiceImpl implements ProductImportService {
                 row.errors.add("Warehouse is required when Current Stock or Cost Price is provided");
             }
             if (row.hasApplicationInfo()) {
-                if (row.applicationMake.isBlank()) {
-                    row.errors.add("Application Make is required when Application Model is provided");
+                List<ParsedApplicationInput> applicationInputs = parseApplicationInputs(row);
+                if (applicationInputs.isEmpty()) {
+                    row.errors.add("Application must include make and model");
                 }
-                if (row.applicationModel.isBlank()) {
-                    row.errors.add("Application Model is required when Application Make is provided");
-                }
-                for (String applicationModel : parseApplicationModelInputs(row.applicationModel)) {
-                    ParsedApplicationModel parsedApplicationModel = parseApplicationModel(applicationModel);
+                for (ParsedApplicationInput applicationInput : applicationInputs) {
+                    if (applicationInput.makeName().isBlank()) {
+                        row.errors.add("Application make is required. Put make as the first word, e.g. Honda Civic 2006 - 2011");
+                    }
+                    ParsedApplicationModel parsedApplicationModel = parseApplicationModel(applicationInput.modelInput());
                     if (parsedApplicationModel.modelName().isBlank()) {
                         row.errors.add("Application Model name is required");
                     }
                     if (parsedApplicationModel.yearFrom() != null && parsedApplicationModel.yearTo() != null
                         && parsedApplicationModel.yearFrom() > parsedApplicationModel.yearTo()) {
-                        row.errors.add("Application Model year range is invalid: " + applicationModel);
+                        row.errors.add("Application Model year range is invalid: " + applicationInput.modelInput());
                     }
                 }
             }
@@ -507,8 +511,9 @@ public class ProductImportServiceImpl implements ProductImportService {
             if (row.productGroup.length() > 200) row.errors.add("Product Group must not exceed 200 characters");
             if (row.category.length() > 100) row.errors.add("Category must not exceed 100 characters");
             if (row.brand.length() > 100) row.errors.add("Brand must not exceed 100 characters");
+            if (row.applicationInput.length() > 500) row.errors.add("Application must not exceed 500 characters");
             if (row.applicationMake.length() > 100) row.errors.add("Application Make must not exceed 100 characters");
-            if (row.applicationModel.length() > 150) row.errors.add("Application Model must not exceed 150 characters");
+            if (row.applicationModel.length() > 500) row.errors.add("Application Model must not exceed 500 characters");
             if (row.warehouse.length() > 120) row.errors.add("Warehouse must not exceed 120 characters");
             if (row.position.length() > 80) row.errors.add("Position must not exceed 80 characters");
             if (!row.position.isBlank() && ProductPosition.from(row.position).isEmpty()) {
@@ -656,8 +661,8 @@ public class ProductImportServiceImpl implements ProductImportService {
             return;
         }
 
-        for (String applicationModel : parseApplicationModelInputs(row.applicationModel)) {
-            VehicleApplicationEntity application = resolveVehicleApplication(row.applicationMake, applicationModel);
+        for (ParsedApplicationInput applicationInput : parseApplicationInputs(row)) {
+            VehicleApplicationEntity application = resolveVehicleApplication(applicationInput.makeName(), applicationInput.modelInput());
             if (productApplicationRepository.existsByProductIdAndVehicleApplicationId(product.getId(), application.getId())) {
                 continue;
             }
@@ -805,6 +810,40 @@ public class ProductImportServiceImpl implements ProductImportService {
             .toList();
     }
 
+    private List<ParsedApplicationInput> parseApplicationInputs(ImportRow row) {
+        if (row.applicationInput != null && !row.applicationInput.isBlank()) {
+            return java.util.Arrays.stream(row.applicationInput.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .map(this::parseCombinedApplicationInput)
+                .toList();
+        }
+
+        if (row.applicationMake == null || row.applicationMake.isBlank()
+            || row.applicationModel == null || row.applicationModel.isBlank()) {
+            return List.of();
+        }
+
+        return parseApplicationModelInputs(row.applicationModel)
+            .stream()
+            .map(model -> new ParsedApplicationInput(row.applicationMake.trim(), model))
+            .toList();
+    }
+
+    private ParsedApplicationInput parseCombinedApplicationInput(String input) {
+        String value = input == null ? "" : input.trim().replaceAll("\\s+", " ");
+        if (value.isBlank()) {
+            return new ParsedApplicationInput("", "");
+        }
+
+        int firstSpace = value.indexOf(' ');
+        if (firstSpace < 0) {
+            return new ParsedApplicationInput(value, "");
+        }
+
+        return new ParsedApplicationInput(value.substring(0, firstSpace).trim(), value.substring(firstSpace + 1).trim());
+    }
+
     private ProductImportResult toResult(List<ImportRow> rows) {
         List<ProductImportResult.RowResult> results = rows.stream()
             .map(row -> new ProductImportResult.RowResult(
@@ -863,6 +902,7 @@ public class ProductImportServiceImpl implements ProductImportService {
             case "store", "storename", "warehouse", "warehousename" -> "warehouse";
             case "stock", "currentstock", "quantity", "currentquantity" -> "currentstock";
             case "cost", "costprice", "purchaseprice", "buyingprice" -> "costprice";
+            case "application", "applications", "vehicleapplication", "vehicleapplications", "app", "apps" -> "application";
             case "make", "vehiclemake", "applicationmake", "appmake" -> "applicationmake";
             case "model", "vehiclemodel", "applicationmodel", "appmodel" -> "applicationmodel";
             default -> normalized;
@@ -1012,6 +1052,9 @@ public class ProductImportServiceImpl implements ProductImportService {
     private record ParsedApplicationModel(String modelName, Integer yearFrom, Integer yearTo) {
     }
 
+    private record ParsedApplicationInput(String makeName, String modelInput) {
+    }
+
     private static class ImportRow {
         private final int rowNumber;
         private final String category;
@@ -1019,6 +1062,7 @@ public class ProductImportServiceImpl implements ProductImportService {
         private final String name;
         private final String productGroup;
         private String partNumber;
+        private final String applicationInput;
         private final String applicationMake;
         private final String applicationModel;
         private final String position;
@@ -1047,8 +1091,10 @@ public class ProductImportServiceImpl implements ProductImportService {
                           String brand,
                           String currentStockInput,
                           String costPriceInput,
+                          String applicationInput,
                           String applicationMake,
                           String applicationModel,
+                          String alternativePartNumber,
                           String productGroup,
                           String position,
                           String dimension,
@@ -1056,7 +1102,6 @@ public class ProductImportServiceImpl implements ProductImportService {
                           String reorderLevelInput,
                           String warehouse,
                           String barcode,
-                          String alternativePartNumber,
                           String description,
                           boolean active) {
             this.rowNumber = rowNumber;
@@ -1065,6 +1110,7 @@ public class ProductImportServiceImpl implements ProductImportService {
             this.name = name;
             this.productGroup = productGroup;
             this.partNumber = partNumber;
+            this.applicationInput = applicationInput == null ? "" : applicationInput;
             this.applicationMake = applicationMake;
             this.applicationModel = applicationModel;
             this.position = position;
@@ -1086,7 +1132,8 @@ public class ProductImportServiceImpl implements ProductImportService {
         }
 
         private boolean hasApplicationInfo() {
-            return (applicationMake != null && !applicationMake.isBlank())
+            return (applicationInput != null && !applicationInput.isBlank())
+                || (applicationMake != null && !applicationMake.isBlank())
                 || (applicationModel != null && !applicationModel.isBlank());
         }
     }

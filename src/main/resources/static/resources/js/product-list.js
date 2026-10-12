@@ -1,13 +1,47 @@
 $(function () {
     const $category = $('#categoryId');
     const $brand = $('#brandId');
+    const $searchCard = $('#productSearchCard');
+    const productSearchCardStateKey = 'productList.searchCardExpanded';
 
-    $('#applicationId').select2({
+    $('#makeId').select2({
         theme: 'bootstrap-5',
         width: '100%',
-        placeholder: 'All Applications',
+        placeholder: 'All Makes',
         allowClear: true
     });
+
+    function setSearchCardState(expanded) {
+        const $body = $searchCard.children('.card-body');
+        const $icon = $searchCard.find('[data-card-widget="collapse"] i').first();
+
+        $searchCard.toggleClass('collapsed-card', !expanded);
+        $body.toggle(expanded);
+        $icon
+            .toggleClass('fas fa-plus', !expanded)
+            .toggleClass('fas fa-minus', expanded);
+        localStorage.setItem(productSearchCardStateKey, expanded ? 'expanded' : 'collapsed');
+    }
+
+    if ($searchCard.length) {
+        setSearchCardState(localStorage.getItem(productSearchCardStateKey) === 'expanded');
+
+        $searchCard.find('[data-card-widget="collapse"]').on('click', function () {
+            const wasExpanded = !$searchCard.hasClass('collapsed-card');
+            setTimeout(function () {
+                const isExpanded = !$searchCard.hasClass('collapsed-card');
+                setSearchCardState(isExpanded === wasExpanded ? !wasExpanded : isExpanded);
+            }, 0);
+        });
+
+        $searchCard
+            .on('expanded.lte.cardwidget', function () {
+                setSearchCardState(true);
+            })
+            .on('collapsed.lte.cardwidget', function () {
+                setSearchCardState(false);
+            });
+    }
 
     $category.on('change', function () {
         const categoryId = $(this).val();

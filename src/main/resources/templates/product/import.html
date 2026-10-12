@@ -97,21 +97,23 @@
                                         <tr><td>Brand</td><td><span class="badge text-bg-danger">Yes</span></td><td>Brembo</td></tr>
                                         <tr><td>Current Stock</td><td>No</td><td>10 <span class="text-muted">(new products only)</span></td></tr>
                                         <tr><td>Cost Price</td><td>No</td><td>35.50 <span class="text-muted">(new products only)</span></td></tr>
-                                        <tr><td>Application Make</td><td>No</td><td>Nissan</td></tr>
-                                        <tr><td>Application Model</td><td>No</td><td>Altima 2003 - 2007, Altima 2008 Up</td></tr>
+                                        <tr><td>Application</td><td>No</td><td>Nissan Altima 2003 - 2007, Honda Civic 2012 - 2015</td></tr>
+                                        <tr><td>Alternative Part Number</td><td>No</td><td>BP-ALT1, BP-ALT2</td></tr>
                                         <tr><td>Product Group</td><td>No</td><td>Civic Front Pad</td></tr>
                                         <tr><td>Dimension</td><td>No</td><td>38 X 25 X 9</td></tr>
                                         <tr><td>SKU</td><td>No</td><td>SKU-001</td></tr>
                                         <tr><td>Reorder Level</td><td>No</td><td>2</td></tr>
                                         <tr><td>Warehouse</td><td>No*</td><td>Main Store</td></tr>
                                         <tr><td>Barcode</td><td>No</td><td>BP-000001</td></tr>
-                                        <tr><td>Alternative Part Number</td><td>No</td><td>BP-ALT1, BP-ALT2</td></tr>
                                         <tr><td>Description</td><td>No</td><td>Ceramic pad</td></tr>
                                         <tr><td>Active</td><td>No</td><td>TRUE</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
-                                <div class="form-text">Use Product Group to join same products with different brands/part numbers. If Brand + Part Number already exists, that product will be updated, but stock quantity and cost price will not be changed. Current Stock and Cost Price are used only for newly inserted products. Application Model can be one or many comma-separated values like "Altima 2003 - 2007, Altima 2008 Up, Altima 2005". *Warehouse is required only when Current Stock or Cost Price is provided. Current Stock must be a whole number.</div>
+                                <div class="form-text">Use Product Group to join same products with different brands/part numbers. If Brand + Part Number already exists, that product will be updated, but stock quantity and cost price will not be changed. Current Stock and Cost Price are used only for newly inserted products. Application can contain one or many comma-separated values; the first word of each value is the make, for example "Nissan Altima 2003 - 2007, Honda Civic 2012 - 2015". *Warehouse is required only when Current Stock or Cost Price is provided. Current Stock must be a whole number.</div>
+                                <div class="alert alert-warning small mt-3 mb-0">
+                                    Import errors are shown in the result table below after upload. Common mistakes: comma in main Part Number, invalid Position, missing Warehouse when stock/cost is entered, or Application without make and model.
+                                </div>
                             </div>
                         </div>
                     </div>

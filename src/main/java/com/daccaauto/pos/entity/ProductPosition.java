@@ -13,6 +13,7 @@ public enum ProductPosition {
     FRONT_RIGHT("Front Right"),
     REAR_LEFT("Rear Left"),
     REAR_RIGHT("Rear Right"),
+    BOTH("Both"),
     INNER("Inner"),
     OUTER("Outer"),
     UPPER("Upper"),

@@ -136,7 +136,7 @@
 <head/>
 <!--end::Head-->
 <!--begin::Body-->
-<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
+<body class="layout-fixed sidebar-expand-lg sidebar-mini sidebar-collapse bg-body-tertiary">
 <!--begin::App Wrapper-->
 <div class="app-wrapper">
     <!-- TOP Menu (all meta link scripts go here ) START -->
@@ -182,9 +182,16 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
 
-                <div class="card mb-3">
+                <div id="productSearchCard" class="card card-outline card-orange collapsed-card mb-3">
                     <div class="card-header">
-                        <h3 class="card-title">Search</h3>
+                        <h3 class="card-title">Searching Option</h3>
+
+                        <div class="card-tools">
+                            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                        <!-- /.card-tools -->
                     </div>
                     <div class="card-body">
                         <form th:action="@{/products}" method="get" id="productSearchForm">
