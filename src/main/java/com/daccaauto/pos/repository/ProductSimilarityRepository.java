@@ -24,7 +24,7 @@ public interface ProductSimilarityRepository extends JpaRepository<ProductSimila
 
     @Query(value = """
         with recursive similarity_group(product_id) as (
-            select cast(:productId as bigint)
+            select :productId
             union
             select case
                 when ps.product_one_id = sg.product_id then ps.product_two_id
