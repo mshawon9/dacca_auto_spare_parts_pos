@@ -100,17 +100,16 @@ $(function () {
                 '<input type="hidden" class="line-id" data-field="id">' +
                 '<input type="hidden" class="line-product-id" data-field="productId">' +
                 '<input type="hidden" class="line-product-text" data-field="productText">' +
-                '<div class="fw-semibold product-label"></div>' +
-                '<div class="small text-muted">Selected product</div>' +
+                '<div class="fw-semibold product-label purchase-product-label"></div>' +
+                '<input type="text" class="form-control form-control-sm supplier-code purchase-supplier-code mt-1" data-field="supplierProductCode" maxlength="100" aria-label="Supplier product code" placeholder="Supplier product code">' +
                 '</td>' +
-                '<td><input type="text" class="form-control supplier-code" data-field="supplierProductCode" maxlength="100" placeholder="Supplier code"></td>' +
-                '<td><input type="number" class="form-control line-quantity" data-field="quantity" min="1" step="1" value="1"></td>' +
-                '<td><input type="number" class="form-control line-unit-price" data-field="unitPrice" min="0.01" step="0.01" placeholder="0.00"></td>' +
-                '<td class="text-end fw-semibold line-subtotal">0.00</td>' +
-                '<td><input type="number" class="form-control line-tax-percent" data-field="taxPercent" min="0" step="0.01" value="0"></td>' +
-                '<td class="text-end fw-semibold line-tax-amount">0.00</td>' +
-                '<td class="text-end fw-semibold line-total">0.00</td>' +
-                '<td class="text-end pe-3"><button type="button" class="btn btn-sm btn-outline-danger remove-line">Remove</button></td>' +
+                '<td data-label="Qty"><input type="number" class="form-control form-control-sm line-quantity" data-field="quantity" min="1" step="1" value="1"></td>' +
+                '<td data-label="Unit Price"><input type="number" class="form-control form-control-sm line-unit-price" data-field="unitPrice" min="0.01" step="0.01" placeholder="0.00"></td>' +
+                '<td class="text-end fw-semibold line-subtotal" data-label="Subtotal">0.00</td>' +
+                '<td data-label="Tax %"><input type="number" class="form-control form-control-sm line-tax-percent" data-field="taxPercent" min="0" step="0.01" value="0"></td>' +
+                '<td class="text-end fw-semibold line-tax-amount" data-label="Tax">0.00</td>' +
+                '<td class="text-end fw-semibold line-total" data-label="Total">0.00</td>' +
+                '<td class="text-center pe-3" data-label="Action"><button type="button" class="btn btn-sm btn-outline-danger remove-line" aria-label="Remove product" title="Remove product"><i class="fas fa-trash-alt" aria-hidden="true"></i></button></td>' +
                 '</tr>'
             ).attr('data-row-id', rowId);
             row.find('.line-product-id').val(product.id);

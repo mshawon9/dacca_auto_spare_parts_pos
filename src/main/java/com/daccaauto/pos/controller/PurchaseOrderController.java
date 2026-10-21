@@ -213,7 +213,6 @@ public class PurchaseOrderController {
             .map(product -> new ProductOption(
                 product.id(),
                 java.util.stream.Stream.of(
-                        product.categoryName(),
                         product.name(),
                         "Brand: " + product.brandName(),
                         "Part: " + product.partNumber()

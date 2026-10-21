@@ -463,6 +463,7 @@ $(function () {
         $openApplicationModalButton.on('click', function () {
             resetApplicationModalForm();
             cleanupApplicationModalBackdrop();
+            loadModalMakes();
             applicationModal.show();
         });
 
@@ -514,6 +515,18 @@ $(function () {
                 return $('<span></span>').append(document.createTextNode(label + ': ')).append($('<strong></strong>').text(data.text));
             }
             return data.text;
+        }
+
+        function loadModalMakes() {
+            $.get('/api/v1/lookups/vehicle-makes', function (makes) {
+                $modalMake.empty().append(new Option('', '', false, false));
+                $.each(makes || [], function (_, item) {
+                    const option = new Option(item.name, item.name, false, false);
+                    $(option).attr('data-id', item.id);
+                    $modalMake.append(option);
+                });
+                $modalMake.val(null).trigger('change.select2');
+            });
         }
 
         $modalMake.select2({

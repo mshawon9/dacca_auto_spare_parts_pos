@@ -1,8 +1,10 @@
 package com.daccaauto.pos.controller;
 
 import com.daccaauto.pos.dto.brand.BrandResponse;
+import com.daccaauto.pos.dto.vehicle.VehicleMakeResponse;
 import com.daccaauto.pos.dto.vehicle.VehicleModelResponse;
 import com.daccaauto.pos.service.BrandCategoryService;
+import com.daccaauto.pos.service.VehicleMakeService;
 import com.daccaauto.pos.service.VehicleModelService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -16,11 +18,18 @@ public class LookupApiController {
 
     private final BrandCategoryService brandCategoryService;
 
+    private final VehicleMakeService vehicleMakeService;
+
     private final VehicleModelService vehicleModelService;
 
     @GetMapping("/brands")
     public List<BrandResponse> getBrandsByCategory(@RequestParam Long categoryId) {
         return brandCategoryService.getBrandsByCategoryId(categoryId);
+    }
+
+    @GetMapping("/vehicle-makes")
+    public List<VehicleMakeResponse> getVehicleMakes() {
+        return vehicleMakeService.getAll();
     }
 
     @GetMapping("/vehicle-models")
