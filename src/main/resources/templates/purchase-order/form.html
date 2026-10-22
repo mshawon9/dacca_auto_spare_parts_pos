@@ -4,6 +4,158 @@
 <head/>
 <body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
 <style>
+    .purchase-quick-total {
+        white-space: nowrap;
+    }
+
+    .purchase-product-label {
+        overflow-wrap: anywhere;
+        font-size: 0.82rem;
+        line-height: 1.25;
+    }
+
+    .purchase-supplier-code {
+        font-size: 0.75rem;
+    }
+
+    #purchaseLineTable th {
+        font-size: 0.78rem;
+        white-space: nowrap;
+    }
+
+    #purchaseLineTable {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    #purchaseLineTable col:nth-child(1) { width: 30%; }
+    #purchaseLineTable col:nth-child(2) { width: 7%; }
+    #purchaseLineTable col:nth-child(3) { width: 11%; }
+    #purchaseLineTable col:nth-child(4) { width: 12%; }
+    #purchaseLineTable col:nth-child(5) { width: 8%; }
+    #purchaseLineTable col:nth-child(6) { width: 11%; }
+    #purchaseLineTable col:nth-child(7) { width: 14%; }
+    #purchaseLineTable col:nth-child(8) { width: 7%; }
+
+    #purchaseLineTable .purchase-product-label,
+    #purchaseLineTable .purchase-supplier-code,
+    #purchaseLineTable .line-quantity,
+    #purchaseLineTable .line-unit-price,
+    #purchaseLineTable .line-tax-percent {
+        max-width: 100%;
+        width: 100%;
+    }
+
+    #purchaseLineTable .form-control-sm {
+        font-size: 0.8rem;
+        min-width: 0;
+        padding: 0.25rem 0.4rem;
+    }
+
+    .purchase-lines-wrapper {
+        overflow-x: hidden;
+    }
+
+    #purchaseLineTable .remove-line {
+        align-items: center;
+        display: inline-flex;
+        height: 28px;
+        justify-content: center;
+        padding: 0;
+        width: 28px;
+    }
+
+    #purchaseForm {
+        overflow-x: clip;
+    }
+
+    @media (max-width: 767.98px) {
+        #purchaseLineTable,
+        #purchaseLineTable tbody,
+        #purchaseLineTable tr,
+        #purchaseLineTable td {
+            display: block;
+            width: 100%;
+        }
+
+        #purchaseLineTable {
+            table-layout: auto;
+        }
+
+        #purchaseLineTable colgroup,
+        #purchaseLineTable thead {
+            display: none;
+        }
+
+        #purchaseLineTable tbody tr {
+            background-color: #fff;
+            border: 1px solid var(--bs-border-color);
+            border-radius: 0.375rem;
+            margin: 0.5rem;
+            padding: 0.4rem;
+        }
+
+        #purchaseLineTable tbody td {
+            align-items: center;
+            border: 0;
+            display: grid;
+            gap: 0.5rem;
+            grid-template-columns: 5.5rem minmax(0, 1fr);
+            padding: 0.3rem 0.4rem;
+            text-align: left !important;
+        }
+
+        #purchaseLineTable tbody td::before {
+            color: var(--bs-secondary-color);
+            content: attr(data-label);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        #purchaseLineTable tbody td:first-child {
+            align-items: stretch;
+            display: block;
+            padding-left: 0.4rem !important;
+        }
+
+        #purchaseLineTable tbody td:first-child::before {
+            display: none;
+        }
+
+        #purchaseLineTable tbody td:last-child {
+            display: flex;
+            justify-content: flex-end;
+            padding-right: 0.4rem !important;
+        }
+
+        #purchaseLineTable tbody td:last-child::before {
+            margin-right: auto;
+        }
+
+        #purchaseLineTable .purchase-product-label {
+            font-size: 0.85rem;
+        }
+
+        .purchase-lines-wrapper {
+            overflow: visible;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        #purchaseForm .card-footer .purchase-footer-content {
+            align-items: stretch !important;
+        }
+
+        #purchaseForm .card-footer .purchase-footer-totals {
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        #purchaseForm .card-footer .purchase-save-button {
+            width: 100%;
+        }
+    }
+
     .purchase-supplier-group .select2-container {
         flex: 1 1 auto;
         width: 1% !important;
@@ -57,7 +209,7 @@
                         </div>
                         <div class="card-body">
                             <div class="row g-3 align-items-end">
-                                <div class="col-lg-4">
+                                <div class="col-12 col-md-6 col-lg-4">
                                     <label for="supplierId" class="form-label">Supplier <span class="text-danger">*</span></label>
                                     <div class="input-group purchase-supplier-group">
                                         <select id="supplierId" th:field="*{supplierId}" class="form-select js-select2"
@@ -73,7 +225,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                <div class="col-lg-3">
+                                <div class="col-12 col-md-6 col-lg-3">
                                     <label for="storeId" class="form-label">Warehouse <span class="text-danger">*</span></label>
                                     <select id="storeId" th:field="*{storeId}" class="form-select" required>
                                         <option value="">Select warehouse</option>
@@ -82,11 +234,11 @@
                                                 th:text="${store.code() != null ? store.name() + ' (' + store.code() + ')' : store.name()}"></option>
                                     </select>
                                 </div>
-                                <div class="col-lg-2">
+                                <div class="col-12 col-md-6 col-lg-2">
                                     <label for="purchaseDate" class="form-label">Date <span class="text-danger">*</span></label>
                                     <input type="date" id="purchaseDate" th:field="*{purchaseDate}" class="form-control" required>
                                 </div>
-                                <div class="col-lg-3">
+                                <div class="col-12 col-md-6 col-lg-3">
                                     <label for="invoiceId" class="form-label">Invoice ID <span class="text-danger">*</span></label>
                                     <input type="text" id="invoiceId" th:field="*{invoiceId}" class="form-control" required
                                            autocomplete="off" placeholder="Supplier invoice number">
@@ -106,49 +258,52 @@
                             </button>
                         </div>
                         <div class="card-body">
-                            <div class="row g-2 align-items-end">
-                                <div class="col-lg-5">
+                            <div class="row g-2 align-items-end purchase-quick-row">
+                                <div class="col-12 col-sm-6 col-lg-4">
                                     <label for="productSelect" class="form-label">Search Product / Brand</label>
                                     <select id="productSelect" class="form-select"
                                             data-placeholder="Search product, brand, or part number">
                                         <option value="">Search product, brand, or part number</option>
                                     </select>
                                 </div>
-                                <div class="col-lg-2">
+                                <div class="col-6 col-sm-6 col-lg-1">
                                     <label for="quickQuantity" class="form-label">Qty</label>
-                                    <input type="number" id="quickQuantity" class="form-control form-control-lg"
+                                    <input type="number" id="quickQuantity" class="form-control"
                                            min="1" step="1" value="1">
                                 </div>
-                                <div class="col-lg-2">
+                                <div class="col-6 col-sm-6 col-lg-2">
                                     <label for="quickUnitPrice" class="form-label">Unit Price</label>
-                                    <input type="number" id="quickUnitPrice" class="form-control form-control-lg"
+                                    <input type="number" id="quickUnitPrice" class="form-control"
                                            min="0.01" step="0.01" placeholder="0.00">
                                 </div>
-                                <div class="col-lg-1">
+                                <div class="col-6 col-sm-6 col-lg-2">
                                     <label class="form-label">Total</label>
-                                    <div class="form-control form-control-lg bg-light fw-semibold text-end" id="quickLineTotal">0.00</div>
+                                    <div class="form-control bg-light fw-semibold text-end purchase-quick-total"
+                                         id="quickLineTotal" aria-live="polite">0.00</div>
                                 </div>
-                                <div class="col-lg-2 d-grid">
-                                    <button type="button" id="addSelectedProductButton" class="btn btn-primary btn-lg">
+                                <div class="col-6 col-sm-6 col-lg-3 d-grid">
+                                    <button type="button" id="addSelectedProductButton" class="btn btn-primary">
                                         <i class="bi bi-plus-circle me-1"></i> Add Product
                                     </button>
                                 </div>
                             </div>
                         </div>
                         <div class="card-body p-0 border-top">
-                            <div class="table-responsive">
-                                <table class="table table-hover align-middle mb-0" id="purchaseLineTable">
+                            <div class="purchase-lines-wrapper">
+                                <table class="table table-sm table-hover align-middle mb-0" id="purchaseLineTable">
+                                    <colgroup>
+                                        <col><col><col><col><col><col><col><col>
+                                    </colgroup>
                                     <thead class="table-light">
                                     <tr>
-                                        <th class="ps-3" style="min-width: 300px;">Product</th>
-                                        <th style="width: 170px;">Supplier Product</th>
-                                        <th style="width: 120px;">Qty</th>
-                                        <th style="width: 140px;">Unit Price</th>
-                                        <th class="text-end" style="width: 130px;">Subtotal</th>
-                                        <th style="width: 120px;">Tax %</th>
-                                        <th class="text-end" style="width: 130px;">Tax</th>
-                                        <th class="text-end" style="width: 140px;">Total</th>
-                                        <th class="text-end pe-3" style="width: 80px;">Action</th>
+                                        <th class="ps-3">Product</th>
+                                        <th>Qty</th>
+                                        <th>Unit Price</th>
+                                        <th class="text-end">Subtotal</th>
+                                        <th>Tax %</th>
+                                        <th class="text-end">Tax</th>
+                                        <th class="text-end">Total</th>
+                                        <th class="text-center pe-3"><span class="visually-hidden">Action</span></th>
                                     </tr>
                                     </thead>
                                     <tbody id="purchaseLines">
@@ -157,30 +312,37 @@
                                             <input type="hidden" class="line-id" data-field="id" th:value="${line.id}">
                                             <input type="hidden" class="line-product-id" data-field="productId" th:value="${line.productId}">
                                             <input type="hidden" class="line-product-text" data-field="productText" th:value="${line.productText}">
-                                            <div class="fw-semibold product-label" th:text="${line.productText}">Selected product</div>
-                                            <div class="small text-muted">Selected product</div>
+                                            <div class="fw-semibold product-label purchase-product-label" th:text="${line.productText}">Selected product</div>
+                                            <input type="text" class="form-control form-control-sm supplier-code purchase-supplier-code mt-1"
+                                                   data-field="supplierProductCode" maxlength="100"
+                                                   aria-label="Supplier product code" placeholder="Supplier product code"
+                                                   th:value="${line.supplierProductCode}">
                                         </td>
-                                        <td><input type="text" class="form-control supplier-code" data-field="supplierProductCode" maxlength="100" placeholder="Supplier code" th:value="${line.supplierProductCode}"></td>
-                                        <td><input type="number" class="form-control line-quantity" data-field="quantity" min="1" step="1" th:value="${line.quantity}"></td>
-                                        <td><input type="number" class="form-control line-unit-price" data-field="unitPrice" min="0.01" step="0.01" placeholder="0.00" th:value="${line.unitPrice}"></td>
-                                        <td class="text-end fw-semibold line-subtotal">0.00</td>
-                                        <td><input type="number" class="form-control line-tax-percent" data-field="taxPercent" min="0" step="0.01" th:value="${line.taxPercent}"></td>
-                                        <td class="text-end fw-semibold line-tax-amount">0.00</td>
-                                        <td class="text-end fw-semibold line-total">0.00</td>
-                                        <td class="text-end pe-3"><button type="button" class="btn btn-sm btn-outline-danger remove-line">Remove</button></td>
+                                        <td data-label="Qty"><input type="number" class="form-control form-control-sm line-quantity" data-field="quantity" min="1" step="1" th:value="${line.quantity}"></td>
+                                        <td data-label="Unit Price"><input type="number" class="form-control form-control-sm line-unit-price" data-field="unitPrice" min="0.01" step="0.01" placeholder="0.00" th:value="${line.unitPrice}"></td>
+                                        <td class="text-end fw-semibold line-subtotal" data-label="Subtotal">0.00</td>
+                                        <td data-label="Tax %"><input type="number" class="form-control form-control-sm line-tax-percent" data-field="taxPercent" min="0" step="0.01" th:value="${line.taxPercent}"></td>
+                                        <td class="text-end fw-semibold line-tax-amount" data-label="Tax">0.00</td>
+                                        <td class="text-end fw-semibold line-total" data-label="Total">0.00</td>
+                                        <td class="text-center pe-3" data-label="Action">
+                                            <button type="button" class="btn btn-sm btn-outline-danger remove-line"
+                                                    aria-label="Remove product" title="Remove product">
+                                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                            </button>
+                                        </td>
                                     </tr>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
                         <div class="card-footer">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 purchase-footer-content">
                                 <div class="small text-muted">Empty rows are not submitted. Product rows are added only after selection.</div>
-                                <div class="d-flex align-items-center gap-3">
+                                <div class="d-flex flex-wrap align-items-center gap-3 purchase-footer-totals">
                                     <div>Subtotal: <strong id="subTotal">0.00</strong></div>
                                     <div>Tax: <strong id="taxTotal">0.00</strong></div>
                                     <div class="fs-5">Total: <strong id="grandTotal">0.00</strong></div>
-                                    <button type="submit" class="btn btn-success btn-lg">
+                                    <button type="submit" class="btn btn-success btn-lg purchase-save-button">
                                         <i class="bi bi-check2-circle me-1"></i> <span th:text="${submitLabel}">Save & Update Stock</span>
                                     </button>
                                 </div>
