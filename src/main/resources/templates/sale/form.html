@@ -237,7 +237,12 @@
                         <div class="card-header py-2">
                             <div class="row g-2 align-items-end sale-compact">
                                 <div class="col-lg-5">
-                                    <label for="productSelect" class="form-label">Search Product / Brand</label>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <label for="productSelect" class="form-label mb-0">Search Product / Brand</label>
+                                        <button type="button" id="openSaleScanner" class="btn btn-sm btn-outline-primary" title="Scan product barcode">
+                                            <i class="bi bi-upc-scan"></i> Scan
+                                        </button>
+                                    </div>
                                     <select id="productSelect" class="form-select form-select-sm" data-placeholder="Search product, brand, or part number">
                                         <option value="">Search product, brand, or part number</option>
                                     </select>
@@ -463,9 +468,39 @@
     </div>
 </div>
 
+<div class="modal fade" id="saleScannerModal" tabindex="-1" aria-labelledby="saleScannerTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title" id="saleScannerTitle">Scan Product</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="d-flex gap-2 mb-3" role="group" aria-label="Scanner options">
+                <button type="button" class="btn btn-outline-primary flex-fill" data-scan-mode="camera"><i class="bi bi-camera"></i> Camera</button>
+                <button type="button" class="btn btn-outline-primary flex-fill" data-scan-mode="mobile"><i class="bi bi-phone"></i> Mobile</button>
+            </div>
+            <p class="small text-muted">Point the camera at the printed product barcode. Its number must match the barcode saved on the product. Check quantity and price before adding.</p>
+            <div id="scannerStatus" class="alert alert-light border" role="status" aria-live="polite">Choose how to scan.</div>
+            <div id="saleCameraReader" class="w-100"></div>
+            <div id="phonePairing" class="d-none">
+                <p class="small">Open this link on your phone or scan the connection QR with your phone camera. It expires after 10 minutes.</p>
+                <div id="phonePairingQr" class="d-flex justify-content-center my-3"></div>
+                <label for="phoneScannerLink" class="form-label">Phone scanner link</label>
+                <div class="input-group"><input id="phoneScannerLink" class="form-control" readonly><button type="button" id="copyScannerLink" class="btn btn-outline-secondary">Copy</button></div>
+                <div class="form-text">Both devices must reach this app. For phone camera access, open the sale page using your app's HTTPS address, not localhost.</div>
+                <button type="button" id="disconnectPhoneScanner" class="btn btn-sm btn-outline-danger mt-3">Disconnect phone</button>
+            </div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button></div>
+    </div></div>
+</div>
 <div th:replace="fragments/commonscripts :: commonscripts"/>
 <script src="/resources/js/select2.min.js"></script>
 <div id="saleFormPageData" class="d-none" th:attr="data-draft-id=${draft != null ? draft.id() : null},data-default-store-id=${draft != null ? draft.storeId() : null},data-success-message=${successMessage},data-error-message=${errorMessage},data-completed-invoice-no=${completedInvoiceNo},data-completed-invoice-pdf-url=${completedInvoicePdfUrl}"></div>
 <script src="/resources/js/sale-form.js"></script>
+<script src="/resources/js/html5-qrcode.min.js"></script>
+<script src="/resources/js/qrcode.min.js"></script>
+<script src="/resources/js/sale-camera.js"></script>
+<script src="/resources/js/sale-scanner.js"></script>
 </body>
 </html>

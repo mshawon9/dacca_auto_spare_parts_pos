@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="referrer" content="no-referrer">
+    <title>Phone Scanner - Dacca POS</title>
+    <link rel="stylesheet" href="/resources/lib/bootstrap-5.3.8-dist/css/bootstrap.min.css">
+</head>
+<body class="bg-light">
+<main class="container py-4" style="max-width: 540px;">
+    <h1 class="h4">Phone Product Scanner</h1>
+    <p>Scan a product to select it on the connected sale screen. Enter quantity and add the product on the laptop.</p>
+    <div id="mobileScannerStatus" class="alert alert-info" role="status" aria-live="polite">Tap Start Camera to scan.</div>
+    <div id="mobileCameraReader" class="w-100 mb-3"></div>
+    <div class="d-flex gap-2 mb-3">
+        <button type="button" id="startMobileCamera" class="btn btn-primary">Start Camera / Next Scan</button>
+        <button type="button" id="stopMobileCamera" class="btn btn-outline-secondary">Stop</button>
+    </div>
+    <form id="mobileCodeForm">
+        <label for="mobileCode" class="form-label">Or enter the barcode manually</label>
+        <div class="input-group"><input id="mobileCode" class="form-control" maxlength="200" required autocomplete="off"><button type="submit" id="sendMobileCode" class="btn btn-success">Send</button></div>
+    </form>
+    <p class="small text-muted mt-3">Keep this private link open. It expires after 10 minutes. Phone camera access requires HTTPS.</p>
+</main>
+<script src="/resources/js/html5-qrcode.min.js"></script>
+<script src="/resources/js/sale-camera.js"></script>
+<script src="/resources/js/sale-scanner-mobile.js"></script>
+</body>
+</html>

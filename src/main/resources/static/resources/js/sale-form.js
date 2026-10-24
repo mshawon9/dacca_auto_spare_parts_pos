@@ -200,6 +200,16 @@ $(function () {
             $('#priceSource').text(item.customerPrice ? 'Customer last price' : (item.sellingPrice ? 'Warehouse selling price' : 'Manual'));
         }
 
+        $(document).on('sale:scanned-product', function (_, item) {
+            $('#productSelect').empty().append(new Option(item.text, item.id, true, true)).trigger('change');
+            applyProductInfo(item);
+            $('#quickQuantity').trigger('focus').select();
+        });
+
+        $(document).on('sale:scanner-error', function (_, message) {
+            showError(message);
+        });
+
         $('#productSelect').on('select2:select', function (event) {
             applyProductInfo(event.params.data);
             $('#quickQuantity').trigger('focus').select();
