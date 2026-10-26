@@ -48,6 +48,9 @@ public class PurchaseOrderController {
     @Value("${app.purchase.default-tax-percent:5.00}")
     private java.math.BigDecimal defaultTaxPercent;
 
+    @Value("${app.purchase.invoice-ai.timeout-seconds:180}")
+    private int invoiceAiTimeoutSeconds;
+
     @GetMapping
     public String list(@RequestParam(required = false) String keyword,
                        @RequestParam(defaultValue = "0") int page,
@@ -228,6 +231,7 @@ public class PurchaseOrderController {
         model.addAttribute("suppliers", supplierService.getAll());
         model.addAttribute("stores", inventoryService.getActiveStores());
         model.addAttribute("defaultTaxPercent", defaultTaxPercent);
+        model.addAttribute("invoiceAiTimeoutSeconds", invoiceAiTimeoutSeconds);
     }
 
     public record SupplierProductCode(String supplierProductCode, java.math.BigDecimal priceValue) {

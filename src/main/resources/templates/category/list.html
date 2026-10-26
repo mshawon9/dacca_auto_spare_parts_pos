@@ -220,8 +220,32 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <span id="selectedBrandCount" class="badge text-bg-secondary rounded-pill">0 selected</span>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span id="selectedBrandCount" class="badge text-bg-secondary rounded-pill">0 selected</span>
+                                        <button type="button" id="toggleQuickBrand" class="btn btn-sm btn-outline-primary"
+                                                aria-expanded="false" aria-controls="quickBrandPanel">
+                                            <i class="bi bi-plus-circle me-1"></i> New Brand
+                                        </button>
+                                    </div>
                                 </div>
+                                <div id="quickBrandPanel" class="border rounded bg-body p-3 mb-3" hidden>
+                                    <div class="fw-semibold mb-2">Add a new brand</div>
+                                    <div class="row g-2 align-items-end">
+                                        <div class="col-md-6">
+                                            <label for="quickBrandName" class="form-label">Brand Name <span class="text-danger">*</span></label>
+                                            <input id="quickBrandName" type="text" class="form-control" maxlength="100" autocomplete="off" placeholder="Enter brand name">
+                                        </div>
+                                        <div class="col-md-3">
+                                            <label for="quickBrandCode" class="form-label">Code <span class="text-muted small">(optional)</span></label>
+                                            <input id="quickBrandCode" type="text" class="form-control" maxlength="30" autocomplete="off">
+                                        </div>
+                                        <div class="col-md-3 d-grid">
+                                            <button type="button" id="saveQuickBrand" class="btn btn-primary">Save &amp; Select</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-text">Creates an active brand immediately. Save the category to keep its brand selections.</div>
+                                </div>
+                                <div id="quickBrandMessage" class="alert py-2 small d-none" role="status" aria-live="polite"></div>
                                 <div class="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3 small">
                                     <i class="bi bi-search text-primary"></i>
                                     Search available brands, select one or more, then use <strong>Add selected</strong>.
@@ -280,6 +304,7 @@
 <script src="/resources/js/jquery.bootstrap-duallistbox.min.js"></script>
 <script src="/resources/js/select2.min.js"></script>
 <script src="/resources/js/category-list.js"></script>
+<div id="categoryPageData" class="d-none" th:attr="data-show-category-modal=${showCategoryModal}"></div>
 </body>
 <!--end::Body-->
 </html>

@@ -2,170 +2,8 @@
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <div th:replace="fragments/head :: head"></div>
 <head/>
-<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary">
-<style>
-    .purchase-quick-total {
-        white-space: nowrap;
-    }
-
-    .purchase-product-label {
-        overflow-wrap: anywhere;
-        font-size: 0.82rem;
-        line-height: 1.25;
-    }
-
-    .purchase-supplier-code {
-        font-size: 0.75rem;
-    }
-
-    #purchaseLineTable th {
-        font-size: 0.78rem;
-        white-space: nowrap;
-    }
-
-    #purchaseLineTable {
-        table-layout: fixed;
-        width: 100%;
-    }
-
-    #purchaseLineTable col:nth-child(1) { width: 30%; }
-    #purchaseLineTable col:nth-child(2) { width: 7%; }
-    #purchaseLineTable col:nth-child(3) { width: 11%; }
-    #purchaseLineTable col:nth-child(4) { width: 12%; }
-    #purchaseLineTable col:nth-child(5) { width: 8%; }
-    #purchaseLineTable col:nth-child(6) { width: 11%; }
-    #purchaseLineTable col:nth-child(7) { width: 14%; }
-    #purchaseLineTable col:nth-child(8) { width: 7%; }
-
-    #purchaseLineTable .purchase-product-label,
-    #purchaseLineTable .purchase-supplier-code,
-    #purchaseLineTable .line-quantity,
-    #purchaseLineTable .line-unit-price,
-    #purchaseLineTable .line-tax-percent {
-        max-width: 100%;
-        width: 100%;
-    }
-
-    #purchaseLineTable .form-control-sm {
-        font-size: 0.8rem;
-        min-width: 0;
-        padding: 0.25rem 0.4rem;
-    }
-
-    .purchase-lines-wrapper {
-        overflow-x: hidden;
-    }
-
-    #purchaseLineTable .remove-line {
-        align-items: center;
-        display: inline-flex;
-        height: 28px;
-        justify-content: center;
-        padding: 0;
-        width: 28px;
-    }
-
-    #purchaseForm {
-        overflow-x: clip;
-    }
-
-    @media (max-width: 767.98px) {
-        #purchaseLineTable,
-        #purchaseLineTable tbody,
-        #purchaseLineTable tr,
-        #purchaseLineTable td {
-            display: block;
-            width: 100%;
-        }
-
-        #purchaseLineTable {
-            table-layout: auto;
-        }
-
-        #purchaseLineTable colgroup,
-        #purchaseLineTable thead {
-            display: none;
-        }
-
-        #purchaseLineTable tbody tr {
-            background-color: #fff;
-            border: 1px solid var(--bs-border-color);
-            border-radius: 0.375rem;
-            margin: 0.5rem;
-            padding: 0.4rem;
-        }
-
-        #purchaseLineTable tbody td {
-            align-items: center;
-            border: 0;
-            display: grid;
-            gap: 0.5rem;
-            grid-template-columns: 5.5rem minmax(0, 1fr);
-            padding: 0.3rem 0.4rem;
-            text-align: left !important;
-        }
-
-        #purchaseLineTable tbody td::before {
-            color: var(--bs-secondary-color);
-            content: attr(data-label);
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        #purchaseLineTable tbody td:first-child {
-            align-items: stretch;
-            display: block;
-            padding-left: 0.4rem !important;
-        }
-
-        #purchaseLineTable tbody td:first-child::before {
-            display: none;
-        }
-
-        #purchaseLineTable tbody td:last-child {
-            display: flex;
-            justify-content: flex-end;
-            padding-right: 0.4rem !important;
-        }
-
-        #purchaseLineTable tbody td:last-child::before {
-            margin-right: auto;
-        }
-
-        #purchaseLineTable .purchase-product-label {
-            font-size: 0.85rem;
-        }
-
-        .purchase-lines-wrapper {
-            overflow: visible;
-        }
-    }
-
-    @media (max-width: 575.98px) {
-        #purchaseForm .card-footer .purchase-footer-content {
-            align-items: stretch !important;
-        }
-
-        #purchaseForm .card-footer .purchase-footer-totals {
-            justify-content: space-between;
-            width: 100%;
-        }
-
-        #purchaseForm .card-footer .purchase-save-button {
-            width: 100%;
-        }
-    }
-
-    .purchase-supplier-group .select2-container {
-        flex: 1 1 auto;
-        width: 1% !important;
-    }
-
-    .purchase-supplier-group .select2-container--bootstrap-5 .select2-selection {
-        border-top-right-radius: 0;
-        border-bottom-right-radius: 0;
-    }
-</style>
+<body class="layout-fixed sidebar-expand-lg sidebar-mini bg-body-tertiary purchase-entry-page">
+<link rel="stylesheet" href="/resources/css/purchase-order-form.css">
 <div class="app-wrapper">
     <div th:replace="fragments/topmenu :: topmenu"></div>
     <div th:replace="fragments/menusidebar :: menusidebar"></div>
@@ -176,13 +14,13 @@
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <div>
                         <h3 class="mb-1" th:text="${formTitle}">Purchase Order Entry</h3>
-                        <div class="text-muted">Enter supplier invoice, map supplier product code, and update stock in one step.</div>
+                        <div class="text-muted d-none d-md-block">Supplier invoice and purchase items</div>
                     </div>
                     <div class="d-flex gap-2">
                         <a th:href="@{/purchase-orders}" class="btn btn-outline-primary">
                             <i class="bi bi-list-ul me-1"></i> PO List
                         </a>
-                        <a th:href="@{/inventory}" class="btn btn-outline-secondary">
+                        <a th:href="@{/inventory}" class="btn btn-outline-secondary d-none d-md-inline-flex">
                             <i class="bi bi-box-seam me-1"></i> Inventory
                         </a>
                     </div>
@@ -199,6 +37,16 @@
                 <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
                     <span th:text="${errorMessage}"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+
+                <div class="mb-3">
+                    <button type="button" class="btn btn-outline-primary btn-sm d-md-none mb-2" data-bs-toggle="collapse"
+                            data-bs-target="#purchaseInvoiceTools" aria-expanded="false" aria-controls="purchaseInvoiceTools">
+                        <i class="bi bi-camera me-1"></i> Import Invoice Photo
+                    </button>
+                    <div id="purchaseInvoiceTools" class="collapse d-md-block">
+                        <div th:replace="purchase-order/invoice-import :: invoiceImport"></div>
+                    </div>
                 </div>
 
                 <form th:action="${formAction}" method="post" th:object="${form}" id="purchaseForm">
@@ -234,11 +82,11 @@
                                                 th:text="${store.code() != null ? store.name() + ' (' + store.code() + ')' : store.name()}"></option>
                                     </select>
                                 </div>
-                                <div class="col-12 col-md-6 col-lg-2">
+                                <div class="col-6 col-md-6 col-lg-2">
                                     <label for="purchaseDate" class="form-label">Date <span class="text-danger">*</span></label>
                                     <input type="date" id="purchaseDate" th:field="*{purchaseDate}" class="form-control" required>
                                 </div>
-                                <div class="col-12 col-md-6 col-lg-3">
+                                <div class="col-6 col-md-6 col-lg-3">
                                     <label for="invoiceId" class="form-label">Invoice ID <span class="text-danger">*</span></label>
                                     <input type="text" id="invoiceId" th:field="*{invoiceId}" class="form-control" required
                                            autocomplete="off" placeholder="Supplier invoice number">
@@ -247,49 +95,50 @@
                         </div>
                     </div>
 
-                    <div class="card">
+                    <div class="card purchase-items-card">
+                        <div class="purchase-item-toolbar">
                         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                             <div>
-                                <h3 class="card-title mb-0">Products</h3>
-                                <div class="small text-muted">Search once from the box below, add to table, then continue with the next product.</div>
+                                <h3 class="card-title mb-0">Purchase Items <span id="purchaseItemCount" class="badge text-bg-primary ms-2">0</span></h3>
                             </div>
-                            <button type="submit" class="btn btn-success" form="purchaseForm">
+                            <button type="submit" class="btn btn-sm btn-success d-none d-md-inline-flex align-items-center" form="purchaseForm">
                                 <i class="bi bi-check2-circle me-1"></i> <span th:text="${submitLabel}">Save & Update Stock</span>
                             </button>
                         </div>
                         <div class="card-body">
-                            <div class="row g-2 align-items-end purchase-quick-row">
-                                <div class="col-12 col-sm-6 col-lg-4">
-                                    <label for="productSelect" class="form-label">Search Product / Brand</label>
+                            <div class="purchase-quick-row">
+                                <div class="purchase-search-field">
+                                    <label for="productSelect" class="form-label">Find Product</label>
                                     <select id="productSelect" class="form-select"
                                             data-placeholder="Search product, brand, or part number">
                                         <option value="">Search product, brand, or part number</option>
                                     </select>
                                 </div>
-                                <div class="col-6 col-sm-6 col-lg-1">
+                                <div class="purchase-quantity-field">
                                     <label for="quickQuantity" class="form-label">Qty</label>
                                     <input type="number" id="quickQuantity" class="form-control"
                                            min="1" step="1" value="1">
                                 </div>
-                                <div class="col-6 col-sm-6 col-lg-2">
+                                <div class="purchase-price-field">
                                     <label for="quickUnitPrice" class="form-label">Unit Price</label>
                                     <input type="number" id="quickUnitPrice" class="form-control"
                                            min="0.01" step="0.01" placeholder="0.00">
                                 </div>
-                                <div class="col-6 col-sm-6 col-lg-2">
-                                    <label class="form-label">Total</label>
+                                <div class="purchase-quick-total-field">
+                                    <label class="form-label">Total incl. VAT</label>
                                     <div class="form-control bg-light fw-semibold text-end purchase-quick-total"
                                          id="quickLineTotal" aria-live="polite">0.00</div>
                                 </div>
-                                <div class="col-6 col-sm-6 col-lg-3 d-grid">
+                                <div class="purchase-add-field d-grid">
                                     <button type="button" id="addSelectedProductButton" class="btn btn-primary">
-                                        <i class="bi bi-plus-circle me-1"></i> Add Product
+                                        <i class="bi bi-plus-circle me-1"></i><span class="d-none d-md-inline">Add Product</span><span class="d-md-none">Add</span>
                                     </button>
                                 </div>
                             </div>
                         </div>
+                        </div>
                         <div class="card-body p-0 border-top">
-                            <div class="purchase-lines-wrapper">
+                            <div class="purchase-lines-wrapper" role="region" aria-label="Purchase items" tabindex="0">
                                 <table class="table table-sm table-hover align-middle mb-0" id="purchaseLineTable">
                                     <colgroup>
                                         <col><col><col><col><col><col><col><col>
@@ -297,12 +146,12 @@
                                     <thead class="table-light">
                                     <tr>
                                         <th class="ps-3">Product</th>
-                                        <th>Qty</th>
-                                        <th>Unit Price</th>
-                                        <th class="text-end">Subtotal</th>
-                                        <th>Tax %</th>
-                                        <th class="text-end">Tax</th>
-                                        <th class="text-end">Total</th>
+                                        <th class="text-end">Qty</th>
+                                        <th class="text-end">Unit Price</th>
+                                        <th class="text-end">Gross</th>
+                                        <th class="text-end">VAT %</th>
+                                        <th class="text-end">VAT</th>
+                                        <th class="text-end">Line Total</th>
                                         <th class="text-center pe-3"><span class="visually-hidden">Action</span></th>
                                     </tr>
                                     </thead>
@@ -313,6 +162,7 @@
                                             <input type="hidden" class="line-product-id" data-field="productId" th:value="${line.productId}">
                                             <input type="hidden" class="line-product-text" data-field="productText" th:value="${line.productText}">
                                             <div class="fw-semibold product-label purchase-product-label" th:text="${line.productText}">Selected product</div>
+                                            <button type="button" class="btn btn-link btn-sm line-options-toggle d-md-none" aria-expanded="false">Details</button>
                                             <input type="text" class="form-control form-control-sm supplier-code purchase-supplier-code mt-1"
                                                    data-field="supplierProductCode" maxlength="100"
                                                    aria-label="Supplier product code" placeholder="Supplier product code"
@@ -320,10 +170,10 @@
                                         </td>
                                         <td data-label="Qty"><input type="number" class="form-control form-control-sm line-quantity" data-field="quantity" min="1" step="1" th:value="${line.quantity}"></td>
                                         <td data-label="Unit Price"><input type="number" class="form-control form-control-sm line-unit-price" data-field="unitPrice" min="0.01" step="0.01" placeholder="0.00" th:value="${line.unitPrice}"></td>
-                                        <td class="text-end fw-semibold line-subtotal" data-label="Subtotal">0.00</td>
-                                        <td data-label="Tax %"><input type="number" class="form-control form-control-sm line-tax-percent" data-field="taxPercent" min="0" step="0.01" th:value="${line.taxPercent}"></td>
-                                        <td class="text-end fw-semibold line-tax-amount" data-label="Tax">0.00</td>
-                                        <td class="text-end fw-semibold line-total" data-label="Total">0.00</td>
+                                        <td class="text-end fw-semibold line-subtotal" data-label="Gross">0.00</td>
+                                        <td class="purchase-line-vat" data-label="VAT %"><input type="number" class="form-control form-control-sm line-tax-percent" data-field="taxPercent" min="0" max="100" step="0.01" th:value="${line.taxPercent}"></td>
+                                        <td class="text-end fw-semibold line-tax-amount" data-label="VAT">0.00</td>
+                                        <td class="text-end fw-semibold line-total" data-label="Total incl. VAT">0.00</td>
                                         <td class="text-center pe-3" data-label="Action">
                                             <button type="button" class="btn btn-sm btn-outline-danger remove-line"
                                                     aria-label="Remove product" title="Remove product">
@@ -333,19 +183,24 @@
                                     </tr>
                                     </tbody>
                                 </table>
+                                <div id="purchaseEmptyState" class="text-center text-muted py-5" hidden>
+                                    <i class="bi bi-bag-plus fs-2 d-block mb-2"></i>
+                                    <div class="fw-semibold">No items yet</div>
+                                    <div class="small">Find a product above or import an invoice.</div>
+                                </div>
                             </div>
                         </div>
-                        <div class="card-footer">
-                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 purchase-footer-content">
-                                <div class="small text-muted">Empty rows are not submitted. Product rows are added only after selection.</div>
-                                <div class="d-flex flex-wrap align-items-center gap-3 purchase-footer-totals">
-                                    <div>Subtotal: <strong id="subTotal">0.00</strong></div>
-                                    <div>Tax: <strong id="taxTotal">0.00</strong></div>
-                                    <div class="fs-5">Total: <strong id="grandTotal">0.00</strong></div>
+                        <div class="card-footer purchase-summary">
+                            <div class="purchase-footer-content">
+                                <div class="small text-muted d-none d-md-block">Review quantities and prices before saving.</div>
+                                <div class="purchase-footer-totals" aria-live="polite" aria-atomic="true">
+                                    <div class="purchase-total-box"><span>Gross <small>(excl. VAT)</small></span><strong id="subTotal">0.00</strong></div>
+                                    <div class="purchase-total-box"><span>VAT</span><strong id="taxTotal">0.00</strong></div>
+                                    <div class="purchase-total-box purchase-grand-total"><span>Total <small>(incl. VAT)</small></span><strong id="grandTotal">0.00</strong></div>
+                                </div>
                                     <button type="submit" class="btn btn-success btn-lg purchase-save-button">
                                         <i class="bi bi-check2-circle me-1"></i> <span th:text="${submitLabel}">Save & Update Stock</span>
                                     </button>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -354,7 +209,7 @@
         </div>
     </main>
 
-    <footer class="app-footer">
+    <footer class="app-footer d-none d-md-block">
         <strong>Dacca POS</strong>
         <span class="text-muted ms-2">Purchase order entry</span>
     </footer>
@@ -410,7 +265,9 @@
 
 <div th:replace="fragments/commonscripts :: commonscripts"/>
 <script src="/resources/js/select2.min.js"></script>
-<div id="purchaseOrderPageData" class="d-none" th:attr="data-default-tax-percent=${defaultTaxPercent}"></div>
+<div id="purchaseOrderPageData" class="d-none" th:attr="data-default-tax-percent=${defaultTaxPercent},data-ai-timeout-seconds=${invoiceAiTimeoutSeconds}"></div>
 <script src="/resources/js/purchase-order-form.js"></script>
+<script src="/resources/js/qrcode.min.js"></script>
+<script src="/resources/js/purchase-invoice-import.js"></script>
 </body>
 </html>

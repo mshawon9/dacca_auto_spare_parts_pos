@@ -41,6 +41,10 @@ $(function () {
 
         function reindexLines() {
             $('#purchaseLines tr').each(function (index) {
+                const productName = $(this).find('.product-label').text();
+                $(this).find('.line-quantity').attr('aria-label', 'Quantity for ' + productName);
+                $(this).find('.line-unit-price').attr('aria-label', 'Unit price for ' + productName);
+                $(this).find('.line-tax-percent').attr('aria-label', 'VAT percent for ' + productName);
                 $(this).find('[data-field]').each(function () {
                     $(this).attr('name', 'lines[' + index + '].' + $(this).attr('data-field'));
                 });
@@ -68,6 +72,9 @@ $(function () {
             $('#subTotal').text(money(subTotalAmount));
             $('#taxTotal').text(money(taxTotalAmount));
             $('#grandTotal').text(money(grandTotal));
+            const count = $('#purchaseLines .line-product-id').filter(function () { return !!this.value; }).length;
+            $('#purchaseItemCount').text(count);
+            $('#purchaseEmptyState').prop('hidden', count > 0);
         }
 
         function calculateQuickTotal() {
@@ -92,7 +99,7 @@ $(function () {
                 });
         }
 
-        function addLine(product) {
+        function addLine(product, imported) {
             const rowId = lineIndex++;
             const row = $(
                 '<tr>' +
@@ -101,38 +108,48 @@ $(function () {
                 '<input type="hidden" class="line-product-id" data-field="productId">' +
                 '<input type="hidden" class="line-product-text" data-field="productText">' +
                 '<div class="fw-semibold product-label purchase-product-label"></div>' +
+                '<button type="button" class="btn btn-link btn-sm line-options-toggle d-md-none" aria-expanded="false">Details</button>' +
                 '<input type="text" class="form-control form-control-sm supplier-code purchase-supplier-code mt-1" data-field="supplierProductCode" maxlength="100" aria-label="Supplier product code" placeholder="Supplier product code">' +
                 '</td>' +
                 '<td data-label="Qty"><input type="number" class="form-control form-control-sm line-quantity" data-field="quantity" min="1" step="1" value="1"></td>' +
                 '<td data-label="Unit Price"><input type="number" class="form-control form-control-sm line-unit-price" data-field="unitPrice" min="0.01" step="0.01" placeholder="0.00"></td>' +
-                '<td class="text-end fw-semibold line-subtotal" data-label="Subtotal">0.00</td>' +
-                '<td data-label="Tax %"><input type="number" class="form-control form-control-sm line-tax-percent" data-field="taxPercent" min="0" step="0.01" value="0"></td>' +
-                '<td class="text-end fw-semibold line-tax-amount" data-label="Tax">0.00</td>' +
-                '<td class="text-end fw-semibold line-total" data-label="Total">0.00</td>' +
+                '<td class="text-end fw-semibold line-subtotal" data-label="Gross">0.00</td>' +
+                '<td class="purchase-line-vat" data-label="VAT %"><input type="number" class="form-control form-control-sm line-tax-percent" data-field="taxPercent" min="0" max="100" step="0.01" value="0"></td>' +
+                '<td class="text-end fw-semibold line-tax-amount" data-label="VAT">0.00</td>' +
+                '<td class="text-end fw-semibold line-total" data-label="Total incl. VAT">0.00</td>' +
                 '<td class="text-center pe-3" data-label="Action"><button type="button" class="btn btn-sm btn-outline-danger remove-line" aria-label="Remove product" title="Remove product"><i class="fas fa-trash-alt" aria-hidden="true"></i></button></td>' +
                 '</tr>'
             ).attr('data-row-id', rowId);
             row.find('.line-product-id').val(product.id);
             row.find('.line-product-text').val(product.text);
             row.find('.product-label').text(product.text);
-            row.find('.line-quantity').val($('#quickQuantity').val() || '1');
-            row.find('.line-unit-price').val($('#quickUnitPrice').val() || '');
-            row.find('.line-tax-percent').val(defaultTaxPercent.toFixed(2));
+            row.find('.line-quantity').val(imported ? imported.quantity : ($('#quickQuantity').val() || '1'));
+            row.find('.line-unit-price').val(imported ? imported.unitPrice : ($('#quickUnitPrice').val() || ''));
+            row.find('.line-tax-percent').val(imported ? imported.taxPercent : defaultTaxPercent.toFixed(2));
+            if (imported) row.find('.supplier-code').val(imported.supplierProductCode || '');
             $('#purchaseLines').prepend(row);
+            $('.purchase-lines-wrapper').scrollTop(0);
             reindexLines();
-            loadSupplierProduct(row);
+            if (!imported) loadSupplierProduct(row);
             calculateTotals();
         }
 
-        function loadSupplierProduct(row) {
+        $(document).on('purchase:import-invoice', function (_, lines) {
+            lines.slice().reverse().forEach(function (line) { addLine(line.product, line); });
+        });
+
+        function loadSupplierProduct(row, supplierChanged) {
             const supplierId = $('#supplierId').val();
             const productId = row.find('.line-product-id').val();
+            if (supplierChanged) row.find('.supplier-code').val('');
+            const requestedCode = row.find('.supplier-code').val();
             if (!supplierId || !productId) {
                 return;
             }
             $.get('/purchase-orders/supplier-product-code', {supplierId: supplierId, productId: productId})
                 .done(function (response) {
-                    if (response.supplierProductCode) {
+                    if ($('#supplierId').val() !== supplierId || !row.closest(document.documentElement).length) return;
+                    if (response.supplierProductCode && row.find('.supplier-code').val() === requestedCode && !requestedCode) {
                         row.find('.supplier-code').val(response.supplierProductCode);
                     }
                     if (response.priceValue && !row.find('.line-unit-price').val()) {
@@ -144,7 +161,7 @@ $(function () {
 
         $('#supplierId').on('change', function () {
             $('#purchaseLines tr').each(function () {
-                loadSupplierProduct($(this));
+                loadSupplierProduct($(this), true);
             });
             if ($('#productSelect').val()) {
                 $('#quickUnitPrice').val('');
@@ -154,6 +171,11 @@ $(function () {
         });
 
         $('#purchaseLines').on('input', '.line-quantity, .line-unit-price, .line-tax-percent', calculateTotals);
+
+        $('#purchaseLines').on('click', '.line-options-toggle', function () {
+            const expanded = $(this).closest('tr').toggleClass('is-expanded').hasClass('is-expanded');
+            $(this).attr('aria-expanded', String(expanded)).text(expanded ? 'Hide details' : 'Details');
+        });
 
         $('#purchaseLines').on('click', '.remove-line', function () {
             $(this).closest('tr').remove();

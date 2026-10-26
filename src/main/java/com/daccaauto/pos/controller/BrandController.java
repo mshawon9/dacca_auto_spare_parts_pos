@@ -1,6 +1,7 @@
 package com.daccaauto.pos.controller;
 
 import com.daccaauto.pos.dto.brand.BrandCreateRequest;
+import com.daccaauto.pos.dto.brand.BrandResponse;
 import com.daccaauto.pos.dto.brand.BrandUpdateRequest;
 import com.daccaauto.pos.exception.DuplicateResourceException;
 import com.daccaauto.pos.exception.ResourceNotFoundException;
@@ -19,6 +20,12 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 public class BrandController {
 
     private final BrandService brandService;
+
+    @PostMapping("/quick-create")
+    @ResponseBody
+    public BrandResponse quickCreate(@Valid @RequestBody BrandCreateRequest request) {
+        return brandService.create(request);
+    }
 
     @GetMapping
     public String page(Model model) {

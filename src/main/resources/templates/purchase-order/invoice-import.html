@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<body>
+<div th:fragment="invoiceImport" class="card mb-3" id="invoiceImportCard">
+    <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div><h3 class="card-title mb-0">Import Supplier Invoice</h3><div class="small text-muted">Photo → review → match products → add to purchase order</div></div>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" id="invoiceChooseImage" class="btn btn-sm btn-outline-primary"><i class="bi bi-upload me-1"></i>Upload Image</button>
+            <button type="button" id="invoiceTakePhoto" class="btn btn-sm btn-outline-primary"><i class="bi bi-camera me-1"></i>Take Photo</button>
+            <button type="button" id="invoiceConnectPhone" class="btn btn-sm btn-outline-primary"><i class="bi bi-phone me-1"></i>Use Phone</button>
+            <button type="button" id="invoiceDemo" class="btn btn-sm btn-outline-secondary">Try Sample Demo</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <input id="invoiceImageFile" type="file" accept="image/jpeg,image/png" hidden>
+        <input id="invoiceCameraFile" type="file" accept="image/jpeg,image/png" capture="environment" hidden>
+        <div id="invoiceImportMessage" class="alert alert-light border py-2 mb-2 small" role="status" aria-live="polite">Upload a clear, single-page JPEG/PNG invoice. Images are optimized to fit the 3 MB limit. Review all values before saving.</div>
+        <div id="invoicePhonePanel" class="border rounded p-3 mb-3" hidden>
+            <div class="d-flex flex-wrap gap-3 align-items-start">
+                <div id="invoicePhoneQr"></div>
+                <div class="flex-grow-1">
+                    <label for="invoicePhoneLink" class="form-label">Scan this connection QR with your phone, then take or upload an invoice photo.</label>
+                    <input id="invoicePhoneLink" class="form-control form-control-sm mb-2" readonly>
+                    <div class="small text-muted">Link expires in 10 minutes. Both devices must reach this app; localhost links will not work on a phone.</div>
+                    <button type="button" id="invoiceDisconnectPhone" class="btn btn-sm btn-outline-secondary mt-2">Disconnect</button>
+                </div>
+            </div>
+        </div>
+        <div id="invoiceImagePanel" class="d-flex flex-wrap gap-3 align-items-center mb-3 d-none">
+            <img id="invoiceImagePreview" alt="Supplier invoice preview" class="img-thumbnail" style="max-width: 160px; max-height: 180px; object-fit: contain;">
+            <div>
+                <div id="invoiceImageName" class="small fw-semibold"></div>
+                <a id="invoiceImageOpen" target="_blank" rel="noopener" class="small d-inline-block mb-2">Open full invoice image</a>
+                <div class="small text-muted mb-2">Extract sends this invoice image to the configured AI provider. Check the image before continuing.</div>
+                <button type="button" id="invoiceExtract" class="btn btn-primary"><i class="bi bi-stars me-1"></i>Extract with AI</button>
+            </div>
+        </div>
+        <section id="invoiceReview" hidden aria-label="Review extracted invoice">
+            <div class="alert alert-warning small">AI can misread invoices. Check supplier, date, part numbers, quantities, unit prices and tax. Nothing updates stock until you save the purchase order.</div>
+            <details id="invoiceWarningDetails" class="small mb-3" hidden><summary id="invoiceWarningSummary" class="text-danger">Extraction warnings</summary><ul id="invoiceWarnings" class="mt-2 mb-0"></ul></details>
+            <div class="row g-2 mb-3">
+                <div class="col-md-4"><label for="extractedSupplier" class="form-label">Supplier Name</label><input id="extractedSupplier" class="form-control form-control-sm" maxlength="150"></div>
+                <div class="col-md-3"><label for="extractedInvoiceId" class="form-label">Invoice ID</label><input id="extractedInvoiceId" class="form-control form-control-sm" maxlength="80"></div>
+                <div class="col-md-2"><label for="extractedDate" class="form-label">Invoice Date</label><input id="extractedDate" type="date" class="form-control form-control-sm"></div>
+                <div class="col-md-3"><label for="extractedTotal" class="form-label">Printed Invoice Total</label><input id="extractedTotal" type="number" min="0" step="0.01" class="form-control form-control-sm"></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center gap-2 mb-2"><strong>Extracted Products</strong><button type="button" id="invoiceMatchAll" class="btn btn-sm btn-outline-primary">Recheck All Matches</button></div>
+            <div id="invoiceReviewLines"></div>
+            <div class="d-flex flex-wrap align-items-center gap-3 mt-3">
+                <label class="form-check"><input id="invoiceApplyHeader" type="checkbox" class="form-check-input" checked><span class="form-check-label">Apply reviewed supplier, date and invoice ID</span></label>
+                <label class="form-check"><input id="invoiceReviewed" type="checkbox" class="form-check-input"><span class="form-check-label">I checked the selected products and amounts</span></label>
+                <button type="button" id="invoiceApply" class="btn btn-success ms-auto">Add Reviewed Items to PO</button>
+                <button type="button" id="invoiceDiscard" class="btn btn-outline-secondary">Discard Review</button>
+            </div>
+            <div class="small mt-2" id="invoiceTotalCheck" aria-live="polite"></div>
+        </section>
+    </div>
+    <div class="modal fade" id="invoiceNewProductModal" tabindex="-1" aria-labelledby="invoiceNewProductTitle" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+            <form id="invoiceNewProductForm" novalidate>
+                <div class="modal-header"><h5 class="modal-title" id="invoiceNewProductTitle">Create Product from Invoice</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body">
+                    <div id="invoiceProductMessage" class="alert alert-danger d-none" role="status"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label for="invoiceProductName" class="form-label">Product Name *</label><input id="invoiceProductName" class="form-control" maxlength="200" required></div>
+                        <div class="col-md-6"><label for="invoiceProductPart" class="form-label">Part Number *</label><input id="invoiceProductPart" class="form-control" maxlength="100" required><div class="form-text">No spaces. Verify against the printed invoice.</div></div>
+                        <div class="col-md-6"><label for="invoiceProductSku" class="form-label">SKU</label><input id="invoiceProductSku" class="form-control" maxlength="100"></div>
+                        <div class="col-md-6"><label for="invoiceProductPosition" class="form-label">Position</label><select id="invoiceProductPosition" class="form-select"><option value="">Not specified</option></select></div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between"><label for="invoiceProductCategory" class="form-label">Category *</label><button type="button" id="invoiceToggleCategory" class="btn btn-sm btn-link" aria-expanded="false" aria-controls="invoiceNewCategoryPanel">New Category</button></div>
+                            <select id="invoiceProductCategory" class="form-select" required></select>
+                            <div id="invoiceNewCategoryPanel" class="border rounded p-2 mt-2" hidden><label for="invoiceCategoryName" class="form-label small">New category name</label><input id="invoiceCategoryName" class="form-control form-control-sm mb-2" maxlength="100"><button type="button" id="invoiceSaveCategory" class="btn btn-sm btn-outline-primary">Save &amp; Select Category</button></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between"><label for="invoiceProductBrand" class="form-label">Brand *</label><button type="button" id="invoiceToggleBrand" class="btn btn-sm btn-link" aria-expanded="false" aria-controls="invoiceNewBrandPanel">New Brand</button></div>
+                            <select id="invoiceProductBrand" class="form-select" required></select>
+                            <div id="invoiceNewBrandPanel" class="border rounded p-2 mt-2" hidden><label for="invoiceBrandName" class="form-label small">New brand name</label><input id="invoiceBrandName" class="form-control form-control-sm mb-2" maxlength="100"><button type="button" id="invoiceSaveBrand" class="btn btn-sm btn-outline-primary">Save &amp; Select Brand</button></div>
+                        </div>
+                    </div>
+                    <div class="small text-muted mt-3">The selected brand will be linked to this category. This creates the product immediately with an automatic barcode and reorder level 2. Stock and cost are updated only when the PO is saved.</div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" id="invoiceSaveProduct" class="btn btn-primary">Create &amp; Select Product</button></div>
+            </form>
+        </div></div>
+    </div>
+</div>
+</body>
+</html>
