@@ -1,148 +1,53 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" lang="en">
 <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark" th:fragment="menusidebar">
-    <div class="sidebar-brand">
-        <a th:href="@{/}" class="brand-link">
-            <img src="/img/AdminLTELogo.png"
-                 alt="Dacca POS"
-                 class="brand-image opacity-75 shadow">
-            <span class="brand-text fw-light">Dacca POS</span>
-        </a>
-    </div>
-
+    <div class="sidebar-brand"><a th:href="@{/}" class="brand-link">
+        <img src="/img/AdminLTELogo.png" alt="Dacca POS" class="brand-image opacity-75 shadow">
+        <span class="brand-text fw-light">Dacca POS</span>
+    </a></div>
     <div class="sidebar-wrapper">
-        <nav class="mt-2">
-            <ul class="nav sidebar-menu flex-column"
-                data-lte-toggle="treeview"
-                role="menu"
-                data-accordion="false">
-
-                <li class="nav-header">MAIN</li>
-                <li class="nav-item">
-                    <a th:href="@{/}" class="nav-link">
-                        <i class="nav-icon bi bi-speedometer2"></i>
-                        <p>Dashboard</p>
+        <nav class="mt-2" aria-label="Main navigation">
+            <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu" data-accordion="false">
+                <li class="nav-item"><a th:href="@{/}" class="nav-link"><i class="nav-icon bi bi-speedometer2"></i><p>Dashboard</p></a></li>
+                <li class="nav-item" data-menu-group="daily">
+                    <a href="#" class="nav-link" aria-expanded="false" aria-controls="sidebar-daily">
+                        <i class="nav-icon bi bi-lightning-charge"></i><p>Regular Work<i class="nav-arrow bi bi-chevron-right"></i></p>
                     </a>
+                    <ul id="sidebar-daily" class="nav nav-treeview">
+                        <li class="nav-item"><a th:href="@{/sales/create}" class="nav-link"><i class="nav-icon bi bi-cart-check"></i><p>Sale Entry</p></a></li>
+                        <li class="nav-item"><a th:href="@{/purchase-orders/create}" class="nav-link"><i class="nav-icon bi bi-receipt"></i><p>Purchase Entry</p></a></li>
+                        <li class="nav-item"><a th:href="@{/products}" class="nav-link"><i class="nav-icon bi bi-boxes"></i><p>Products</p></a></li>
+                        <li class="nav-item"><a th:href="@{/inventory}" class="nav-link"><i class="nav-icon bi bi-box-seam"></i><p>Inventory</p></a></li>
+                        <li class="nav-item"><a th:href="@{/order-todos}" class="nav-link"><i class="nav-icon bi bi-clipboard-check"></i><p>Order Todo</p></a></li>
+                        <li class="nav-item"><a th:href="@{/customers}" class="nav-link"><i class="nav-icon bi bi-people"></i><p>Customers</p></a></li>
+                        <li class="nav-item"><a th:href="@{/suppliers}" class="nav-link"><i class="nav-icon bi bi-truck"></i><p>Suppliers</p></a></li>
+                    </ul>
                 </li>
-                <li class="nav-item">
-                    <a th:href="@{/inventory}" class="nav-link">
-                        <i class="nav-icon bi bi-box-seam"></i>
-                        <p>Inventory</p>
+                <li class="nav-item" data-menu-group="reports">
+                    <a href="#" class="nav-link" aria-expanded="false" aria-controls="sidebar-reports">
+                        <i class="nav-icon bi bi-journal-text"></i><p>History &amp; Collections<i class="nav-arrow bi bi-chevron-right"></i></p>
                     </a>
+                    <ul id="sidebar-reports" class="nav nav-treeview">
+                        <li class="nav-item"><a th:href="@{/sales/history}" class="nav-link"><i class="nav-icon bi bi-clock-history"></i><p>Sale History</p></a></li>
+                        <li class="nav-item"><a th:href="@{/purchase-orders}" class="nav-link"><i class="nav-icon bi bi-receipt-cutoff"></i><p>Purchase Orders</p></a></li>
+                        <li class="nav-item"><a th:href="@{/credit-collections}" class="nav-link"><i class="nav-icon bi bi-cash-coin"></i><p>Credit Collection</p></a></li>
+                        <li class="nav-item"><a th:href="@{/customer-ledgers}" class="nav-link"><i class="nav-icon bi bi-journal-text"></i><p>Customer Ledger</p></a></li>
+                        <li class="nav-item"><a th:href="@{/sales/statements}" class="nav-link"><i class="nav-icon bi bi-file-earmark-text"></i><p>Sale Statements</p></a></li>
+                    </ul>
                 </li>
-                <li class="nav-item">
-                    <a th:href="@{/stores}" class="nav-link">
-                        <i class="nav-icon bi bi-shop-window"></i>
-                        <p>Stores / Shops</p>
+                <li class="nav-item" data-menu-group="configuration">
+                    <a href="#" class="nav-link" aria-expanded="false" aria-controls="sidebar-configuration">
+                        <i class="nav-icon bi bi-gear"></i><p>Configuration<i class="nav-arrow bi bi-chevron-right"></i></p>
                     </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/order-todos}" class="nav-link">
-                        <i class="nav-icon bi bi-clipboard-check"></i>
-                        <p>Order Todo</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/sales/create}" class="nav-link">
-                        <i class="nav-icon bi bi-cart-check"></i>
-                        <p>Sale Entry</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/sales/history}" class="nav-link">
-                        <i class="nav-icon bi bi-clock-history"></i>
-                        <p>Sale History</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/sales/statements}" class="nav-link">
-                        <i class="nav-icon bi bi-file-earmark-text"></i>
-                        <p>Sale Statements</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/credit-collections}" class="nav-link">
-                        <i class="nav-icon bi bi-cash-coin"></i>
-                        <p>Credit Collection</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/customer-ledgers}" class="nav-link">
-                        <i class="nav-icon bi bi-journal-text"></i>
-                        <p>Customer Ledger</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/purchase-orders}" class="nav-link">
-                        <i class="nav-icon bi bi-receipt-cutoff"></i>
-                        <p>Purchase Orders</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/purchase-orders/create}" class="nav-link">
-                        <i class="nav-icon bi bi-receipt"></i>
-                        <p>Purchase Entry</p>
-                    </a>
-                </li>
-
-                <li class="nav-header">PEOPLE</li>
-                <li class="nav-item">
-                    <a th:href="@{/customers}" class="nav-link">
-                        <i class="nav-icon bi bi-people"></i>
-                        <p>Customers</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/suppliers}" class="nav-link">
-                        <i class="nav-icon bi bi-truck"></i>
-                        <p>Suppliers</p>
-                    </a>
-                </li>
-
-                <li class="nav-header">PRODUCTS</li>
-                <li class="nav-item">
-                    <a th:href="@{/products}" class="nav-link">
-                        <i class="nav-icon bi bi-boxes"></i>
-                        <p>Products</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/products/create}" class="nav-link">
-                        <i class="nav-icon bi bi-plus-square"></i>
-                        <p>Add Product</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/products/import}" class="nav-link">
-                        <i class="nav-icon bi bi-file-earmark-spreadsheet"></i>
-                        <p>Import Products</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/categories}" class="nav-link">
-                        <i class="nav-icon bi bi-tags"></i>
-                        <p>Categories</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/brands}" class="nav-link">
-                        <i class="nav-icon bi bi-award"></i>
-                        <p>Brands</p>
-                    </a>
-                </li>
-
-                <li class="nav-header">VEHICLES</li>
-                <li class="nav-item">
-                    <a th:href="@{/vehicle-applications}" class="nav-link">
-                        <i class="nav-icon bi bi-wrench-adjustable-circle"></i>
-                        <p>Applications</p>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a th:href="@{/vehicle-applications/create}" class="nav-link">
-                        <i class="nav-icon bi bi-plus-circle"></i>
-                        <p>Add Application</p>
-                    </a>
+                    <ul id="sidebar-configuration" class="nav nav-treeview">
+                        <li class="nav-item"><a th:href="@{/products/create}" class="nav-link"><i class="nav-icon bi bi-plus-square"></i><p>Add Product</p></a></li>
+                        <li class="nav-item"><a th:href="@{/products/import}" class="nav-link"><i class="nav-icon bi bi-file-earmark-spreadsheet"></i><p>Import Products</p></a></li>
+                        <li class="nav-item"><a th:href="@{/categories}" class="nav-link"><i class="nav-icon bi bi-tags"></i><p>Categories</p></a></li>
+                        <li class="nav-item"><a th:href="@{/brands}" class="nav-link"><i class="nav-icon bi bi-award"></i><p>Brands</p></a></li>
+                        <li class="nav-item"><a th:href="@{/vehicle-applications}" class="nav-link"><i class="nav-icon bi bi-wrench-adjustable-circle"></i><p>Applications</p></a></li>
+                        <li class="nav-item"><a th:href="@{/vehicle-applications/create}" class="nav-link"><i class="nav-icon bi bi-plus-circle"></i><p>Add Application</p></a></li>
+                        <li class="nav-item"><a th:href="@{/stores}" class="nav-link"><i class="nav-icon bi bi-shop-window"></i><p>Stores / Shops</p></a></li>
+                    </ul>
                 </li>
             </ul>
         </nav>

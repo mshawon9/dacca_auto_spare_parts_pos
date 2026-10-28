@@ -22,6 +22,20 @@ import lombok.Setter;
 )
 public class SupplierEntity extends BaseEntity {
 
+    public String getName() {
+        return name == null ? null : name.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
+    public void setName(String name) {
+        this.name = name == null ? null : name.trim().toUpperCase(java.util.Locale.ROOT);
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void normalizeName() {
+        setName(name);
+    }
+
     @NotBlank
     @Size(max = 150)
     @Column(nullable = false, length = 150)
