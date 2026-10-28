@@ -9,8 +9,10 @@ $(function () {
     let modalBusy = false;
     let phone = null;
     let phoneTimer = null;
+    let invoiceData = null;
     const modalElement = document.getElementById('invoiceNewProductModal');
     const productModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+    $(modalElement).appendTo(document.body);
     const message = (text, error) => $('#invoiceImportMessage').text(text)
         .toggleClass('alert-danger', !!error).toggleClass('alert-light', !error);
     const productMessage = text => $('#invoiceProductMessage').text(text).removeClass('d-none');
@@ -32,71 +34,56 @@ $(function () {
     const post = (url, body) => api(url, {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)});
     function busy(value) {
         working = value;
-        $('#invoiceExtract, #invoiceDemo, #invoiceChooseImage, #invoiceTakePhoto, #invoiceConnectPhone, #invoiceMatchAll, #invoiceApply, #invoiceDiscard').prop('disabled', value);
+        $('#invoiceExtract, #invoiceDemo, #invoiceChooseImage, #invoiceTakePhoto, #invoiceConnectPhone, #invoiceMatchAll, #invoiceDiscard').prop('disabled', value);
         $('#invoiceExtract').text(value ? 'Processing...' : 'Extract with AI');
     }
-    const number = input => input.val() === '' ? null : Number(input.val());
     const money = value => Number(value || 0).toFixed(2);
-    function lineValue(row, field) { return row.find('[data-invoice-field="' + field + '"]').val().trim(); }
+    function lineValue(row, field) {
+        const input = row.find('[data-field="' + field + '"]');
+        return input.length ? String(input.val() || '').trim() : String((row.data('extracted-line') || {})[field] || '').trim();
+    }
     function query(row) {
         return {name: lineValue(row, 'name'), partNumber: lineValue(row, 'partNumber'),
             sku: lineValue(row, 'sku'), brand: lineValue(row, 'brand')};
     }
     function destroyRows() {
-        $('#invoiceReviewLines .invoice-product-select').each(function () {
+        $('#purchaseLines .invoice-product-select').each(function () {
             if ($(this).hasClass('select2-hidden-accessible')) $(this).select2('destroy');
         });
         rows = [];
-        $('#invoiceReviewLines').empty();
+        $('#purchaseLines tr[data-invoice-source]').remove();
+        invoiceData = null;
+        $('#invoiceSupplierSuggestion').prop('hidden', true);
+        $(document).trigger('purchase:refresh-lines');
     }
     function setRowStatus(row, text, success) {
+        row.toggleClass('invoice-resolved', !!success);
         row.find('.invoice-match-status').text(text).toggleClass('text-bg-success', !!success)
             .toggleClass('text-bg-warning', !success);
     }
+    function liveRows() { return rows.filter(row => row.closest(document.documentElement).length); }
     function totals() {
-        let total = 0;
-        rows.forEach(row => {
-            if (!row.find('.invoice-include').is(':checked')) return;
-            const qty = number(row.find('[data-invoice-field="quantity"]'));
-            const price = number(row.find('[data-invoice-field="unitPrice"]'));
-            const tax = number(row.find('[data-invoice-field="taxPercent"]'));
-            total += Number((qty * price).toFixed(2)) + Number((qty * price * tax / 100).toFixed(2));
-        });
-        const printed = number($('#extractedTotal'));
-        const mismatch = printed != null && Math.abs(total - printed) > 0.02;
-        $('#invoiceTotalCheck').text('Selected items total: ' + money(total) + (printed == null ? '' :
-            ' | Printed total: ' + money(printed)) + (mismatch ? ' - Totals differ. Check tax, missing items, discounts, and tax-inclusive prices.' : ''))
+        if (!invoiceData) return;
+        const actual = Number($('#grandTotal').text()) || 0;
+        const printed = invoiceData.total;
+        const mismatch = printed != null && Math.abs(actual - Number(printed)) > 0.02;
+        $('#invoiceTotalCheck').text('PO total: ' + money(actual) + (printed == null ? '' :
+            ' | Printed invoice: ' + money(printed)) + (mismatch ? ' - Check VAT, missing items and discounts.' : ''))
             .toggleClass('text-danger', mismatch);
     }
-    function renderLine(line, index) {
-        const row = $('<div class="border rounded p-3 mb-2 invoice-review-row"></div>');
-        const top = $('<div class="d-flex flex-wrap align-items-center gap-2 mb-2"></div>').appendTo(row);
-        $('<label class="form-check mb-0"><input type="checkbox" class="form-check-input invoice-include" checked><span class="form-check-label"></span></label>')
-            .find('span').text('Item ' + (index + 1)).end().appendTo(top);
-        $('<span class="badge text-bg-warning invoice-match-status">Not checked</span>').appendTo(top);
-        const grid = $('<div class="row g-2"></div>').appendTo(row);
-        [['name', 'Description', 'text', 'col-md-4'], ['partNumber', 'Part Number', 'text', 'col-md-3'],
-            ['sku', 'SKU', 'text', 'col-md-2'], ['brand', 'Brand', 'text', 'col-md-3'],
-            ['quantity', 'Quantity', 'number', 'col-4 col-md-2'], ['unitPrice', 'Unit Price (excl. tax)', 'number', 'col-4 col-md-3'],
-            ['taxPercent', 'Tax %', 'number', 'col-4 col-md-2'], ['supplierProductCode', 'Supplier Product Code', 'text', 'col-md-5']]
-            .forEach(([field, label, type, size]) => {
-                const cell = $('<div></div>').addClass(size).appendTo(grid);
-                const id = 'invoice-row-' + index + '-' + field;
-                $('<label class="form-label small mb-1"></label>').attr('for', id).text(label).appendTo(cell);
-                const input = $('<input class="form-control form-control-sm">').attr({id: id, type: type, 'data-invoice-field': field})
-                    .val(line[field] == null ? '' : line[field]).appendTo(cell);
-                if (type === 'number') input.attr({min: field === 'quantity' ? 1 : 0, step: field === 'quantity' ? 1 : 0.01});
-                else input.attr('maxlength', field === 'name' ? 200 : 100);
-            });
-        const resolution = $('<div class="row g-2 align-items-end mt-1"></div>').appendTo(row);
-        const choice = $('<div class="col-md-8"><label class="form-label small">Our Product - choose a match or search</label><select class="form-select invoice-product-select"><option value=""></option></select></div>').appendTo(resolution);
-        const buttons = $('<div class="col-md-4 d-flex gap-2"></div>').appendTo(resolution);
+    function renderLine(row, index) {
+        const cell = row.find('td').first();
+        const resolution = $('<div class="invoice-line-resolution mt-2"></div>').appendTo(cell);
+        $('<span class="badge text-bg-warning invoice-match-status mb-1">Checking product...</span>').appendTo(resolution);
+        const choice = $('<select class="form-select invoice-product-select"><option value=""></option></select>').appendTo(resolution)
+            .attr('aria-label', 'Choose product for invoice item ' + (index + 1));
+        const buttons = $('<div class="d-flex gap-2 mt-1"></div>').appendTo(resolution);
         $('<button type="button" class="btn btn-sm btn-outline-secondary invoice-recheck">Recheck</button>').appendTo(buttons);
         $('<button type="button" class="btn btn-sm btn-outline-primary invoice-new-product">New Product</button>').appendTo(buttons);
-        row.data('extracted-line', line).appendTo('#invoiceReviewLines');
-        choice.find('label').attr('for', 'invoice-product-' + index);
-        choice.find('select').attr('id', 'invoice-product-' + index).select2({
-            theme: 'bootstrap-5', width: '100%', allowClear: true, placeholder: 'Choose match or search product', minimumInputLength: 0,
+        $('<button type="button" class="btn btn-sm btn-link invoice-change-product">Change product</button>').appendTo(buttons)
+            .on('click', function () { row.toggleClass('invoice-editing'); });
+        choice.select2({
+            theme: 'bootstrap-5', width: '100%', allowClear: true, placeholder: 'Choose or search product', minimumInputLength: 0,
             ajax: {url: '/purchase-orders/product-search', dataType: 'json', delay: 300,
                 data: params => ({keyword: params.term || ''}),
                 transport: function (params, success, failure) {
@@ -108,26 +95,30 @@ $(function () {
                 processResults: items => ({results: items && items.local ?
                     choice.find('option').filter(function () { return !!this.value; }).map(function () { return {id: this.value, text: this.text}; }).get() : items || []})}
         });
-        choice.find('select').on('change', function () { setRowStatus(row, this.value ? 'Product selected' : 'Choose product', !!this.value); $('#invoiceReviewed').prop('checked', false); });
-        row.on('input', '[data-invoice-field]', function () {
-            $('#invoiceReviewed').prop('checked', false);
-            if (['name', 'partNumber', 'sku', 'brand'].includes($(this).data('invoice-field'))) {
-                choice.find('select').empty().append(new Option('', '')).val(null).trigger('change');
-                setRowStatus(row, 'Changed - recheck match', false);
+        choice.on('change', function () {
+            const selected = choice.select2('data')[0];
+            row.removeClass('invoice-editing');
+            row.find('.line-product-id').val(selected && selected.id ? selected.id : '');
+            if (selected && selected.id) {
+                row.find('.product-label').text(selected.text);
+                row.find('.line-product-text').val(selected.text);
             }
-            totals();
+            setRowStatus(row, this.value ? 'Product selected' : 'Choose product', !!this.value);
+            $('#invoiceReviewed').prop('checked', false);
+            $(document).trigger('purchase:refresh-lines');
         });
-        row.on('change', '.invoice-include', function () { $('#invoiceReviewed').prop('checked', false); totals(); });
         row.find('.invoice-recheck').on('click', () => matchRows([row]));
         row.find('.invoice-new-product').on('click', () => openProduct(row));
-        return row;
+        if (row.find('.line-tax-percent').val() === '') {
+            row.addClass('is-expanded').find('.line-options-toggle').attr('aria-expanded', 'true').text('Hide details');
+        }
     }
     async function matchRows(targets) {
         if (working || !targets.length) return;
         targets = targets.filter(row => {
             const values = query(row);
             const valid = Object.entries(values).every(([key, value]) => value.length <= (key === 'name' ? 200 : 100));
-            if (!valid) setRowStatus(row, 'Text too long - correct fields and recheck', false);
+            if (!valid) setRowStatus(row, 'Search or create product to resolve this item', false);
             return valid;
         });
         if (!targets.length) return;
@@ -139,40 +130,97 @@ $(function () {
                 const row = targets[index];
                 if (!row.closest(document.documentElement).length || JSON.stringify(query(row)) !== JSON.stringify(queries[index])) return;
                 const select = row.find('.invoice-product-select').empty().append(new Option('', ''));
-                match.candidates.forEach(candidate => select.append(new Option(candidate.text + ' (' + candidate.reason + ')', candidate.id)));
+                match.candidates.forEach(candidate => select.append(new Option(candidate.text, candidate.id)));
                 if (match.status === 'MATCHED') {
                     select.val(String(match.candidates[0].id)).trigger('change');
                     setRowStatus(row, 'Matched - ' + match.candidates[0].reason, true);
                 } else {
                     select.val(null).trigger('change');
-                    setRowStatus(row, match.status === 'NOT_FOUND' ? 'Not found - search or create' : 'Multiple / possible match - choose product', false);
+                    setRowStatus(row, match.status === 'NOT_FOUND' ? 'Not found - search or create' :
+                        (match.candidates.length === 1 ? 'Name suggestion - confirm product' : 'Possible matches - choose product / brand'), false);
                 }
             });
-        } catch (error) { message(error.message, true); }
+        } catch (error) {
+            targets.forEach(row => {
+                if (!row.find('.line-product-id').val()) setRowStatus(row, 'Match unavailable - search or recheck', false);
+            });
+            message(error.message, true);
+        }
         finally { busy(false); }
     }
+    function suggestSupplier(name) {
+        const normalized = window.normalizePurchaseSupplierName(name);
+        const matches = $('#supplierId option').filter(function () {
+            return this.value && normalized && window.normalizePurchaseSupplierName(this.text) === normalized;
+        });
+        $('#invoiceSupplierSuggestion').prop('hidden', matches.length === 1);
+        $('#invoiceSupplierMatchMessage').text(matches.length > 1 ? 'Multiple suppliers match; select the correct one:' : 'Supplier not found:');
+        $('#invoiceAddSuggestedSupplier').prop('hidden', matches.length > 1);
+        if (matches.length === 1) {
+            $('#supplierId').val(matches.val()).trigger('change.select2');
+        } else {
+            $('#supplierId').val(null).trigger('change.select2');
+            $('#invoiceSuggestedSupplierName').text(name || 'Supplier name was not readable');
+            $('#quickSupplierName').val(name || '');
+        }
+    }
+    const supplierFields = {
+        Name: 'supplierName', ContactPerson: 'supplierContactPerson', Phone: 'supplierPhone',
+        Email: 'supplierEmail', Address: 'supplierAddress', TrnNumber: 'supplierTrnNumber'
+    };
+    function prefillSupplier(onlyEmpty) {
+        if (!invoiceData) return;
+        Object.entries(supplierFields).forEach(([field, source]) => {
+            const input = $('#quickSupplier' + (field === 'TrnNumber' ? 'Trn' : field));
+            if (!onlyEmpty || !input.val()) input.val(invoiceData[source] || '');
+        });
+    }
     async function review(data, demo) {
+        const manualRows = $('#purchaseLines tr').not('[data-invoice-source]');
+        const supplierName = (data.supplierName || '').trim();
+        const currentSupplier = $('#supplierId option:selected').text().trim();
+        const invoiceId = (data.invoiceId || '').trim();
+        const currentId = $('#invoiceId').val().trim();
+        if (manualRows.length) {
+            if ((currentId && invoiceId && currentId !== invoiceId) ||
+                ($('#supplierId').val() && supplierName && window.normalizePurchaseSupplierName(currentSupplier) !== window.normalizePurchaseSupplierName(supplierName))) {
+                throw new Error('This PO already contains items for another invoice or supplier. Start a new PO before extracting this invoice.');
+            }
+            if (!confirm('Keep the existing ' + manualRows.length + ' items and add the extracted items? Check that these are not duplicate invoice lines.')) return;
+        }
         destroyRows();
-        $('#extractedSupplier').val(data.supplierName || '');
-        $('#extractedInvoiceId').val(data.invoiceId || '');
-        $('#extractedDate').val(data.purchaseDate || '');
-        $('#extractedTotal').val(data.total == null ? '' : data.total);
+        invoiceData = data;
+        Object.entries(supplierFields).forEach(([field, source]) => {
+            $('#invoiceSupplier' + field).val(data[source] || '');
+            $('#invoiceSupplierDisplay' + field).text(data[source] || '-');
+        });
+        $('#invoiceSupplierSnapshot').prop('hidden', !data.supplierName);
+        $('#invoiceId').val(invoiceId);
+        $(document).trigger('purchase:set-date', [data.purchaseDate || '']);
+        suggestSupplier(supplierName);
         const warnings = (data.warnings || []).slice();
         if (data.currency) warnings.push('Invoice currency: ' + data.currency + '. Verify this is the currency used by your PO.');
+        if (demo) warnings.unshift('SAMPLE DEMO: these are fixed sample values, not information read from your image.');
         $('#invoiceWarnings').empty();
         warnings.forEach(warning => $('<li></li>').text(warning).appendTo('#invoiceWarnings'));
         $('#invoiceWarningSummary').text('Review extraction warnings (' + warnings.length + ')');
         $('#invoiceWarningDetails').prop('hidden', !warnings.length);
-        rows = (data.lines || []).map(renderLine);
+        const batch = {lines: data.lines || [], rows: []};
+        $(document).trigger('purchase:load-extracted', [batch]);
+        rows = batch.rows;
+        rows.forEach(renderLine);
         $('#invoiceReview').prop('hidden', false);
         $('#invoiceReviewed').prop('checked', false);
-        message(demo ? 'SAMPLE DEMO: fixed example data, not information extracted from your image. No AI request was made.' : 'Extraction ready. Review every field and resolve products before adding to the PO.');
+        message(demo ? 'SAMPLE DEMO filled into the PO. Review the sample supplier and items below.' :
+            'Invoice details and items filled into the purchase form. Review products and amounts, then save.');
         totals();
-        await matchRows(rows);
+        await matchRows(liveRows());
+        document.getElementById('purchaseForm').scrollIntoView({behavior: 'smooth', block: 'start'});
     }
     async function optimize(file) {
         if (!['image/jpeg', 'image/png'].includes(file.type)) throw new Error('Choose a JPEG or PNG image. Export HEIC images as JPEG first.');
         if (file.size > 20 * 1024 * 1024) throw new Error('Photo is too large. Choose an image below 20 MB before optimization.');
+        if (typeof window.createImageBitmap !== 'function') throw new Error('This browser cannot prepare the image. Use an up-to-date Chrome browser.');
         const bitmap = await createImageBitmap(file);
         try {
             const ratio = Math.min(1, 2200 / Math.max(bitmap.width, bitmap.height));
@@ -229,59 +277,30 @@ $(function () {
         catch (error) { message(error.message, true); }
         finally { busy(false); }
     });
-    $('#invoiceMatchAll').on('click', () => matchRows(rows));
-    $('#extractedTotal').on('input', totals);
-    $('#extractedSupplier, #extractedInvoiceId, #extractedDate, #extractedTotal').on('input', () => $('#invoiceReviewed').prop('checked', false));
-    $('#invoiceDiscard').on('click', () => {
-        if (confirm('Discard the extracted review? Products and items already saved or added will remain.')) {
-            destroyRows(); $('#invoiceReview').prop('hidden', true); message('Review discarded.');
-        }
+    $('#invoiceMatchAll').on('click', () => matchRows(liveRows().filter(row => !row.find('.line-product-id').val())));
+    $('#invoiceId, #purchaseDate, #storeId').on('input change', () => $('#invoiceReviewed').prop('checked', false));
+    $(document).on('purchase:totals-updated', totals);
+    $('#purchaseLines').on('input change', 'input', function () {
+        $('#invoiceReviewed').prop('checked', false);
     });
-    $('#invoiceApply').on('click', function () {
-        try {
-            if (working) return;
-            if (!$('#invoiceReviewed').is(':checked')) throw new Error('Check the invoice and tick the review confirmation first.');
-            if (!$('#storeId').val()) throw new Error('Select the warehouse before adding invoice items.');
-            const lines = rows.filter(row => row.find('.invoice-include').is(':checked')).map((row, index) => {
-                const selected = row.find('.invoice-product-select').select2('data')[0];
-                const quantity = number(row.find('[data-invoice-field="quantity"]'));
-                const unitPrice = number(row.find('[data-invoice-field="unitPrice"]'));
-                const taxPercent = number(row.find('[data-invoice-field="taxPercent"]'));
-                if (!selected || !selected.id) throw new Error('Select or create a product for included item ' + (index + 1) + '.');
-                if (!Number.isSafeInteger(quantity) || quantity < 1) throw new Error('Quantity must be a whole number greater than zero for item ' + (index + 1) + '.');
-                if (unitPrice == null || !Number.isFinite(unitPrice) || unitPrice <= 0) throw new Error('Enter a unit price greater than zero for item ' + (index + 1) + '.');
-                if (taxPercent == null || !Number.isFinite(taxPercent) || taxPercent < 0 || taxPercent > 100) throw new Error('Enter tax between 0 and 100 for item ' + (index + 1) + '.');
-                if ([unitPrice, taxPercent].some(value => Math.abs(value * 100 - Math.round(value * 100)) > 0.000001)) throw new Error('Unit price and tax must have at most 2 decimals for item ' + (index + 1) + '.');
-                return {product: {id: selected.id, text: selected.text}, quantity, unitPrice, taxPercent, supplierProductCode: lineValue(row, 'supplierProductCode')};
-            });
-            if (!lines.length) throw new Error('Include at least one invoice item.');
-            const existingCount = $('#purchaseLines tr').filter(function () { return !!$(this).find('.line-product-id').val(); }).length;
-            if ($('#invoiceApplyHeader').is(':checked')) {
-                const supplierName = $('#extractedSupplier').val().trim().toLowerCase();
-                const supplier = $('#supplierId option').filter(function () { return this.value && this.text.trim().toLowerCase() === supplierName; });
-                if (supplier.length !== 1) {
-                    $('#quickSupplierName').val($('#extractedSupplier').val().trim());
-                    throw new Error('The supplier name does not match one existing supplier. Use Add Supplier, or select the supplier manually and untick Apply reviewed supplier, date and invoice ID.');
-                }
-                const invoiceId = $('#extractedInvoiceId').val().trim();
-                const date = $('#extractedDate').val();
-                if (!invoiceId || !date) throw new Error('Review the invoice ID and date, or untick Apply reviewed supplier, date and invoice ID.');
-                if (existingCount && (String($('#supplierId').val()) !== String(supplier.val()) ||
-                    ($('#invoiceId').val().trim() && $('#invoiceId').val().trim() !== invoiceId))) {
-                    throw new Error('This PO already has items for another supplier or invoice. Start a new PO to import this invoice.');
-                }
-                if (existingCount && !confirm('This PO already has ' + existingCount + ' items. Add ' + lines.length + ' more? Check for duplicates: saving will increase stock for every added row.')) return;
-                // Trigger supplier change before importing so historical mapping cannot overwrite extracted prices/codes.
-                if (String($('#supplierId').val()) !== String(supplier.val())) $('#supplierId').val(supplier.val()).trigger('change');
-                $('#invoiceId').val(invoiceId); $('#purchaseDate').val(date);
-            } else {
-                if (!$('#supplierId').val()) throw new Error('Select a supplier before adding the invoice items.');
-                if (existingCount && !confirm('Add ' + lines.length + ' invoice items to this PO, which already has ' + existingCount + ' items? Confirm these belong to the same invoice and are not duplicates.')) return;
-            }
-            $(document).trigger('purchase:import-invoice', [lines]);
-            destroyRows(); $('#invoiceReview').prop('hidden', true);
-            message(lines.length + ' reviewed items added to the PO. Check totals, then Save & Update Stock.');
-        } catch (error) { message(error.message, true); }
+    $('#supplierId').on('change', function () {
+        if (this.value) $('#invoiceSupplierSuggestion').prop('hidden', true);
+        $('#invoiceReviewed').prop('checked', false);
+    });
+    $(document).on('purchase:supplier-created', function () {
+        $('#invoiceSupplierSuggestion').prop('hidden', true);
+    });
+    $('#invoiceAddSuggestedSupplier').on('click', function () {
+        prefillSupplier(false);
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('supplierQuickModal')).show();
+    });
+    $('#supplierQuickModal').on('show.bs.modal', function () { prefillSupplier(true); });
+    $('#invoiceDiscard').on('click', () => {
+        if (confirm('Remove the extracted items from this PO? Manually added items and catalog records will remain.')) {
+            destroyRows();
+            $('#invoiceReview, #invoiceSupplierSuggestion').prop('hidden', true);
+            message('Extracted items removed. Check the invoice details before saving.');
+        }
     });
 
     function populate(select, items, chosenName) {
@@ -339,10 +358,10 @@ $(function () {
     });
     $('#invoiceProductPart').on('input', function () { this.value = this.value.replace(/\s+/g, ''); });
     $('#purchaseForm').on('submit', function (event) {
-        if (working || (!$('#invoiceReview').prop('hidden') && rows.length)) {
+        if (working || (liveRows().length && !$('#invoiceReviewed').is(':checked'))) {
             event.preventDefault();
-            message('Finish adding the reviewed invoice items, or discard the review before saving the PO.', true);
-            document.getElementById('invoiceImportCard').scrollIntoView({behavior: 'smooth', block: 'start'});
+            $('#purchaseFormError').text('Review the extracted items and tick the invoice review confirmation before saving.').removeClass('d-none');
+            document.getElementById('purchaseForm').scrollIntoView({behavior: 'smooth', block: 'start'});
         }
     });
     $('#invoiceNewProductForm').on('submit', async function (event) {
@@ -365,7 +384,7 @@ $(function () {
             productRow.find('.invoice-product-select').append(new Option(product.text, product.id, true, true)).trigger('change');
             setRowStatus(productRow, 'New product created', true);
             modalBusy = false; productModal.hide();
-            message('Product created and selected. Review remaining invoice items before adding them to the PO.');
+            message('Product created and selected in the purchase items table. Review the remaining items before saving.');
         } catch (error) { productMessage(error.message); }
         finally { modalBusy = false; $('#invoiceNewProductForm button').prop('disabled', false); }
     });

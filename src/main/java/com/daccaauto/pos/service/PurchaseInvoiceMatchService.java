@@ -40,7 +40,14 @@ public class PurchaseInvoiceMatchService {
         }
         var names = new LinkedHashMap<Long, Candidate>();
         if (query.name() != null && !query.name().isBlank()) {
-            add(names, products.matchInvoiceName(query.name().strip().toLowerCase(Locale.ROOT), brand, page), query.brand(), "Name - confirm product");
+            String name = query.name().strip().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+            add(names, products.matchInvoiceName(name, brand, page), query.brand(), "Name (category prefix ignored) - confirm product");
+            if (names.isEmpty()) {
+                String pattern = descriptionPattern(name);
+                if (pattern != null) {
+                    add(names, products.matchInvoiceDescription(pattern, brand, page), query.brand(), "Similar description - confirm product");
+                }
+            }
         }
         return new Match(names.isEmpty() ? "NOT_FOUND" : "CHOOSE_PRODUCT", new ArrayList<>(names.values()));
     }
@@ -52,6 +59,15 @@ public class PurchaseInvoiceMatchService {
 
     static String normalizePart(String value) {
         return value == null ? "" : value.replaceAll("[\\s\\-_/\\.]", "").toUpperCase(Locale.ROOT);
+    }
+
+    static String descriptionPattern(String value) {
+        String normalized = java.text.Normalizer.normalize(value, java.text.Normalizer.Form.NFKC)
+            .toLowerCase(Locale.ROOT).replaceAll("[^\\p{L}\\p{N}]+", " ").strip();
+        if (normalized.length() < 3) return null;
+        String[] words = normalized.split("\\s+");
+        if (words.length > 12) return null;
+        return "%" + String.join("%", words) + "%";
     }
 
     private String label(ProductEntity p) {

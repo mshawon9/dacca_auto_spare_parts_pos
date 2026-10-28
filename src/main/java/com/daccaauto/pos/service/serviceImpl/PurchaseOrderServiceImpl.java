@@ -54,6 +54,8 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         order.setPurchaseDate(request.getPurchaseDate());
         order.setInvoiceId(invoiceId);
 
+        copyInvoiceSupplier(request, order);
+
         applyLines(order, supplier, store, validateLines(request.getLines()), invoiceId);
 
         PurchaseOrderEntity saved = purchaseOrderRepository.save(order);
@@ -87,6 +89,7 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         order.setPurchaseDate(request.getPurchaseDate());
         order.setInvoiceId(invoiceId);
         order.setTotal(BigDecimal.ZERO.setScale(PRICE_SCALE));
+        copyInvoiceSupplier(request, order);
 
         applyLines(order, supplier, store, newLines, invoiceId);
         PurchaseOrderEntity saved = purchaseOrderRepository.save(order);
@@ -114,6 +117,12 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         form.setStoreId(order.getStore().getId());
         form.setPurchaseDate(order.getPurchaseDate());
         form.setInvoiceId(order.getInvoiceId());
+        form.setInvoiceSupplierName(order.getInvoiceSupplierName());
+        form.setInvoiceSupplierContactPerson(order.getInvoiceSupplierContactPerson());
+        form.setInvoiceSupplierPhone(order.getInvoiceSupplierPhone());
+        form.setInvoiceSupplierEmail(order.getInvoiceSupplierEmail());
+        form.setInvoiceSupplierAddress(order.getInvoiceSupplierAddress());
+        form.setInvoiceSupplierTrnNumber(order.getInvoiceSupplierTrnNumber());
         List<PurchaseOrderRequest.Line> lines = new ArrayList<>();
         for (PurchaseOrderLineEntity line : order.getLines()) {
             PurchaseOrderRequest.Line requestLine = new PurchaseOrderRequest.Line();
@@ -157,6 +166,16 @@ public class PurchaseOrderServiceImpl implements PurchaseOrderService {
         line.setReturnedQuantity(returned.add(quantity));
         purchaseOrderLineRepository.save(line);
         orderTodoService.cleanupForProduct(line.getProduct().getId());
+    }
+
+    private void copyInvoiceSupplier(PurchaseOrderRequest request, PurchaseOrderEntity order) {
+        // Preserve the invoice's seller information independently of the supplier master.
+        order.setInvoiceSupplierName(trimToNull(request.getInvoiceSupplierName()));
+        order.setInvoiceSupplierContactPerson(trimToNull(request.getInvoiceSupplierContactPerson()));
+        order.setInvoiceSupplierPhone(trimToNull(request.getInvoiceSupplierPhone()));
+        order.setInvoiceSupplierEmail(trimToNull(request.getInvoiceSupplierEmail()));
+        order.setInvoiceSupplierAddress(trimToNull(request.getInvoiceSupplierAddress()));
+        order.setInvoiceSupplierTrnNumber(trimToNull(request.getInvoiceSupplierTrnNumber()));
     }
 
     private void applyLines(PurchaseOrderEntity order,

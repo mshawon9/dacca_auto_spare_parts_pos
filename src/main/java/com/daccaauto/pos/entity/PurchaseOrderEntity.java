@@ -44,6 +44,25 @@ public class PurchaseOrderEntity extends BaseEntity {
     @Column(name = "invoice_id", nullable = false, length = 80)
     private String invoiceId;
 
+    @Size(max = 150)
+    @Column(name = "invoice_supplier_name", length = 150)
+    private String invoiceSupplierName;
+    @Size(max = 100)
+    @Column(name = "invoice_supplier_contact_person", length = 100)
+    private String invoiceSupplierContactPerson;
+    @Size(max = 30)
+    @Column(name = "invoice_supplier_phone", length = 30)
+    private String invoiceSupplierPhone;
+    @Size(max = 120)
+    @Column(name = "invoice_supplier_email", length = 120)
+    private String invoiceSupplierEmail;
+    @Size(max = 255)
+    @Column(name = "invoice_supplier_address", length = 255)
+    private String invoiceSupplierAddress;
+    @Size(max = 50)
+    @Column(name = "invoice_supplier_trn_number", length = 50)
+    private String invoiceSupplierTrnNumber;
+
     @NotNull
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal total = BigDecimal.ZERO;

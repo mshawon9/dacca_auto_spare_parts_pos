@@ -31,6 +31,19 @@ public class PurchaseOrderRequest {
     @Size(max = 80)
     private String invoiceId;
 
+    @Size(max = 150)
+    private String invoiceSupplierName;
+    @Size(max = 100)
+    private String invoiceSupplierContactPerson;
+    @Size(max = 30)
+    private String invoiceSupplierPhone;
+    @Size(max = 120)
+    private String invoiceSupplierEmail;
+    @Size(max = 255)
+    private String invoiceSupplierAddress;
+    @Size(max = 50)
+    private String invoiceSupplierTrnNumber;
+
     @Valid
     private List<Line> lines = new ArrayList<>();
 

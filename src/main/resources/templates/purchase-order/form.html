@@ -34,7 +34,7 @@
                     <span th:text="${successMessage}"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
-                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show">
+                <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show purchase-server-error">
                     <span th:text="${errorMessage}"></span>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
@@ -50,6 +50,12 @@
                 </div>
 
                 <form th:action="${formAction}" method="post" th:object="${form}" id="purchaseForm">
+                    <input type="hidden" th:field="*{invoiceSupplierName}">
+                    <input type="hidden" th:field="*{invoiceSupplierContactPerson}">
+                    <input type="hidden" th:field="*{invoiceSupplierPhone}">
+                    <input type="hidden" th:field="*{invoiceSupplierEmail}">
+                    <input type="hidden" th:field="*{invoiceSupplierAddress}">
+                    <input type="hidden" th:field="*{invoiceSupplierTrnNumber}">
                     <input type="hidden" th:field="*{id}">
                     <div class="card mb-3">
                         <div class="card-header">
@@ -72,6 +78,11 @@
                                             Add
                                         </button>
                                     </div>
+                                    <div id="invoiceSupplierSuggestion" class="alert alert-warning small mt-2 mb-0" role="status" hidden>
+                                        <span id="invoiceSupplierMatchMessage">Supplier not found:</span> <strong id="invoiceSuggestedSupplierName"></strong>.
+                                        <button type="button" id="invoiceAddSuggestedSupplier" class="btn btn-sm btn-outline-primary mt-1">Add Supplier</button>
+                                        <div class="mt-1">Or select an existing supplier above.</div>
+                                    </div>
                                 </div>
                                 <div class="col-12 col-md-6 col-lg-3">
                                     <label for="storeId" class="form-label">Warehouse <span class="text-danger">*</span></label>
@@ -84,7 +95,12 @@
                                 </div>
                                 <div class="col-6 col-md-6 col-lg-2">
                                     <label for="purchaseDate" class="form-label">Date <span class="text-danger">*</span></label>
-                                    <input type="date" id="purchaseDate" th:field="*{purchaseDate}" class="form-control" required>
+                                    <input type="text" id="purchaseDate" class="form-control" required
+                                           placeholder="DD-MM-YYYY" inputmode="numeric" maxlength="10" autocomplete="off"
+                                           pattern="[0-9]{2}-[0-9]{2}-[0-9]{4}" aria-describedby="purchaseDateHint"
+                                           th:value="${form.purchaseDate != null ? #temporals.format(form.purchaseDate, 'dd-MM-yyyy') : ''}">
+                                    <input type="hidden" id="purchaseDateIso" name="purchaseDate" th:value="*{purchaseDate}">
+                                    <span id="purchaseDateHint" class="visually-hidden">Enter a valid date as DD-MM-YYYY.</span>
                                 </div>
                                 <div class="col-6 col-md-6 col-lg-3">
                                     <label for="invoiceId" class="form-label">Invoice ID <span class="text-danger">*</span></label>
@@ -95,6 +111,32 @@
                         </div>
                     </div>
 
+                    <div id="purchaseFormError" class="alert alert-danger d-none" role="alert"></div>
+                    <details id="invoiceSupplierSnapshot" class="small mb-3" th:hidden="${form.invoiceSupplierName == null}">
+                        <summary>Supplier details from invoice</summary>
+                        <dl class="row mb-0 mt-2">
+                            <dt class="col-4">Name</dt><dd class="col-8" id="invoiceSupplierDisplayName" th:text="*{invoiceSupplierName}"></dd>
+                            <dt class="col-4">Contact</dt><dd class="col-8" id="invoiceSupplierDisplayContactPerson" th:text="*{invoiceSupplierContactPerson}"></dd>
+                            <dt class="col-4">Phone</dt><dd class="col-8" id="invoiceSupplierDisplayPhone" th:text="*{invoiceSupplierPhone}"></dd>
+                            <dt class="col-4">Email</dt><dd class="col-8" id="invoiceSupplierDisplayEmail" th:text="*{invoiceSupplierEmail}"></dd>
+                            <dt class="col-4">Address</dt><dd class="col-8" id="invoiceSupplierDisplayAddress" th:text="*{invoiceSupplierAddress}"></dd>
+                            <dt class="col-4">TRN</dt><dd class="col-8" id="invoiceSupplierDisplayTrnNumber" th:text="*{invoiceSupplierTrnNumber}"></dd>
+                        </dl>
+                        <div class="text-muted">Saved with this purchase order. Existing supplier records are not overwritten.</div>
+                    </details>
+                    <section id="invoiceReview" class="alert alert-info mb-3" aria-label="Extracted invoice status" hidden>
+                        <div class="d-flex flex-wrap justify-content-between gap-2 align-items-center">
+                            <strong>Invoice filled into this purchase order</strong>
+                            <div class="d-flex gap-2">
+                                <button type="button" id="invoiceMatchAll" class="btn btn-sm btn-outline-primary">Recheck Unmatched</button>
+                                <button type="button" id="invoiceDiscard" class="btn btn-sm btn-outline-secondary">Remove Extracted Items</button>
+                            </div>
+                        </div>
+                        <div class="small my-2">Review the invoice details and items below. Stock changes only when you save.</div>
+                        <details id="invoiceWarningDetails" class="small mb-2" hidden><summary id="invoiceWarningSummary">Extraction warnings</summary><ul id="invoiceWarnings" class="mb-0"></ul></details>
+                        <div id="invoiceTotalCheck" class="small mb-2" aria-live="polite"></div>
+                        <label class="form-check mb-0"><input id="invoiceReviewed" type="checkbox" class="form-check-input"><span class="form-check-label">I checked the invoice, products, quantities, prices and VAT</span></label>
+                    </section>
                     <div class="card purchase-items-card">
                         <div class="purchase-item-toolbar">
                         <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
@@ -263,11 +305,13 @@
     </div>
 </div>
 
-<div th:replace="fragments/commonscripts :: commonscripts"/>
+<div th:replace="fragments/commonscripts :: commonscripts"></div>
 <script src="/resources/js/select2.min.js"></script>
 <div id="purchaseOrderPageData" class="d-none" th:attr="data-default-tax-percent=${defaultTaxPercent},data-ai-timeout-seconds=${invoiceAiTimeoutSeconds}"></div>
+<script src="/resources/js/purchase-date.js"></script>
 <script src="/resources/js/purchase-order-form.js"></script>
 <script src="/resources/js/qrcode.min.js"></script>
+<script src="/resources/js/purchase-supplier.js"></script>
 <script src="/resources/js/purchase-invoice-import.js"></script>
 </body>
 </html>

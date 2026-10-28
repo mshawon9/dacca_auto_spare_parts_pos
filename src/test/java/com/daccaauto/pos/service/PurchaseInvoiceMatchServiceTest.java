@@ -50,6 +50,32 @@ class PurchaseInvoiceMatchServiceTest {
         assertEquals("CHOOSE_PRODUCT", match.status());
     }
 
+    @Test void categoryPrefixedNameCanBeOfferedWithoutAnyIdentifiers() {
+        var prefixed = product(1, "BOSCH");
+        prefixed.setName("Filters Oil Filter");
+        var match = service(Map.of("matchInvoiceName", List.of(prefixed)))
+            .match(new PurchaseInvoiceMatchService.Query("Oil Filter", null, null, null));
+        assertEquals("CHOOSE_PRODUCT", match.status());
+        assertEquals(1L, match.candidates().getFirst().id());
+        assertTrue(match.candidates().getFirst().reason().contains("category prefix ignored"));
+    }
+
+    @Test void similarDescriptionsAreSuggestionsAndRespectBrand() {
+        var finder = service(Map.of("matchInvoiceDescription", List.of(product(1, "BOSCH"), product(2, "KYB"))));
+        var match = finder.match(new PurchaseInvoiceMatchService.Query("Brake-Pad", null, null, null));
+        assertEquals("CHOOSE_PRODUCT", match.status());
+        assertEquals(2, match.candidates().size());
+        assertTrue(match.candidates().getFirst().reason().contains("Similar description"));
+        assertEquals(1, finder.match(new PurchaseInvoiceMatchService.Query("Brake-Pad", null, null, "BOSCH")).candidates().size());
+    }
+
+    @Test void descriptionTokensDoNotBecomeSqlWildcards() {
+        assertEquals("%oil%filter%", PurchaseInvoiceMatchService.descriptionPattern(" Oil--FILTER "));
+        assertEquals("%oil%filter%", PurchaseInvoiceMatchService.descriptionPattern("oil%_filter"));
+        assertNull(PurchaseInvoiceMatchService.descriptionPattern("%__"));
+        assertNull(PurchaseInvoiceMatchService.descriptionPattern("ab"));
+    }
+
     @Test void conflictingIdentifiersAreNotAutomaticallySelected() {
         var match = service(Map.of("matchInvoicePart", List.of(product(1, "KYB")), "matchInvoiceSku", List.of(product(2, "KYB"))))
             .match(new PurchaseInvoiceMatchService.Query(null, "AB-123", "SKU-2", null));

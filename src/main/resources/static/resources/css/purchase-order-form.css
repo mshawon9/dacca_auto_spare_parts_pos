@@ -32,8 +32,15 @@
     min-height: 240px;
     overflow: auto;
     scrollbar-gutter: stable;
-    overscroll-behavior: contain;
+    /* Continue scrolling the page when the items reach either edge. */
+    overscroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--bs-border-color) transparent;
 }
+.purchase-entry-page .purchase-lines-wrapper::-webkit-scrollbar { width: 8px; height: 8px; }
+.purchase-entry-page .purchase-lines-wrapper::-webkit-scrollbar-thumb { background: var(--bs-border-color); border-radius: 8px; }
+.purchase-entry-page .purchase-lines-wrapper::-webkit-scrollbar-track { background: transparent; }
 .purchase-entry-page #purchaseLineTable thead { position: sticky; top: 0; z-index: 1; }
 .purchase-entry-page #purchaseLineTable th { font-size: .75rem; color: var(--bs-secondary-color); padding-top: .85rem; padding-bottom: .85rem; }
 .purchase-entry-page #purchaseLineTable td { padding-top: .8rem; padding-bottom: .8rem; }
@@ -75,7 +82,7 @@
     .purchase-entry-page .purchase-quick-row .form-control { min-height: 42px; font-size: 16px; }
     .purchase-entry-page #addSelectedProductButton { min-height: 42px; font-size: .875rem; padding-left: .5rem; padding-right: .5rem; }
     .purchase-entry-page #addSelectedProductButton i { display: none; }
-    .purchase-entry-page .purchase-lines-wrapper { min-height: 220px; max-height: 52svh; background: var(--bs-tertiary-bg); }
+    .purchase-entry-page .purchase-lines-wrapper { min-height: 220px; max-height: 52svh; background: var(--bs-tertiary-bg); scrollbar-gutter: auto; }
     .purchase-entry-page #purchaseLineTable,
     .purchase-entry-page #purchaseLineTable tbody { display: block; width: 100%; }
     .purchase-entry-page #purchaseLineTable colgroup,
@@ -132,3 +139,11 @@
 .purchase-entry-page #purchaseLineTable .remove-line { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; }
 .purchase-entry-page .purchase-supplier-group .select2-container { flex: 1 1 auto; width: 1% !important; }
 .purchase-entry-page .purchase-supplier-group .select2-selection { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.purchase-entry-page .invoice-line-resolution .select2-container { max-width: 100%; }
+.purchase-entry-page .invoice-line-resolution .select2-selection__rendered { font-size: .75rem; }
+.purchase-entry-page .invoice-line-resolution .btn { font-size: .7rem; }
+.purchase-entry-page .invoice-change-product { display: none; padding: 0; }
+.purchase-entry-page .invoice-resolved .invoice-change-product { display: inline-block; }
+.purchase-entry-page .invoice-resolved:not(.invoice-editing) .invoice-line-resolution .select2-container,
+.purchase-entry-page .invoice-resolved:not(.invoice-editing) .invoice-recheck,
+.purchase-entry-page .invoice-resolved:not(.invoice-editing) .invoice-new-product { display: none; }

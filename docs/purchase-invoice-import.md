@@ -17,11 +17,21 @@ page; extraction is capped at 100 product lines. Multi-page/PDF import is not
 included. Images are not saved to disk. Phone uploads are temporarily held in
 memory until received/disconnected/expired or the server restarts.
 
-Review supplier, invoice ID, date, currency, printed total, and each product line.
-Edit uncertain fields and recheck matching as needed. A unique part-number or SKU
+Extraction fills the existing PO supplier, invoice ID and date fields directly,
+and puts every extracted item in the normal Purchase Items table, including
+quantities, unit prices and VAT. Select the warehouse manually. Unknown suppliers
+show an Add Supplier suggestion with the extracted name prefilled. Review the
+currency/printed-total warnings and correct values in the normal form.
+A unique part-number or SKU
 match may be selected automatically; brand disambiguates shared part numbers.
 Name-only, conflicting identifiers, and multiple-brand matches require a choice.
-You can also search for a product or uncheck a line to exclude it.
+Name matching checks the stored name and the name with its category prefix
+removed. If those do not match, ordered description words provide suggestions.
+Supplier invoices do not need a SKU, barcode or part number for these name
+suggestions. They still require confirmation to avoid choosing a wrong brand.
+Unmatched items remain visible and must be resolved with product search or
+New Product before saving. Remove a row with its normal delete button to exclude
+it. Matched rows show a compact status; Change product reveals the selector.
 
 New Product opens a prefilled modal. Choose or create category and brand inside
 the same modal. Creating a product links its brand/category and creates its
@@ -37,12 +47,13 @@ before saving. Differences between selected-line and printed totals are shown.
 Prices and tax must have at most two decimal places; quantities must be positive
 whole numbers. Unknown tax is left blank, never silently assumed to be 5%.
 
-Tick the review confirmation and Add Reviewed Items to PO. The import appends
-items without replacing existing rows. The reviewed header is applied only when
-its checkbox is selected; unmatched suppliers can be added with the existing
-Add Supplier modal. The normal Save & Update Stock action remains responsible
+Tick the invoice review confirmation, then use the normal Save & Update Stock.
+There is no separate copy/apply step. Re-extraction replaces only the earlier
+extracted rows, preserving manual rows after confirmation. Conflicting invoice
+or supplier headers are blocked when manual/saved lines already exist. Missing
+products and invalid amounts block submission. The normal save remains responsible
 for PO persistence, supplier-product mapping, stock adjustments, cost and history.
-Re-extracting a photo does not update existing products, costs, or quantities.
+Re-extraction changes only the form; database stock/cost changes occur on PO save.
 
 ## Configuration and demo
 

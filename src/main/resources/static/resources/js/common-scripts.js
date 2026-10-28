@@ -13,10 +13,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (
         sidebarWrapper &&
-        OverlayScrollbarsGlobal?.OverlayScrollbars !== undefined &&
+        window.OverlayScrollbarsGlobal?.OverlayScrollbars !== undefined &&
         !isMobile
     ) {
-        OverlayScrollbarsGlobal.OverlayScrollbars(sidebarWrapper, {
+        window.OverlayScrollbarsGlobal.OverlayScrollbars(sidebarWrapper, {
             scrollbars: {
                 theme: Default.scrollbarTheme,
                 autoHide: Default.scrollbarAutoHide,

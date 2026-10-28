@@ -21,8 +21,23 @@ public interface ProductRepository extends JpaRepository<ProductEntity, Long> {
     @Query("select p from ProductEntity p join fetch p.brand b where p.active = true and lower(p.sku) = :sku and (:brand is null or lower(b.name) = :brand) order by p.id")
     List<ProductEntity> matchInvoiceSku(String sku, String brand, Pageable pageable);
 
-    @Query("select p from ProductEntity p join fetch p.brand b where p.active = true and lower(p.name) = :name and (:brand is null or lower(b.name) = :brand) order by p.id")
+    @Query("""
+        select p from ProductEntity p join fetch p.brand b join fetch p.category c
+        where p.active = true and (:brand is null or lower(b.name) = :brand)
+          and (lower(trim(p.name)) = :name
+            or (lower(substring(p.name, 1, length(c.name) + 1)) = concat(lower(c.name), ' ')
+              and lower(trim(substring(p.name, length(c.name) + 2))) = :name))
+        order by p.id
+        """)
     List<ProductEntity> matchInvoiceName(String name, String brand, Pageable pageable);
+
+    @Query("""
+        select p from ProductEntity p join fetch p.brand b
+        where p.active = true and lower(p.name) like :pattern
+          and (:brand is null or lower(b.name) = :brand)
+        order by p.name, p.id
+        """)
+    List<ProductEntity> matchInvoiceDescription(String pattern, String brand, Pageable pageable);
 
     boolean existsByBrandIdAndNormalizedPartNumber(Long brandId, String normalizedPartNumber);
 

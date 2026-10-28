@@ -31,6 +31,8 @@ class PurchaseInvoiceAiServiceTest {
     private static String invoice(String lines) {
         return """
                 {"supplierName":"Supplier","invoiceId":"INV-1","purchaseDate":"2026-10-24",
+                 "supplierContactPerson":null,"supplierPhone":null,"supplierEmail":null,
+                 "supplierAddress":null,"supplierTrnNumber":null,
                  "currency":"AED","total":25.914,"lines":[%s],"warnings":[]}
                 """.formatted(lines);
     }
@@ -45,6 +47,23 @@ class PurchaseInvoiceAiServiceTest {
     }
     private static void status(HttpStatus status, org.junit.jupiter.api.function.Executable action) {
         assertEquals(status, assertThrows(ResponseStatusException.class, action).getStatusCode());
+    }
+
+    @Test void preservesSupplierNameAndContactDetailsForBothProviders() {
+        String json = invoice(LINE).replace("\"supplierName\":\"Supplier\"", "\"supplierName\":\"GWD L.L.C\"")
+                .replace("\"supplierContactPerson\":null", "\"supplierContactPerson\":\"Ali\"")
+                .replace("\"supplierPhone\":null", "\"supplierPhone\":\"+971501234567\"")
+                .replace("\"supplierEmail\":null", "\"supplierEmail\":\"sales@example.com\"")
+                .replace("\"supplierAddress\":null", "\"supplierAddress\":\"Dubai\"")
+                .replace("\"supplierTrnNumber\":null", "\"supplierTrnNumber\":\"123456789\"");
+        var result = service.parseResponse(envelope(json, "STOP"));
+        assertEquals("GWD L.L.C", result.supplierName());
+        assertEquals("Ali", result.supplierContactPerson());
+        assertEquals("+971501234567", result.supplierPhone());
+        assertEquals("sales@example.com", result.supplierEmail());
+        assertEquals("Dubai", result.supplierAddress());
+        assertEquals("123456789", result.supplierTrnNumber());
+        assertEquals(result, service.parseAnthropicResponse(anthropicEnvelope(json, "end_turn")));
     }
 
     @Test void demoIsExplicitAndNeverUsedForExtraction() {

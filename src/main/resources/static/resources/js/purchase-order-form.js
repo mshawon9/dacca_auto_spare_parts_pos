@@ -2,6 +2,26 @@ $(function () {
         let lineIndex = $('#purchaseLines tr').length;
         const supplierModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('supplierQuickModal'));
         const defaultTaxPercent = Number($('#purchaseOrderPageData').data('default-tax-percent') || 5);
+        const dateInput = document.getElementById('purchaseDate');
+
+        function syncPurchaseDate() {
+            const iso = PurchaseDate.toIso(dateInput.value);
+            $('#purchaseDateIso').val(iso);
+            dateInput.setCustomValidity(iso ? '' : 'Enter a valid date as DD-MM-YYYY.');
+            return !!iso;
+        }
+
+        $('#purchaseDate').on('input', function () {
+            const digits = this.value.replace(/\D/g, '').slice(0, 8);
+            if (this.value.length >= 2 && !this.value.includes('-') && digits.length === 8) {
+                this.value = digits.slice(0, 2) + '-' + digits.slice(2, 4) + '-' + digits.slice(4);
+            }
+            syncPurchaseDate();
+        }).on('change blur', syncPurchaseDate);
+        $(document).on('purchase:set-date', function (_, iso) {
+            $('#purchaseDate').val(PurchaseDate.fromIso(iso)).trigger('change');
+        });
+        syncPurchaseDate();
 
         $('#supplierId').select2({
             theme: 'bootstrap-5',
@@ -72,9 +92,10 @@ $(function () {
             $('#subTotal').text(money(subTotalAmount));
             $('#taxTotal').text(money(taxTotalAmount));
             $('#grandTotal').text(money(grandTotal));
-            const count = $('#purchaseLines .line-product-id').filter(function () { return !!this.value; }).length;
+            const count = $('#purchaseLines tr').length;
             $('#purchaseItemCount').text(count);
             $('#purchaseEmptyState').prop('hidden', count > 0);
+            $(document).trigger('purchase:totals-updated', [{total: grandTotal}]);
         }
 
         function calculateQuickTotal() {
@@ -132,11 +153,20 @@ $(function () {
             reindexLines();
             if (!imported) loadSupplierProduct(row);
             calculateTotals();
+            return row;
         }
 
         $(document).on('purchase:import-invoice', function (_, lines) {
             lines.slice().reverse().forEach(function (line) { addLine(line.product, line); });
         });
+
+        $(document).on('purchase:load-extracted', function (_, batch) {
+            batch.rows = batch.lines.slice().reverse().map(function (line) {
+                const text = [line.name || 'Unmatched invoice item', line.brand, line.partNumber].filter(Boolean).join(' | ');
+                return addLine({id: '', text: text}, line).attr('data-invoice-source', 'ai').data('extracted-line', line);
+            }).reverse();
+        });
+        $(document).on('purchase:refresh-lines', function () { reindexLines(); calculateTotals(); });
 
         function loadSupplierProduct(row, supplierChanged) {
             const supplierId = $('#supplierId').val();
@@ -161,7 +191,7 @@ $(function () {
 
         $('#supplierId').on('change', function () {
             $('#purchaseLines tr').each(function () {
-                loadSupplierProduct($(this), true);
+                if (!$(this).is('[data-invoice-source]')) loadSupplierProduct($(this), true);
             });
             if ($('#productSelect').val()) {
                 $('#quickUnitPrice').val('');
@@ -244,7 +274,45 @@ $(function () {
             }
         });
 
+        $('#purchaseForm').on('input change', 'input:not([type="hidden"]), select, textarea', function () {
+            $('#purchaseFormError').addClass('d-none').empty();
+            $('.purchase-server-error').filter(function () { return $(this).text().trim() === 'Please check purchase order details.'; }).addClass('d-none');
+            const valid = typeof this.checkValidity === 'function' && this.checkValidity();
+            $(this).removeClass('is-invalid').toggleClass('is-valid', valid && !!$(this).val())
+                .attr('aria-invalid', String(!valid));
+            if (this.id === 'storeId' && this.value) {
+                $('.purchase-server-error').filter(function () { return /\b(warehouse|store)\b/i.test($(this).text()); }).addClass('d-none');
+                const notice = $('#invoiceImportMessage');
+                if (notice.hasClass('alert-danger') && /\b(warehouse|store)\b/i.test(notice.text())) {
+                    notice.removeClass('alert-danger').addClass('alert-light').text('Warehouse selected. Review your purchase items before saving.');
+                }
+            }
+        });
+
         $('#purchaseForm').on('submit', function (event) {
+            if (!syncPurchaseDate()) {
+                event.preventDefault();
+                $('#purchaseFormError').text('Enter a valid invoice date as DD-MM-YYYY.').removeClass('d-none');
+                return;
+            }
+            let error = null;
+            $('#purchaseLines tr').each(function (index) {
+                const row = $(this);
+                const quantity = Number(row.find('.line-quantity').val());
+                const price = Number(row.find('.line-unit-price').val());
+                const tax = Number(row.find('.line-tax-percent').val());
+                if (!row.find('.line-product-id').val()) error = error || 'Choose or create a product for item ' + (index + 1) + '.';
+                else if (!Number.isSafeInteger(quantity) || quantity <= 0) error = error || 'Enter a whole quantity greater than zero for item ' + (index + 1) + '.';
+                else if (!Number.isFinite(price) || price <= 0) error = error || 'Enter a valid unit price for item ' + (index + 1) + '.';
+                else if (row.find('.line-tax-percent').val() === '' || !Number.isFinite(tax) || tax < 0 || tax > 100) error = error || 'Enter VAT between 0 and 100 for item ' + (index + 1) + '.';
+                else if ([price, tax].some(value => Math.abs(value * 100 - Math.round(value * 100)) > 0.000001)) error = error || 'Use at most two decimals for unit price and VAT for item ' + (index + 1) + '.';
+            });
+            if (error) {
+                event.preventDefault();
+                $('#purchaseFormError').text(error).removeClass('d-none');
+                return;
+            }
+            $('#purchaseFormError').addClass('d-none').empty();
             let validLines = 0;
             $('#purchaseLines tr').each(function () {
                 if ($(this).find('.line-product-id').val()) {
@@ -278,6 +346,7 @@ $(function () {
             }).done(function (supplier) {
                 const option = $('<option>', {value: supplier.id, text: supplier.name});
                 $('#supplierId').append(option).val(supplier.id).trigger('change');
+                $(document).trigger('purchase:supplier-created', [supplier]);
                 $('#quickSupplierName, #quickSupplierContactPerson, #quickSupplierPhone, #quickSupplierEmail, #quickSupplierTrn, #quickSupplierAddress').val('');
                 $('#quickSupplierActive').prop('checked', true);
                 supplierModal.hide();
